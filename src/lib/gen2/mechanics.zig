@@ -1614,8 +1614,16 @@ pub const Effects = struct {
         try options.log.start(.{ foe_ident, .Encore, move.id });
     }
 
-    pub fn explode(battle: anytype, player: Player, state: *State, options: anytype) !void {
-        _ = .{ battle, player, state, options }; // TODO
+    pub fn explode(battle: anytype, player: Player, _: *State, _: anytype) !void {
+        var side = battle.side(player);
+        var stored = side.stored();
+
+        stored.hp = 0;
+        // Pokémon Showdown sets the status to 0 on faint(), and we need to do the same to be able
+        // to correctly implement Pokémon Showdown's dumb speed-based switch mechanics
+        if (!showdown) stored.status = 0;
+        side.active.volatiles.LeechSeed = false;
+        side.active.volatiles.DestinyBond = false;
     }
 
     pub fn falseSwipe(battle: anytype, player: Player, state: *State, _: anytype) !void {
