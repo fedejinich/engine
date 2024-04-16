@@ -1749,8 +1749,26 @@ pub const Effects = struct {
         foe.active.volatiles.frozen = true;
     }
 
-    pub fn furyCutter(battle: anytype, player: Player, state: *State, options: anytype) !void {
-        _ = .{ battle, player, state, options }; // TODO
+    // TODO FIXME showdown calls this before calcDamage (after checkHit) and modifies state.bp!
+    pub fn furyCutter(battle: anytype, player: Player, state: *State, _: anytype) !void {
+        var side = battle.side(player);
+        var volatiles = &side.active.volatiles;
+
+        if (state.miss) {
+            volatiles.fury_cutter = 0;
+            return;
+        }
+
+        assert(volatiles.fury_cutter >= 0 and volatiles.fury_cutter <= 5);
+        if (volatiles.fury_cutter == 5) return;
+        volatiles.fury_cutter += 1;
+
+        if (showdown) {
+            state.bp *= 2;
+            assert(state.bp <= 160);
+        } else {
+            state.damage *|= 2;
+        }
     }
 
     pub fn futureSight(battle: anytype, player: Player, state: *State, options: anytype) !void {
