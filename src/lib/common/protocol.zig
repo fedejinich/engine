@@ -220,6 +220,7 @@ pub const Activate = enum(u8) {
     BeatUp, // FIXME of
 
     Magnitude,
+    Spite,
 };
 
 pub const Start = enum(u8) {
@@ -544,6 +545,7 @@ pub fn Log(comptime Writer: type) type {
         // ident: ID, reason: Activate
         // ident: ID, reason: .SubstituteBlock, m: <Move>
         // ident: ID, reason: .Magnitude, num: u8
+        // ident: ID, reason: .Spite, m: <Move>, num: u8
         pub fn activate(self: Self, args: anytype) Error!void {
             if (!enabled) return;
 
@@ -561,6 +563,9 @@ pub fn Log(comptime Writer: type) type {
                     assert(reason == .Magnitude);
                     try self.writer.writeByte(args[2]);
                 }
+            } else if (args.len == 4) {
+                assert(reason == .Spite);
+                try self.writer.writeAll(&.{ @intFromEnum(args[2]), args[3] });
             }
         }
 

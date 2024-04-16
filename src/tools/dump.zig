@@ -71,7 +71,7 @@ pub fn main() !void {
                             inline for (e.fields) |field| {
                                 if (inner) try w.writeAll(",\n");
                                 // TODO: ziglang/zig#18888
-                                @setEvalBranchQuota(2005);
+                                @setEvalBranchQuota(2013);
                                 try w.print("    \"{s}\"", .{field.name});
                                 inner = true;
                             }

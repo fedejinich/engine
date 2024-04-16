@@ -2459,17 +2459,37 @@ pub const Effects = struct {
     }
 
     pub fn spite(battle: anytype, player: Player, state: *State, options: anytype) !void {
-        _ = .{ battle, player, state, options }; // TODO
-        // var foe = battle.foe(player);
+        var foe = battle.foe(player);
 
-        // if (state.miss) return options.log.fail(.{ battle.active(player), .None });
+        const last = foe.lastMove(false);
+        if (state.miss or last == .None or last == .Struggle) {
+            return options.log.fail(.{ battle.active(player.foe()), .None });
+        }
 
-        // const last = foe.lastMove(false);
-        // if (showdown) {
-        //     const roll = try Rolls.spite(battle, player, options);
-        // } else {
-        //     if (last != .None) {}
-        // }
+        var slot: u4 = 0;
+        for (foe.active.moves, 0..) |m, i| {
+            if (m.id == last) slot = @intCast(i + 1);
+        }
+        // If the move was called via Metronome it might not exist
+        if (slot == 0 or foe.active.move(slot).pp == 0) {
+            return options.log.fail(.{ battle.active(player.foe()), .None });
+        }
+
+        // Pokémon Showdown always deducts 4 instead of randomizing
+        const pp = @min(
+            foe.active.move(slot).pp,
+            if (showdown) 4 else try Rolls.spite(battle, player, options),
+        );
+        foe.active.move(slot).pp -= pp;
+        if (!foe.active.volatiles.Transform) {
+            var move_slot = foe.stored().move(slot);
+            assert(move_slot.pp > 0);
+
+            move_slot.pp = @as(u6, @intCast(move_slot.pp)) -% 1;
+            assert(foe.active.move(slot).pp == foe.stored().move(slot).pp);
+        }
+
+        try options.log.activate(.{ battle.active(player.foe()), .Spite, last, pp });
     }
 
     pub fn splash(battle: anytype, player: Player, _: *State, options: anytype) !void {
@@ -3075,13 +3095,12 @@ pub const Rolls = struct {
         return hits;
     }
 
-    fn spite(battle: anytype, player: Player, options: anytype) !u8 {
-        const pp = if (options.calc.overridden(player, .spite)) |val|
+    fn spite(battle: anytype, player: Player, options: anytype) !u3 {
+        assert(!showdown);
+        const pp: u3 = if (options.calc.overridden(player, .spite)) |val|
             val + 1
-        else if (showdown)
-            battle.rng.range(u8, 2, 6)
         else
-            (battle.rng.next() & 3) + 2;
+            @intCast((battle.rng.next() & 3) + 2);
 
         assert(pp >= 2 and pp <= 5);
         try options.chance.spite(player, pp);
