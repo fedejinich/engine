@@ -1304,14 +1304,32 @@ pub const Effects = struct {
     }
 
     pub fn bellyDrum(battle: anytype, player: Player, state: *State, options: anytype) !void {
-        _ = .{ battle, player, state, options }; // TODO
-        // assert(!state.miss);
-        // var side = battle.side(player);
-        // try boostStat(battle, side, &side.active.stats, &side.active.boosts, "atk", 2);
-        // TODO
-        // |-boost|p1a: Poliwag|atk|2|[silent]
-        // |-fail|p1a: Poliwag
-        //
+        assert(!state.miss);
+        var side = battle.side(player);
+
+        const ident = battle.active(player);
+
+        assert(side.active.boosts.atk >= -6 and side.active.boosts.atk <= 6);
+        if (side.active.boosts.atk == 6 or side.active.boosts.atk == MAX_STAT_VALUE) {
+            return options.log.fail(.{ ident, .None });
+        }
+
+        const hp = @max(side.stored().stats.hp / 2, 1);
+        if (side.stored().hp <= hp) {
+            try boostStat(battle, side, &side.active.stats, &side.active.boosts, "atk", 2);
+            try options.log.boost(.{ ident, .Attack, @as(i8, 2), .Silent });
+            return options.log.fail(.{ ident, .None });
+        } else {
+            side.stored().hp -= hp;
+            try options.log.damage(.{ ident, side.stored(), .None });
+
+            const before = side.active.boosts.atk;
+            var i: usize = 0;
+            while (i < 6 and side.active.stats.atk < MAX_STAT_VALUE) : (i += 1) {
+                try boostStat(battle, side, &side.active.stats, &side.active.boosts, "atk", 2);
+            }
+            try options.log.boost(.{ ident, .Attack, @as(i8, side.active.boosts.atk - before) });
+        }
     }
 
     pub const bide = struct {
