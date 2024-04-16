@@ -1929,7 +1929,29 @@ pub const Effects = struct {
     }
 
     pub fn mimic(battle: anytype, player: Player, state: *State, options: anytype) !void {
-        _ = .{ battle, player, state, options }; // TODO
+        var side = battle.side(player);
+
+        if (state.miss) {
+            if (!showdown) return options.log.fail(.{ battle.active(player.foe()), .None });
+            try options.log.lastmiss(.{});
+            return options.log.miss(.{battle.active(player)});
+        }
+
+        const move = battle.foe(player).lastMove(false);
+        if (move == .None or move == .Struggle) {
+            return options.log.fail(.{ battle.active(player.foe()), .None });
+        }
+
+        var slot: u4 = 0;
+        for (side.active.moves, 0..) |m, i| {
+            if (m.id == move) return options.log.fail(.{ battle.active(player.foe()), .None });
+            if (m.id == .Mimic) slot = @intCast(i + 1);
+        }
+        assert(slot != 0 and slot == state.mslot);
+
+        side.active.move(slot).id = move;
+        side.active.move(slot).pp = 5;
+        try options.log.start(.{ battle.active(player), .Mimic, move });
     }
 
     pub fn mirrorMove(
