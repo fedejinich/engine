@@ -128,7 +128,7 @@ clean-example:
 
 .PHONY: clean
 clean: clean-example
-	rm -rf zig-* build .tsbuildinfo .eslintcache
+	rm -rf .zig-* zig-* build .tsbuildinfo .eslintcache
 
 .PHONY: release
 release:

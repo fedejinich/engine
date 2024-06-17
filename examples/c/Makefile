@@ -13,7 +13,9 @@
 # Windows doesn't support any of this
 # (https://ibob.bg/blog/2018/12/16/windows-rpath/) so we just give up and copy
 # the files into the current directory directly. This isn't required for static
-# linking on Windows, but for simplicity we copy the artifacts anyway.
+# linking on Windows, but for simplicity we copy the artifacts anyway (though
+# the location of said exact artifacts changed from lib -> bin in
+# ziglang/zig#19743).
 #
 # On macOS we also need to set `-mmacosx-version-min` on our executable as Zig
 # will set the precise version on the library it builds which will result in
@@ -65,9 +67,17 @@ endif
 
 example: example.o
 ifeq ($(OS),Windows_NT)
+ifeq (,$(wildcard $(ROOT)/lib/pkmn$(suffix).lib))
+	cp $(ROOT)/bin/pkmn$(suffix).lib .
+else
 	cp $(ROOT)/lib/pkmn$(suffix).lib .
+endif
 ifeq ($(dynamic),true)
+ifeq (,$(wildcard $(ROOT)/lib/pkmn$(suffix).dll))
+	cp $(ROOT)/bin/pkmn$(suffix).dll .
+else
 	cp $(ROOT)/lib/pkmn$(suffix).dll .
+endif
 endif
 endif
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)

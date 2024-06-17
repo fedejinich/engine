@@ -10349,9 +10349,9 @@ test "transitions" {
 
     // const seed = 0x12345678; // DEBUG
     const seed = seed: {
-        var secret: [std.rand.DefaultCsprng.secret_seed_length]u8 = undefined;
+        var secret: [std.Random.DefaultCsprng.secret_seed_length]u8 = undefined;
         std.crypto.random.bytes(&secret);
-        var csprng = std.rand.DefaultCsprng.init(secret);
+        var csprng = std.Random.DefaultCsprng.init(secret);
         const random = csprng.random();
         break :seed random.int(u64);
     };

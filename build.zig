@@ -16,7 +16,7 @@ pub fn module(b: *std.Build, options: Options) *std.Build.Module {
     build_options.addOption(?bool, "chance", options.chance);
     build_options.addOption(?bool, "calc", options.calc);
     return b.createModule(.{
-        .root_source_file = .{ .path = dirname ++ "/src/lib/pkmn.zig" },
+        .root_source_file = .{ .cwd_relative = dirname ++ "/src/lib/pkmn.zig" },
         .imports = &.{.{ .name = "build_options", .module = build_options.createModule() }},
     });
 }
@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) !void {
     defer parsed.deinit();
     const version = parsed.value.object.get("version").?.string;
     const description = parsed.value.object.get("description").?.string;
-    var repository = std.mem.split(u8, parsed.value.object.get("repository").?.string, ":");
+    var repository = std.mem.splitSequence(u8, parsed.value.object.get("repository").?.string, ":");
     std.debug.assert(std.mem.eql(u8, repository.first(), "github"));
 
     const showdown =
@@ -66,17 +66,17 @@ pub fn build(b: *std.Build) !void {
         const addon = b.fmt("{s}.node", .{name});
         const lib = b.addSharedLibrary(.{
             .name = addon,
-            .root_source_file = .{ .path = "src/lib/node.zig" },
+            .root_source_file = b.path("src/lib/node.zig"),
             .optimize = optimize,
             .target = target,
             .strip = strip,
             .pic = pic,
         });
         lib.root_module.addOptions("build_options", options);
-        lib.addSystemIncludePath(.{ .path = headers });
+        lib.addSystemIncludePath(b.path(headers));
         lib.linkLibC();
         if (node_import_lib) |il| {
-            lib.addObjectFile(.{ .path = il });
+            lib.addObjectFile(b.path(il));
         } else if (target.result.os.tag == .windows) {
             try std.io.getStdErr().writeAll("Must provide --node-import-library path on Windows\n");
             std.process.exit(1);
@@ -95,7 +95,7 @@ pub fn build(b: *std.Build) !void {
     } else if (wasm) {
         const exe = b.addExecutable(.{
             .name = name,
-            .root_source_file = .{ .path = "src/lib/wasm.zig" },
+            .root_source_file = b.path("src/lib/wasm.zig"),
             .optimize = switch (optimize) {
                 .ReleaseFast, .ReleaseSafe => .ReleaseSmall,
                 else => optimize,
@@ -121,7 +121,7 @@ pub fn build(b: *std.Build) !void {
             const sh = b.addSystemCommand(&.{ opt.?, "-O4" });
             sh.addArtifactArg(exe);
             sh.addArg("-o");
-            sh.addFileArg(.{ .path = out });
+            sh.addFileArg(b.path(out));
             b.getInstallStep().dependOn(&sh.step);
         } else {
             b.getInstallStep().dependOn(&b.addInstallArtifact(exe, .{
@@ -131,7 +131,7 @@ pub fn build(b: *std.Build) !void {
     } else if (dynamic) {
         const lib = b.addSharedLibrary(.{
             .name = name,
-            .root_source_file = .{ .path = "src/lib/c.zig" },
+            .root_source_file = b.path("src/lib/c.zig"),
             .version = try std.SemanticVersion.parse(version),
             .optimize = optimize,
             .target = target,
@@ -139,21 +139,21 @@ pub fn build(b: *std.Build) !void {
             .pic = pic,
         });
         lib.root_module.addOptions("build_options", options);
-        lib.addIncludePath(.{ .path = "src/include" });
+        lib.addIncludePath(b.path("src/include"));
         maybeStrip(b, lib, b.getInstallStep(), strip, cmd);
         b.installArtifact(lib);
         c = true;
     } else {
         const lib = b.addStaticLibrary(.{
             .name = name,
-            .root_source_file = .{ .path = "src/lib/c.zig" },
+            .root_source_file = b.path("src/lib/c.zig"),
             .optimize = optimize,
             .target = target,
             .strip = strip,
             .pic = pic,
         });
         lib.root_module.addOptions("build_options", options);
-        lib.addIncludePath(.{ .path = "src/include" });
+        lib.addIncludePath(b.path("src/include"));
         lib.bundle_compiler_rt = true;
         maybeStrip(b, lib, b.getInstallStep(), strip, cmd);
         if (emit_asm) {
@@ -176,7 +176,7 @@ pub fn build(b: *std.Build) !void {
 
     if (c) {
         const header = b.addInstallFileWithDir(
-            .{ .path = "src/include/pkmn.h" },
+            b.path("src/include/pkmn.h"),
             .header,
             "pkmn.h",
         );
@@ -306,7 +306,7 @@ const TestStep = struct {
         self.* = .{ .step = step, .build = test_filter == null };
 
         const tests = b.addTest(.{
-            .root_source_file = .{ .path = "src/lib/test.zig" },
+            .root_source_file = b.path("src/lib/test.zig"),
             .optimize = config.optimize,
             .target = config.target,
             .filter = test_filter,
@@ -347,7 +347,7 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.R
 
     const exe = b.addExecutable(.{
         .name = name,
-        .root_source_file = .{ .path = path },
+        .root_source_file = b.path(path),
         .target = config.general.target,
         .optimize = config.general.optimize,
         .single_threaded = true,

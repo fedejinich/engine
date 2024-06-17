@@ -97,16 +97,17 @@ pub const Actions = extern struct {
     }
 };
 
+// TODO: ziglang/zig#19730
 test Actions {
     const a: Actions = .{ .p1 = .{ .hit = .true, .critical_hit = .false, .damage = 245 } };
     const b: Actions = .{ .p1 = .{ .hit = .false, .critical_hit = .true, .damage = 246 } };
     const c: Actions = .{ .p1 = .{ .hit = .true } };
-    const d: Actions = .{ .p2 = .{ .hit = .true, .durations = .{ .sleep = 2 } } };
-    const e: Actions = .{ .p2 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
-    const f: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
-    const g: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1 } } };
-    const h: Actions =
-        .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1, .thrash = true } } };
+    // const d: Actions = .{ .p2 = .{ .hit = .true, .durations = .{ .sleep = 2 } } };
+    // const e: Actions = .{ .p2 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
+    // const f: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
+    // const g: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1 } } };
+    // const h: Actions =
+    //     .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1, .thrash = true } } };
 
     try expect(a.eql(a));
     try expect(!a.eql(b));
@@ -119,10 +120,10 @@ test Actions {
     try expect(b.matches(a));
     try expect(!a.matches(c));
     try expect(!c.matches(a));
-    try expect(d.matches(e));
-    try expect(!d.matches(f));
-    try expect(!g.matches(h));
-    try expect(h.matches(h));
+    // try expect(d.matches(e));
+    // try expect(!d.matches(f));
+    // try expect(!g.matches(h));
+    // try expect(h.matches(h));
 }
 
 /// Information about the RNG that was observed during a Generation II battle `update` for a

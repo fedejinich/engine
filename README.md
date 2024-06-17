@@ -57,9 +57,9 @@ $ zig build --prefix /usr/local -Doptimize=ReleaseFast
 ```
 
 The Zig website has [installation instructions](https://ziglang.org/learn/getting-started/) which
-walk through how to install Zig on each platform - the engine code should work on Zig v0.12.0 dev
-build 2036 or greater, though tracks Zig's master branch so this may change in the future if
-breaking language changes are introduced:
+walk through how to install Zig on each platform - the engine code should work on Zig v0.13.0,
+though tracks Zig's master branch so this may change in the future if breaking language changes are
+introduced.
 
 `libpkmn` can be built with `-Dshowdown` to instead produce the Pokémon Showdown compatible
 `libpkmn-showdown` library. Furthermore, protocol message logging can be enabled through `-Dlog`.
@@ -249,7 +249,7 @@ be used when logging is enabled to allow for easily printing e.g. to standard ou
 const std = @import("std");
 const pkmn = @import("pkmn");
 
-var random = std.rand.DefaultPrng.init(seed).random();
+var random = std.Random.DefaultPrng.init(seed).random();
 var choices: [pkmn.CHOICES_SIZE]pkmn.Choice = undefined;
 
 var battle = ...

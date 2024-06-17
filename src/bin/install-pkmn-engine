@@ -10,7 +10,7 @@ const path = require('path');
 const {pipeline} = require('stream/promises');
 const tty = require('tty');
 
-const ZIG_VERSION = {major: 0, minor: 12, patch: 0, dev: 2036};
+const ZIG_VERSION = {major: 0, minor: 13, patch: 0};
 const DEV = ZIG_VERSION.dev ? `-dev.${ZIG_VERSION.dev}` : '';
 const VERSION = `${ZIG_VERSION.major}.${ZIG_VERSION.minor}.${ZIG_VERSION.patch}${DEV}`;
 const INDEX = 'https://ziglang.org/download/index.json';
@@ -370,8 +370,10 @@ const downloadImportLib = async () => {
     const args = ['build', '-p', 'build', ...opts];
     if (!process.env.DEBUG_PKMN_ENGINE) args.push('-Doptimize=ReleaseFast', '-Dstrip');
     if (config.type === 'node') {
-      args.push(`-Dnode-headers=${headers}`);
-      if (process.platform === 'win32') args.push(`-Dnode-import-library=${lib}`);
+      args.push(`-Dnode-headers=${path.relative(ROOT, headers)}`);
+      if (process.platform === 'win32') {
+        args.push(`-Dnode-import-library=${path.relative(ROOT, lib)}`);
+      }
     } else {
       args.push('-Dwasm');
     }
@@ -386,8 +388,14 @@ const downloadImportLib = async () => {
       const prefix = process.platform === 'win32' ? '' : 'lib';
       const ext = process.platform === 'darwin'
         ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so';
-      const actual = path.join('build', 'lib', `${prefix}pkmn${suffix}.node.${ext}`);
-      fs.renameSync(path.join(ROOT, actual), path.join(ROOT, artifact));
+      try {
+        const actual = path.join('build', 'lib', `${prefix}pkmn${suffix}.node.${ext}`);
+        fs.renameSync(actual, artifact);
+      } catch (err) {
+        // ziglang/zig#19743 changed this path
+        const actual = path.join('build', 'bin', `${prefix}pkmn${suffix}.node.${ext}`);
+        fs.renameSync(actual, artifact);
+      }
     }
   }
 })().catch(e => {
