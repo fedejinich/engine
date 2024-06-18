@@ -15,7 +15,7 @@ export const MIN = 0;
 export const MAX = 0xFFFFFFFF;
 export const NOP = 42;
 
-const tie = 'sim/battle-queue.ts:405:15';
+const tie = 'sim/battle-queue.ts:419:15';
 
 export const ROLLS = {
   basic(keys: {hit: string; crit: string; dmg: string}) {
@@ -39,7 +39,7 @@ export const ROLLS = {
     return (move: string, skip: string[] = []) => {
       const moves = all.filter(m => !skip.includes(m));
       const value = ranged(moves.indexOf(move) + 1, moves.length) - 1;
-      return {key: 'data/moves.ts:12197:23', value};
+      return {key: 'data/moves.ts:12199:23', value};
     };
   },
 };

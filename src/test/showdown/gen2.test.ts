@@ -7003,7 +7003,7 @@ describe('Gen 2', () => {
   });
 
   test('Spite effect', () => {
-    const spite2 = {key: 'data/mods/gen3/moves.ts:569:22', value: ranged(0, 4)};
+    const spite2 = {key: 'data/mods/gen3/moves.ts:613:22', value: ranged(0, 4)};
     const spite3 = {...spite2, value: ranged(1, 4)};
     const battle = startBattle([
       QKC, spite2, MISS, QKC, spite2, MISS, QKC, spite3, MISS, QKC, spite2, QKC,
@@ -8123,7 +8123,7 @@ describe('Gen 2', () => {
   });
 
   test('Present effect', () => {
-    const present = {key: 'data/moves.ts:14425:22', value: ranged(1, 10) - 1};
+    const present = {key: 'data/moves.ts:14427:22', value: ranged(1, 10) - 1};
     const present40 = {...present, value: ranged(6, 10) - 1};
     const present120 = {...present, value: ranged(10, 10) - 1};
     const battle = startBattle([
@@ -8330,7 +8330,7 @@ describe('Gen 2', () => {
   });
 
   test('Magnitude effect', () => {
-    const mag8 = {key: 'data/moves.ts:11276:19', value: ranged(85, 100) - 1};
+    const mag8 = {key: 'data/moves.ts:11278:19', value: ranged(85, 100) - 1};
     const mag5 = {...mag8, value: ranged(15, 100) - 1};
     const battle = startBattle([
       QKC, mag8, NO_CRIT, MIN_DMG, QKC, mag5, NO_CRIT, MIN_DMG, NO_CRIT, MIN_DMG, QKC,
