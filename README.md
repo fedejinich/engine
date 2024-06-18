@@ -3,7 +3,7 @@
   <br />
   <br />
   <a href="https://github.com/pkmn/engine/actions/workflows/test.yml">
-    <img alt="Test Status" src="https://github.com/pkmn/engine/workflows/Tests/badge.svg" />
+    <img alt="Test Status" src="https://github.com/pkmn/engine/actions/workflows/test.yml/badge.svg" />
   </a>
   <a href="#status">
     <img alt="WIP" src="https://img.shields.io/badge/status-WIP-red.svg" />
