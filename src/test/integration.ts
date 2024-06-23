@@ -608,7 +608,7 @@ function fromInputLog(
     const choice = {type, data};
     if (choices[player]) {
       throw new Error(`Already have choice for ${player}: ` +
-        `'${engine.Choice.format(choices[player]!)}' vs. '${engine.Choice.format(choice)}'`);
+        `'${engine.Choice.format(choices[player])}' vs. '${engine.Choice.format(choice)}'`);
     }
 
     // Ensure the choice we parsed from the input log is actually valid for the
