@@ -1085,7 +1085,7 @@ test "Endless Battle Clause (basic)" {
 }
 
 test "choices" {
-    var random = rng.PSRNG.init(0x27182818);
+    var random = rng.PSRNG.init(0x2718281);
     var battle = Battle.random(&random, .{});
     try expectEqual(Result.Default, try battle.update(.{}, .{}, &NULL));
 

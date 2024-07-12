@@ -86,18 +86,38 @@ pub const Battle = struct {
 };
 
 fn prng(rand: *PSRNG) data.PRNG {
-    // GLITCH: initial bytes in seed can only range from 0-252, not 0-255
-    const max: u8 = 253;
     return .{
         .src = .{
             .seed = if (showdown)
                 rand.newSeed()
-            else
-                .{
-                    rand.range(u8, 0, max), rand.range(u8, 0, max), rand.range(u8, 0, max),
-                    rand.range(u8, 0, max), rand.range(u8, 0, max), rand.range(u8, 0, max),
-                    rand.range(u8, 0, max), rand.range(u8, 0, max), rand.range(u8, 0, max),
-                },
+            else seed: {
+                // GLITCH: The initial RNG seed in Gen I link battles is heavily constrained
+                // https://www.smogon.com/forums/threads/rng-in-rby-link-battles.3746779
+                var seed = [_]u8{ 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+                // Bytes in seed can only range from 0-252, not 0-255
+                const max: u8 = 253;
+                // Instructions take multiples of 4 cycles to execute
+                var timer: u16 = 4 * rand.range(u16, 0, 16384);
+                var add: u8 = rand.range(u8, 0, 256);
+                var carry: u8 = 0;
+
+                var i: u8 = 0;
+                while (i < seed.len) {
+                    const div: u8 = @intCast(timer >> 8);
+                    add +%= div +% carry;
+                    if (add < max) {
+                        seed[i] = add;
+                        i += 1;
+                        timer +%= 472;
+                        carry = 1;
+                    } else {
+                        timer +%= 452;
+                        carry = 0;
+                    }
+                }
+                break :seed seed;
+            },
         },
     };
 }
