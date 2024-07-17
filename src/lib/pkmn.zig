@@ -26,9 +26,7 @@ pub const Result = @import("common/data.zig").Result;
 pub const PSRNG = @import("common/rng.zig").PSRNG;
 
 /// Namespace for helpers related to protocol message logging.
-pub const protocol = if (options.internal) struct {
-    pub usingnamespace @import("common/protocol.zig");
-} else struct {
+pub const protocol = if (options.internal) @import("common/protocol.zig") else struct {
     /// Logs protocol information to its `Writer` during a battle update when
     /// `options.log` is enabled.
     pub const Log = @import("common/protocol.zig").Log;
@@ -82,9 +80,7 @@ pub const gen1 = struct {
     /// via `overrides` and tracks `summaries` of information relevant to damage calculation.
     pub const Calc = @import("gen1/calc.zig").Calc;
     /// Namespace for types associated with supported Generation I Pokémon damage calc features.
-    pub const calc = if (options.internal) struct {
-        pub usingnamespace @import("gen1/calc.zig");
-    } else struct {
+    pub const calc = if (options.internal) @import("gen1/calc.zig") else struct {
         /// TODO
         pub const Overrides = @import("gen1/calc.zig").Overrides;
         /// Information relevant to damage calculation that occured during a Generation I
@@ -114,9 +110,7 @@ pub const gen2 = struct {
         pub const NULL = @import("gen2/chance.zig").NULL;
     };
     pub const Calc = @import("gen2/calc.zig").Calc;
-    pub const calc = if (options.internal) struct {
-        pub usingnamespace @import("gen2/calc.zig");
-    } else struct {
+    pub const calc = if (options.internal) @import("gen2/calc.zig") else struct {
         pub const Overrides = @import("gen2/calc.zig").Overrides;
         pub const Summaries = @import("gen2/calc.zig").Summaries;
         pub const Summary = @import("gen2/calc.zig").Summary;
@@ -127,9 +121,7 @@ pub const gen2 = struct {
 
 // Internal APIs used by other pkmn libraries, not actually part of the public API.
 // NOTE: `pub usingnamespace struct { ... }` here results in a (false?) dependency loop
-pub const js = if (options.internal) struct {
-    pub usingnamespace @import("common/js.zig");
-} else struct {};
+pub const js = if (options.internal) @import("common/js.zig") else struct {};
 pub const bindings = if (options.internal) struct {
     pub const node = @import("node.zig");
     pub const wasm = @import("wasm.zig");
