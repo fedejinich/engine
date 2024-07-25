@@ -2732,17 +2732,19 @@ pub const Rolls = struct {
         return roll;
     }
 
+    const uN = if (pkmn.options.miss) u8 else u9;
     fn hit(battle: anytype, player: Player, accuracy: u8, options: anytype) bool {
+        const acc: uN = if (pkmn.options.miss) accuracy else @as(uN, accuracy) + 1;
         const ok = if (options.calc.overridden(player, .hit)) |val|
             val == .true
         else if (@hasDecl(@TypeOf(battle.rng), "hit"))
-            battle.rng.hit(player, accuracy)
+            battle.rng.hit(player, acc)
         else if (showdown)
-            battle.rng.chance(u8, accuracy, 256)
+            battle.rng.chance(uN, acc, 256)
         else
-            battle.rng.next() < accuracy;
+            battle.rng.next() < acc;
 
-        options.chance.hit(ok, accuracy);
+        options.chance.hit(ok, acc);
         return ok;
     }
 

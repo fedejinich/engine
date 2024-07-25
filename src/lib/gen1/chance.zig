@@ -255,6 +255,8 @@ pub const Duration = packed struct(u16) {
 
 pub const Commit = enum { hit, miss, binding };
 
+const uN = if (options.miss) u8 else u9;
+
 /// Tracks chance actions and their associated probability during a Generation I battle update when
 /// `options.chance` is enabled.
 pub fn Chance(comptime Rational: type) type {
@@ -293,13 +295,13 @@ pub fn Chance(comptime Rational: type) type {
         // shared structure to track this information (though it needs to be cleared appropriately)
         pending: if (showdown) struct {
             hit: bool = false,
-            hit_probablity: u8 = 0,
+            hit_probablity: uN = 0,
         } else struct {
             crit: bool = false,
             crit_probablity: u8 = 0,
             damage_roll: u8 = 0,
             hit: bool = false,
-            hit_probablity: u8 = 0,
+            hit_probablity: uN = 0,
             binding: u8 = 0,
         } = .{},
 
@@ -398,7 +400,7 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.p2.speed_tie = self.actions.p1.speed_tie;
         }
 
-        pub fn hit(self: *Self, ok: bool, accuracy: u8) void {
+        pub fn hit(self: *Self, ok: bool, accuracy: uN) void {
             if (!enabled) return;
 
             const p = if (ok) accuracy else @as(u8, @intCast(256 - @as(u9, accuracy)));
@@ -989,7 +991,7 @@ const Null = struct {
         _ = .{ self, p1 };
     }
 
-    pub fn hit(self: Null, ok: bool, accuracy: u8) void {
+    pub fn hit(self: Null, ok: bool, accuracy: uN) void {
         _ = .{ self, ok, accuracy };
     }
 

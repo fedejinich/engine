@@ -10101,7 +10101,7 @@ test "RNG overrides" {
                 return 239;
             }
 
-            pub fn hit(_: @This(), _: Player, _: u8) bool {
+            pub fn hit(_: @This(), _: Player, _: anytype) bool {
                 return true;
             }
 
