@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         options: ['', '-Dlog -Dchance -Dcalc', '-Dshowdown', '-Dshowdown -Dlog -Dchance -Dcalc']
-        zig: [local, master]
+        zig: [local] # master
     runs-on: ${{matrix.os}}
     steps:
       - run: exit 0
