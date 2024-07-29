@@ -90,18 +90,11 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
         std.debug.assert(!showdown or battle.side(.P2).get(1).hp > 0);
 
         switch (gen) {
-            1 => blk: {
-                var chance = if (pkmn.options.chance)
-                    pkmn.gen1.Chance(pkmn.Rational(u64)){ .probability = .{} }
-                else
-                    pkmn.gen1.chance.NULL;
-                const options = pkmn.battle.options(
-                    if (save) log.? else pkmn.protocol.NULL,
-                    &chance,
-                    pkmn.gen1.calc.NULL,
-                );
+            1 => if (save) blk: {
+                const options =
+                    pkmn.battle.options(log.?, pkmn.gen1.chance.NULL, pkmn.gen1.calc.NULL);
                 break :blk try run(&battle, &random, save, max, allocator, options);
-            },
+            } else try run(&battle, &random, save, max, allocator, pkmn.gen1.NULL),
             else => unreachable,
         }
     }
@@ -126,8 +119,6 @@ fn run(
 
     var result = try battle.update(c1, c2, &options);
     while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
-        if (pkmn.options.chance) options.chance.reset();
-
         var n = battle.choices(.P1, result.p1, &choices);
         if (n == 0) break;
         c1 = choices[p1.range(u8, 0, n)];
@@ -150,7 +141,6 @@ fn run(
         }
     }
 
-    if (pkmn.options.chance) options.chance.reset();
     std.debug.assert(!showdown or result.type != .Error);
 }
 
