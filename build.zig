@@ -1,26 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const Options = struct {
-    showdown: ?bool = null,
-    log: ?bool = null,
-    chance: ?bool = null,
-    calc: ?bool = null,
-};
-
-pub fn module(b: *std.Build, options: Options) *std.Build.Module {
-    const dirname = comptime std.fs.path.dirname(@src().file) orelse ".";
-    const build_options = b.addOptions();
-    build_options.addOption(?bool, "showdown", options.showdown);
-    build_options.addOption(?bool, "log", options.log);
-    build_options.addOption(?bool, "chance", options.chance);
-    build_options.addOption(?bool, "calc", options.calc);
-    return b.createModule(.{
-        .root_source_file = .{ .cwd_relative = dirname ++ "/src/lib/pkmn.zig" },
-        .imports = &.{.{ .name = "build_options", .module = build_options.createModule() }},
-    });
-}
-
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -60,6 +40,13 @@ pub fn build(b: *std.Build) !void {
     options.addOption(?bool, "calc", calc);
 
     const name = if (showdown) "pkmn-showdown" else "pkmn";
+
+    const module = b.addModule("pkmn", .{
+        .root_source_file = b.path("src/lib/pkmn.zig"),
+        .optimize = optimize,
+        .target = target,
+        .imports = &.{.{ .name = "build_options", .module = options.createModule() }},
+    });
 
     var c = false;
     if (node_headers) |headers| {
@@ -222,12 +209,8 @@ pub fn build(b: *std.Build) !void {
 
     var exes = std.ArrayList(*std.Build.Step.Compile).init(b.allocator);
     const tools: ToolConfig = .{
-        .options = .{
-            .showdown = showdown,
-            .log = log,
-            .chance = chance,
-            .calc = calc,
-        },
+        .showdown = showdown,
+        .module = module,
         .general = config,
         .tool = .{
             .tests = if (tests.build) tests else null,
@@ -326,7 +309,8 @@ const TestStep = struct {
 };
 
 const ToolConfig = struct {
-    options: Options,
+    showdown: ?bool,
+    module: *std.Build.Module,
     general: Config,
     tool: struct {
         tests: ?*TestStep,
@@ -343,7 +327,7 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.R
     var name = config.tool.name orelse std.fs.path.basename(path);
     const index = std.mem.lastIndexOfScalar(u8, name, '.');
     if (index) |i| name = name[0..i];
-    if (config.options.showdown orelse false) name = b.fmt("{s}-showdown", .{name});
+    if (config.showdown orelse false) name = b.fmt("{s}-showdown", .{name});
 
     const exe = b.addExecutable(.{
         .name = name,
@@ -354,7 +338,7 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.R
         .strip = config.general.strip,
         .pic = config.general.pic,
     });
-    exe.root_module.addImport("pkmn", module(b, config.options));
+    exe.root_module.addImport("pkmn", config.module);
 
     if (config.tool.tests) |ts| ts.step.dependOn(&exe.step);
     config.tool.exes.append(exe) catch @panic("OOM");

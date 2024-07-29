@@ -88,7 +88,9 @@ directly or build the addons manually and place the artifacts in the expected pa
 ### `pkmn`
 
 To include `pkmn`, add it as a dependency in your project's
-[`build.zig.zon`](https://github.com/ziglang/zig/blob/master/doc/build.zig.zon.md):
+[`build.zig.zon`](https://github.com/ziglang/zig/blob/master/doc/build.zig.zon.md) using [Zig's
+Package Management
+system](https://ziglang.org/download/0.11.0/release-notes.html#Package-Management):
 
 
 ```zig
@@ -117,18 +119,18 @@ your `build.zig.zon` you will be able to import the `pkmn` package's build helpe
 
 ```zig
 const std = @import("std");
-const pkmn = @import("pkmn");
 
 pub fn build(b: *std.Build) void {
     ...
-    exe.addModule("pkmn", pkmn.module(b, .{ .showdown = true, .log = true }));
+    const pkmn = b.dependency("pkmn", .{ .showdown = true, .log = true });
+    exe.root_module.addImport("pkmn", pkmn.module("pkmn"));
     ...
 }
 ```
 
-The `pkmn` package exposes a `module` function that takes an options structure to allow for
-configuring whether or not Pokémon Showdown compatibility mode or protocol message logging should be
-enabled. Alternatively, you may set options via a `pkmn_options` [root source file
+The `pkmn` package can be configured with various options such as whether or not Pokémon Showdown
+compatibility mode or protocol message logging should be enabled. Alternatively, you may set options
+via a `pkmn_options` [root source file
 declaration](https://ziglang.org/documentation/master/#Root-Source-File). There are several
 undocumented internal options that can be tweaked as well via build or root options, though these
 options aren't officially supported, affect correctness, and may change meaning or behavior without

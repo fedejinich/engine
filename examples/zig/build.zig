@@ -1,12 +1,12 @@
 const std = @import("std");
-const pkmn = @import("pkmn");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const showdown = b.option(bool, "showdown", "Enable Pokémon Showdown compatibility mode");
-    const log = b.option(bool, "log", "Enable protocol message logging");
+    const showdown =
+        b.option(bool, "showdown", "Enable Pokémon Showdown compatibility mode") orelse false;
+    const log = b.option(bool, "log", "Enable protocol message logging") orelse false;
 
     const exe = b.addExecutable(.{
         .name = "example",
@@ -14,10 +14,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
-    exe.root_module.addImport("pkmn", pkmn.module(b, .{
-        .showdown = showdown,
-        .log = log,
-    }));
+    const pkmn = b.dependency("pkmn", .{ .showdown = showdown, .log = log });
+    exe.root_module.addImport("pkmn", pkmn.module("pkmn"));
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
