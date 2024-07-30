@@ -127,10 +127,10 @@ fn run(
     var p1 = pkmn.PSRNG.init(random.newSeed());
     var p2 = pkmn.PSRNG.init(random.newSeed());
 
-    var result = try battle.update(c1, c2, &options);
-    while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
-        if (chance) options.chance.reset();
-
+    var result = try update(battle, c1, c2, &options, allocator);
+    while (result.type == .None) : (result =
+        try update(battle, c1, c2, &options, allocator))
+    {
         var n = battle.choices(.P1, result.p1, &choices);
         if (n == 0) break;
         c1 = choices[p1.range(u8, 0, n)];
@@ -148,13 +148,24 @@ fn run(
                 .log = try buf.?.toOwnedSlice(),
             });
         }
-        if (chance and pkmn.options.calc) {
-            // TODO: transitions function + MAX_FRONTIER_SIZE
-        }
     }
 
-    if (chance) options.chance.reset();
     std.debug.assert(!showdown or result.type != .Error);
+}
+
+pub fn update(
+    battle: anytype,
+    c1: pkmn.Choice,
+    c2: pkmn.Choice,
+    options: anytype,
+    allocator: std.mem.Allocator,
+) !pkmn.Result {
+    if (!chance) return battle.update(c1, c2, options);
+    const writer = std.io.null_writer;
+    return switch (gen) {
+        1 => pkmn.gen1.calc.update(battle, c1, c2, options, allocator, writer, true),
+        else => unreachable,
+    };
 }
 
 fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {

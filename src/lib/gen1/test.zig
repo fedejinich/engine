@@ -10453,42 +10453,11 @@ fn Test(comptime rolls: anytype) type {
         pub fn update(self: *Self, c1: Choice, c2: Choice) !Result {
             if (self.battle.actual.turn == 0) try self.start();
 
-            self.options.chance.reset();
-            const result = if (pkmn.options.chance and pkmn.options.calc) result: {
-                var copy = self.battle.actual;
-                const actions = self.options.chance.actions;
-
-                // Perfom the actual update
-                const actual = self.battle.actual.update(c1, c2, &self.options);
-
-                // Ensure we can generate all transitions from the same original state
-                // (we must change the battle's RNG from a FixedRNG to a PRNG because
-                // the transitions function relies on RNG for discovery of states)
-                // FIXME
-                // const allocator = std.testing.allocator;
-                // const writer = std.io.null_writer;
-                // _ = try calc.transitions(unfix(copy), c1, c2, allocator, writer, .{
-                //     .actions = actions,
-                //     .cap = true,
-                // });
-
-                // Demonstrate that we can produce the same state by forcing the RNG to behave the
-                // same as we observed - note that because we do not pass in a durations override
-                // mask none of the durations will be extended.
-                var options = pkmn.battle.options(
-                    protocol.NULL,
-                    chance.NULL,
-                    Calc{ .overrides = .{ .actions = actions } },
-                );
-                const overridden = copy.update(c1, c2, &options);
-                try expectEqual(actual, overridden);
-
-                // The actual battle excluding its RNG field should match a copy updated with
-                // overridden RNG (the copy RNG may have advanced because of no-ops)
-                copy.rng = self.battle.actual.rng;
-                try expectEqual(copy, self.battle.actual);
-                break :result actual;
-            } else self.battle.actual.update(c1, c2, &self.options);
+            // FIXME
+            const allocator = std.testing.allocator;
+            const writer = std.io.null_writer;
+            const result =
+                calc.update(&self.battle.actual, c1, c2, &self.options, allocator, writer, false);
 
             try self.validate();
             return result;
@@ -10540,21 +10509,6 @@ fn metronome(comptime m: Move) U {
     const range: u64 = @intFromEnum(Move.Struggle) - 2;
     const mod: u2 = if (param < @intFromEnum(Move.Metronome) - 1) 1 else 2;
     return comptime ranged((param - mod) + 1, range) - 1;
-}
-
-fn unfix(actual: anytype) data.Battle(data.PRNG) {
-    return .{
-        .sides = actual.sides,
-        .turn = actual.turn,
-        .last_damage = actual.last_damage,
-        .last_moves = actual.last_moves,
-        .rng = .{ .src = .{
-            .seed = if (showdown)
-                0x12345678
-            else
-                .{ 123, 234, 56, 78, 9, 101, 112, 131, 4 },
-        } },
-    };
 }
 
 comptime {

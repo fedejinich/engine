@@ -387,6 +387,71 @@ pub fn transitions(
     return stats;
 }
 
+pub fn update(
+    battle: anytype,
+    c1: Choice,
+    c2: Choice,
+    options: anytype,
+    allocator: std.mem.Allocator,
+    writer: anytype,
+    transition: bool,
+) !Result {
+    options.chance.reset();
+
+    if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
+
+    var copy = battle.*;
+    const actions = options.chance.actions;
+
+    // Perfom the actual update
+    const result = battle.update(c1, c2, options);
+
+    if (transition) {
+        // Ensure we can generate all transitions from the same original state
+        // (we must change the battle's RNG from a FixedRNG to a PRNG because
+        // the transitions function relies on RNG for discovery of states)
+        const stats = try transitions(unfix(copy), c1, c2, allocator, writer, .{
+            .actions = actions,
+            .cap = true,
+        });
+        DEBUG(stats);
+        // TODO try expect(stats.frontier < pkmn.gen1.MAX_FRONTIER_SIZE);
+    }
+
+    // Demonstrate that we can produce the same state by forcing the RNG to behave the
+    // same as we observed - note that because we do not pass in a durations override
+    // mask none of the durations will be extended.
+    var override = pkmn.battle.options(
+        protocol.NULL,
+        chance.NULL,
+        Calc{ .overrides = .{ .actions = actions } },
+    );
+    const overridden = copy.update(c1, c2, &override);
+    try expectEqual(result, overridden);
+
+    // The actual battle excluding its RNG field should match a copy updated with
+    // overridden RNG (the copy RNG may have advanced because of no-ops)
+    copy.rng = battle.rng;
+    try expectEqual(copy, battle.*);
+
+    return result;
+}
+
+fn unfix(actual: anytype) data.Battle(data.PRNG) {
+    return .{
+        .sides = actual.sides,
+        .turn = actual.turn,
+        .last_damage = actual.last_damage,
+        .last_moves = actual.last_moves,
+        .rng = .{ .src = .{
+            .seed = if (pkmn.options.showdown)
+                0x12345678
+            else
+                .{ 123, 234, 56, 78, 9, 101, 112, 131, 4 },
+        } },
+    };
+}
+
 fn matches(actions: Actions, i: usize, frontier: []Actions) bool {
     for (frontier, 0..) |f, j| {
         // TODO: is skipping this redundant check worth it?
