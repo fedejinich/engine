@@ -18,7 +18,10 @@ var initial: []u8 = &.{};
 var buf: ?std.ArrayList(u8) = null;
 var frames: ?std.ArrayList(Frame) = null;
 
+const debug = false; // DEBUG
+
 const showdown = pkmn.options.showdown;
+const chance = pkmn.options.chance and debug;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -67,7 +70,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
     while (elapsed.read() < duration) {
         last = random.src.seed;
 
-        const opt = .{ .cleric = showdown, .block = false };
+        const opt = .{ .cleric = showdown, .block = false, .durations = debug };
         var battle = switch (gen) {
             1 => pkmn.gen1.helpers.Battle.random(&random, opt),
             else => unreachable,
@@ -90,11 +93,18 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
         std.debug.assert(!showdown or battle.side(.P2).get(1).hp > 0);
 
         switch (gen) {
-            1 => if (save) blk: {
-                const options =
-                    pkmn.battle.options(log.?, pkmn.gen1.chance.NULL, pkmn.gen1.calc.NULL);
+            1 => blk: {
+                var chance_ = if (chance)
+                    pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} }
+                else
+                    pkmn.gen1.chance.NULL;
+                const options = pkmn.battle.options(
+                    if (save) log.? else pkmn.protocol.NULL,
+                    &chance_,
+                    pkmn.gen1.calc.NULL,
+                );
                 break :blk try run(&battle, &random, save, max, allocator, options);
-            } else try run(&battle, &random, save, max, allocator, pkmn.gen1.NULL),
+            },
             else => unreachable,
         }
     }
@@ -119,6 +129,8 @@ fn run(
 
     var result = try battle.update(c1, c2, &options);
     while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
+        if (chance) options.chance.reset();
+
         var n = battle.choices(.P1, result.p1, &choices);
         if (n == 0) break;
         c1 = choices[p1.range(u8, 0, n)];
@@ -136,11 +148,12 @@ fn run(
                 .log = try buf.?.toOwnedSlice(),
             });
         }
-        if (pkmn.options.chance and pkmn.options.calc) {
+        if (chance and pkmn.options.calc) {
             // TODO: transitions function + MAX_FRONTIER_SIZE
         }
     }
 
+    if (chance) options.chance.reset();
     std.debug.assert(!showdown or result.type != .Error);
 }
 

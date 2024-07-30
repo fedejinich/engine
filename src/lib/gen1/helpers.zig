@@ -43,6 +43,8 @@ pub const Options = struct {
     /// Whether to generate Pokémon with moves that contain bugs on Pokémon Showdown that are
     /// unimplementable in the engine.
     block: bool = showdown,
+    // FIXME: remove once durations work with -Dchance
+    durations: bool = false,
 };
 
 /// Helpers to simplify initialization of a Generation I battle.
@@ -230,6 +232,7 @@ pub const Pokemon = struct {
             var m: Move = .None;
             sample: while (true) {
                 m = @enumFromInt(rand.range(u8, 1, Move.size - 1 + 1));
+                if (opt.durations and durations(m)) continue :sample;
                 if (opt.block and blocked(m)) continue :sample;
                 for (0..i) |j| if (ms[j].id == m) continue :sample;
                 break;
@@ -263,6 +266,23 @@ fn blocked(m: Move) bool {
     // Binding moves are borked but only via Mirror Move / Metronome which are already blocked
     return switch (m) {
         .Mimic, .Metronome, .MirrorMove, .Transform => true,
+        else => false,
+    };
+}
+
+fn durations(m: Move) bool {
+    // Any moves that have effects that result in duration tracking with -Dchance
+    return switch (Move.get(m).effect) {
+        .Confusion,
+        .Bide,
+        .Sleep,
+        .Rage,
+        .Binding,
+        .Thrashing,
+        .ConfusionChance,
+        .Disable,
+        .Metronome,
+        => true,
         else => false,
     };
 }
