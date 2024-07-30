@@ -4,8 +4,8 @@ const debug = std.debug;
 const io = std.io;
 
 pub fn print(value: anytype) void {
-    debug.getStderrMutex().lock();
-    defer debug.getStderrMutex().unlock();
+    debug.lockStdErr();
+    defer debug.unlockStdErr();
     const stderr = io.getStdErr().writer();
 
     nosuspend {
