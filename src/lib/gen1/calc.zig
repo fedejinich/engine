@@ -398,13 +398,29 @@ pub fn update(
 ) !Result {
     options.chance.reset();
 
-    if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
+    if (!pkmn.options.chance or !pkmn.options.calc or @TypeOf(battle.rng) != data.PRNG) {
+        return battle.update(c1, c2, options);
+    }
 
     var copy = battle.*;
     const actions = options.chance.actions;
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
+
+    // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
+    var buf: [helpers.MAX_DIFFS]u8 = undefined;
+    var stream: protocol.ByteStream = .{ .buffer = &buf };
+    const n = try helpers.diff(&copy, battle, stream.writer());
+
+    // Applying the diff to the battle should take us back to the original copy
+    // of the battle (ignoring the RNG).
+    var patched = battle.*;
+    copy.rng = patched.rng;
+    helpers.patch(&patched, buf[0..n]);
+    try expectEqual(copy, patched);
+
+    if (!pkmn.options.chance or !pkmn.options.calc) return result;
 
     if (transition) {
         // Ensure we can generate all transitions from the same original state
