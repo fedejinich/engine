@@ -2418,7 +2418,7 @@ describe('Gen 2', () => {
   test('TriAttack effect', () => {
     const proc = SECONDARY(ranged(51, 256) - 1);
     const no_proc = {...proc, value: proc.value + 1};
-    const par = {key: 'data/mods/gen2/moves.ts:942:49', value: ranged(1, 3)};
+    const par = {key: 'data/mods/gen2/moves.ts:938:49', value: ranged(1, 3)};
     const frz = {...par, value: ranged(2, 3)};
     const brn = {...par, value: ranged(3, 3)};
     const battle = startBattle([
@@ -4274,7 +4274,7 @@ describe('Gen 2', () => {
   });
 
   test('Psywave effect', () => {
-    const PSY_MAX = {key: 'data/mods/gen2/moves.ts:584:16', value: MAX};
+    const PSY_MAX = {key: 'data/mods/gen2/moves.ts:581:16', value: MAX};
     const PSY_MIN = {...PSY_MAX, value: MIN};
     const battle = startBattle([QKC, HIT, PSY_MAX, HIT, PSY_MIN, QKC], [
       {species: 'Gengar', evs, level: 59, moves: ['Psywave']},
@@ -4335,7 +4335,7 @@ describe('Gen 2', () => {
   });
 
   test('Disable effect', () => {
-    const proc = {key: 'data/mods/gen2/moves.ts:771:40', value: MIN};
+    const proc = {key: 'data/mods/gen2/moves.ts:768:40', value: MIN};
     const battle = startBattle([
       QKC, HIT, QKC, HIT, DISABLE_DURATION(3), QKC, HIT,
       SLP(2), proc, QKC, HIT, DISABLE_DURATION(3), QKC,
@@ -4981,7 +4981,7 @@ describe('Gen 2', () => {
   });
 
   test('Rest effect', () => {
-    const proc = {key: 'data/mods/gen2/moves.ts:771:40', value: MIN};
+    const proc = {key: 'data/mods/gen2/moves.ts:768:40', value: MIN};
     const battle = startBattle([
       QKC, HIT, QKC, QKC, SLP(8), NO_CRIT, MIN_DMG, QKC, proc, QKC, QKC, QKC, QKC,
     ], [
@@ -6391,7 +6391,7 @@ describe('Gen 2', () => {
   });
 
   test('Conversion2 effect', () => {
-    const proc = {key: 'data/moves.ts:2922:28', value: MAX};
+    const proc = {key: 'data/moves.ts:2921:28', value: MAX};
     const battle = startBattle([QKC, proc, QKC], [
       {species: 'Porygon2', evs, moves: ['Conversion2']},
     ], [
@@ -7502,7 +7502,7 @@ describe('Gen 2', () => {
   });
 
   test('Rollout effect', () => {
-    const proc = {key: 'data/mods/gen2/moves.ts:771:40', value: MIN};
+    const proc = {key: 'data/mods/gen2/moves.ts:768:40', value: MIN};
     const battle = startBattle([
       QKC, HIT, NO_CRIT, MIN_DMG,
       QKC, MISS,
@@ -7714,7 +7714,7 @@ describe('Gen 2', () => {
   });
 
   test('FuryCutter effect', () => {
-    const proc = {key: 'data/mods/gen2/moves.ts:771:40', value: MIN};
+    const proc = {key: 'data/mods/gen2/moves.ts:768:40', value: MIN};
     const battle = startBattle([
       QKC, HIT, NO_CRIT, MIN_DMG,
       QKC, MISS,
@@ -7893,7 +7893,7 @@ describe('Gen 2', () => {
   });
 
   test('SleepTalk effect', () => {
-    const SLP_TLK = (value: number) => ({key: 'data/mods/gen2/moves.ts:771:40', value});
+    const SLP_TLK = (value: number) => ({key: 'data/mods/gen2/moves.ts:768:40', value});
     const moves = ['Sleep Talk', 'Vital Throw', 'Razor Wind', 'Metronome'];
     const battle = startBattle([
       QKC, SLP(5), QKC, SLP_TLK(MAX), QKC, SLP_TLK(MIN), QKC, SLP_TLK(MAX),
@@ -8123,7 +8123,7 @@ describe('Gen 2', () => {
   });
 
   test('Present effect', () => {
-    const present = {key: 'data/moves.ts:14434:22', value: ranged(1, 10) - 1};
+    const present = {key: 'data/moves.ts:14431:22', value: ranged(1, 10) - 1};
     const present40 = {...present, value: ranged(6, 10) - 1};
     const present120 = {...present, value: ranged(10, 10) - 1};
     const battle = startBattle([
@@ -8330,7 +8330,7 @@ describe('Gen 2', () => {
   });
 
   test('Magnitude effect', () => {
-    const mag8 = {key: 'data/moves.ts:11280:19', value: ranged(85, 100) - 1};
+    const mag8 = {key: 'data/moves.ts:11277:19', value: ranged(85, 100) - 1};
     const mag5 = {...mag8, value: ranged(15, 100) - 1};
     const battle = startBattle([
       QKC, mag8, NO_CRIT, MIN_DMG, QKC, mag5, NO_CRIT, MIN_DMG, NO_CRIT, MIN_DMG, QKC,
