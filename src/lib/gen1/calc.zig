@@ -508,7 +508,6 @@ const Style = struct {
 };
 
 fn debug(writer: anytype, actions: Actions, shape: bool, style: Style) !void {
-    // _ = .{ writer, actions, shape, style };
     const mod: usize = if (style.dim) 2 else 1;
     const background: usize = if (style.background) 4 else 3;
     const color: usize = if (style.color) |c| (c % 6) + 1 else 7;
@@ -518,8 +517,4 @@ fn debug(writer: anytype, actions: Actions, shape: bool, style: Style) !void {
     try actions.fmt(writer, shape);
     try writer.writeAll("\x1b[0m");
     if (style.newline) try writer.writeByte('\n');
-    // DEBUG
-    // if (style.dim) try writer.writeAll("    ");
-    // try actions.fmt(writer, shape);
-    // try writer.writeByte('\n');
 }

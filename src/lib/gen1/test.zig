@@ -10365,6 +10365,7 @@ test "transitions" {
 
     const allocator = std.testing.allocator;
     const writer = std.io.null_writer;
+    // const writer = std.io.getStdErr().writer();
     _ = try calc.transitions(battle, move(1), move(1), allocator, writer, .{
         .seed = seed,
         .cap = true,
@@ -10456,6 +10457,7 @@ fn Test(comptime rolls: anytype) type {
             // FIXME
             const allocator = std.testing.allocator;
             const writer = std.io.null_writer;
+            // const writer = std.io.getStdErr().writer();
             const result =
                 calc.update(&self.battle.actual, c1, c2, &self.options, allocator, writer, false);
 
