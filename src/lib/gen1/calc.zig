@@ -357,6 +357,9 @@ pub fn transitions(
                             .background = true
                         });
                     }
+
+                    // if (opts.chance.actions.p1.damage == 0) p1_max = 255;
+                    // if (opts.chance.actions.p2.damage == 0) p2_max = 255;
                 }
 
                 p1_min = p1_max;
