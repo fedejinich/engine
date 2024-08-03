@@ -308,10 +308,10 @@ pub fn transitions(
                 const p2_max: u8 = @intCast(p2_dmg.min);
                 _ = cap;
 
-                // var p1_max = if (p1_min != 0) p1_min else
-                //     try Rolls.coalesce(.P1, @intCast(u8, p1_dmg.min), &opts.calc.summaries, cap);
-                // var p2_max =
-                //     try Rolls.coalesce(.P2, @intCast(u8, p2_dmg.min), &opts.calc.summaries, cap);
+                // const p1_max = if (p1_min != 0) p1_min else
+                //     try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), &opts.calc.summaries, cap);
+                // const p2_max =
+                //     try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), &opts.calc.summaries, cap);
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
