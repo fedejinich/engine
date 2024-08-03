@@ -127,10 +127,8 @@ fn run(
     var p1 = pkmn.PSRNG.init(random.newSeed());
     var p2 = pkmn.PSRNG.init(random.newSeed());
 
-    var result = try update(battle, c1, c2, &options, allocator);
-    while (result.type == .None) : (result =
-        try update(battle, c1, c2, &options, allocator))
-    {
+    var result = update(battle, c1, c2, &options, allocator);
+    while (result.type == .None) : (result = update(battle, c1, c2, &options, allocator)) {
         var n = battle.choices(.P1, result.p1, &choices);
         if (n == 0) break;
         c1 = choices[p1.range(u8, 0, n)];
@@ -159,13 +157,13 @@ pub fn update(
     c2: pkmn.Choice,
     options: anytype,
     allocator: std.mem.Allocator,
-) !pkmn.Result {
-    if (!chance) return battle.update(c1, c2, options);
+) pkmn.Result {
+    if (!chance) return battle.update(c1, c2, options) catch unreachable;
     const writer = std.io.null_writer;
     return switch (gen) {
         1 => pkmn.gen1.calc.update(battle, c1, c2, options, allocator, writer, true),
         else => unreachable,
-    };
+     } catch unreachable;
 }
 
 fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {
