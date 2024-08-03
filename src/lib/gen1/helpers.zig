@@ -310,7 +310,7 @@ pub const Rolls = struct {
 
     /// Returns a slice with the correct range of values for speed ties given the `action` state.
     pub fn speedTie(action: Action) []const Optional(Player) {
-        return if (@field(action, "speed_tie") == .None) &PLAYER_NONE else &PLAYERS;
+        return if (action.speed_tie == .None) &PLAYER_NONE else &PLAYERS;
     }
 
     const BOOL_NONE = [_]Optional(bool){.None};
@@ -320,7 +320,7 @@ pub const Rolls = struct {
     /// and the state of the `parent` (whether the player's Pokémon was fully paralyzed).
     pub fn hit(action: Action, parent: Optional(bool)) []const Optional(bool) {
         if (parent == .true) return &BOOL_NONE;
-        return if (@field(action, "hit") == .None) &BOOL_NONE else &BOOLS;
+        return if (action.hit == .None) &BOOL_NONE else &BOOLS;
     }
 
     /// Returns a slice with the correct range of values for critical hits given the `action` state
@@ -330,7 +330,7 @@ pub const Rolls = struct {
         parent: Optional(bool),
     ) []const Optional(bool) {
         if (parent == .false) return &BOOL_NONE;
-        return if (@field(action, "critical_hit") == .None) &BOOL_NONE else &BOOLS;
+        return if (action.critical_hit == .None) &BOOL_NONE else &BOOLS;
     }
 
     /// Returns a slice with the correct range of values for secondary chances hits given the
@@ -349,7 +349,7 @@ pub const Rolls = struct {
     /// Returns the range bounding damage rolls given the `action` state and the state of
     /// the `parent` (whether the player's Pokémon's move hit).
     pub fn damage(action: Action, parent: Optional(bool)) Range {
-        return if (parent == .false or @field(action, "damage") == 0)
+        return if (parent == .false or action.damage == 0)
             .{ .min = 0, .max = 1 }
         else
             .{ .min = 217, .max = 256 };
@@ -370,14 +370,14 @@ pub const Rolls = struct {
     /// Returns a slice with the correct range of values for confused given the `action` state
     /// and the state of the `parent` (the player's Pokémon's remaining confusion turns).
     pub fn confused(action: Action, parent: u4) []const Optional(bool) {
-        return if (parent == 0 or @field(action, "confused") == .None) &BOOL_NONE else &BOOLS;
+        return if (parent == 0 or action.confused == .None) &BOOL_NONE else &BOOLS;
     }
 
     /// Returns a slice with the correct range of values for paralysis given the `action` state
     /// and the state of the `parent` (whether the player's Pokémon was confused).
     pub fn paralyzed(action: Action, parent: Optional(bool)) []const Optional(bool) {
         if (parent == .true) return &BOOL_NONE;
-        return if (@field(action, "paralyzed") == .None) &BOOL_NONE else &BOOLS;
+        return if (action.paralyzed == .None) &BOOL_NONE else &BOOLS;
     }
 
     const DURATION_NONE = [_]u1{0};
@@ -387,7 +387,7 @@ pub const Rolls = struct {
     /// and the state of the `parent` (whether the player's Pokémon's move hit).
     pub fn duration(action: Action, parent: Optional(bool)) []const u1 {
         if (parent == .false) return &DURATION_NONE;
-        return if (@field(action, "duration") == 0) &DURATION_NONE else &DURATION;
+        return if (action.duration == 0) &DURATION_NONE else &DURATION;
     }
 
     const U3_NONE = [_]u3{0};
@@ -395,8 +395,8 @@ pub const Rolls = struct {
 
     /// Returns a slice with a range of values for sleep given the `action` and `origin` states.
     pub inline fn sleep(action: Action, origin: Action) []const u3 {
-        const a = @field(action.durations, "sleep");
-        const o = @field(origin.durations, "sleep");
+        const a = action.durations.sleep;
+        const o = origin.durations.sleep;
         if (o == a) return if (o == 0) &U3_NONE else &[_]u3{o};
         assert(a == 0 or a == o + 1);
         return if (o >= 7) &U3_NONE else &[_]u3{ 0, o + 1 };
@@ -408,8 +408,8 @@ pub const Rolls = struct {
     /// and the state of the `parent` (the player's Pokémon's remaining sleep turns).
     pub inline fn disable(action: Action, origin: Action, parent: u4) []const u4 {
         if (parent > 0) return &DISABLE_NONE;
-        const a = @field(action.durations, "disable");
-        const o = @field(origin.durations, "disable");
+        const a = action.durations.disable;
+        const o = origin.durations.disable;
         if (o == a) return if (o == 0) &DISABLE_NONE else &[_]u4{o};
         assert(a == 0 or a == o + 1);
         return if (o >= 8) &DISABLE_NONE else &[_]u4{ 0, o + 1 };
@@ -419,8 +419,8 @@ pub const Rolls = struct {
     /// and the state of the `parent` (the player's remaining sleep turns).
     pub inline fn confusion(action: Action, origin: Action, parent: u4) []const u3 {
         if (parent > 0) return &U3_NONE;
-        const a = @field(action.durations, "confusion");
-        const o = @field(origin.durations, "confusion");
+        const a = action.durations.confusion;
+        const o = origin.durations.confusion;
         if (o == a) return if (o == 0) &U3_NONE else &[_]u3{o};
         assert(a == 0 or a == o + 1);
         return if (o >= 5) &U3_NONE else if (o < 2)
@@ -433,8 +433,8 @@ pub const Rolls = struct {
     /// and the state of the `parent` (whether the player's Pokémon was fully paralyzed).
     pub inline fn attacking(action: Action, origin: Action, parent: Optional(bool)) []const u3 {
         if (parent == .true) return &U3_NONE;
-        const a = @field(action.durations, "attacking");
-        const o = @field(origin.durations, "attacking");
+        const a = action.durations.attacking;
+        const o = origin.durations.attacking;
         if (o == a) return if (o == 0) &U3_NONE else &[_]u3{o};
         assert(a == 0 or a == o + 1);
         return if (o >= 3) &U3_NONE else if (o < 2)
@@ -447,8 +447,8 @@ pub const Rolls = struct {
     /// and the state of the `parent` (whether the player's Pokémon was fully paralyzed).
     pub inline fn binding(action: Action, origin: Action, parent: Optional(bool)) []const u3 {
         if (parent == .true) return &U3_NONE;
-        const a = @field(action.durations, "binding");
-        const o = @field(origin.durations, "binding");
+        const a = action.durations.binding;
+        const o = origin.durations.binding;
         if (o == a) return if (o == 0) &U3_NONE else &[_]u3{o};
         assert(a == 0 or a == o + 1);
         return if (o >= 4) &U3_NONE else &[_]u3{ 0, o + 1 };
@@ -463,7 +463,7 @@ pub const Rolls = struct {
     /// These slots may or **may not be valid** as slots may be unset / have 0 PP.
     pub fn moveSlot(action: Action, parent: Optional(bool)) []const u4 {
         if (parent == .false) return &SLOT_NONE;
-        return if (@field(action, "move_slot") == 0) &SLOT_NONE else &SLOT;
+        return if (action.move_slot == 0) &SLOT_NONE else &SLOT;
     }
 
     const MULTI_NONE = [_]u4{0};
@@ -473,7 +473,7 @@ pub const Rolls = struct {
     /// and the state of the `parent` (whether the player's Pokémon's move hit).
     pub fn multiHit(action: Action, parent: Optional(bool)) []const u4 {
         if (parent == .false) return &MULTI_NONE;
-        return if (@field(action, "multi_hit") == 0) &MULTI_NONE else &MULTI;
+        return if (action.multi_hit == 0) &MULTI_NONE else &MULTI;
     }
 
     const PSYWAVE_NONE = [_]u8{0};
@@ -491,7 +491,7 @@ pub const Rolls = struct {
         parent: Optional(bool),
     ) []const u8 {
         if (parent == .false) return &PSYWAVE_NONE;
-        return if (@field(action, "psywave") == 0)
+        return if (action.psywave == 0)
             &PSYWAVE_NONE
         else
             PSYWAVE[0 .. @as(u16, side.stored().level) * 3 / 2];
@@ -501,7 +501,7 @@ pub const Rolls = struct {
 
     /// Returns a slice with the correct range of values for metronome given the `action` state.
     pub fn metronome(action: Action) []const Move {
-        return if (@field(action, "metronome") == .None) &MOVE_NONE else &Move.METRONOME;
+        return if (action.metronome == .None) &MOVE_NONE else &Move.METRONOME;
     }
 };
 
