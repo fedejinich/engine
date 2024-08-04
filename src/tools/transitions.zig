@@ -3,6 +3,7 @@ const std = @import("std");
 const pkmn = @import("pkmn");
 
 const move = pkmn.gen1.helpers.move;
+const swtch = pkmn.gen1.helpers.swtch;
 
 pub const pkmn_options = pkmn.Options{ .internal = true };
 
@@ -23,19 +24,12 @@ pub fn main() !void {
 
     const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
+    const BRN = pkmn.gen1.Status.init(.BRN);
     var battle = switch (gen) {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
-            // &.{.{ .species = .Charmander, .moves = &.{.BodySlam} }},
-            // &.{.{ .species = .Squirtle, .stats = .{}, .moves = &.{.Surf} }},
-            &.{.{ .species = .Tauros, .moves = &.{.HyperBeam} }},
-            &.{.{ .species = .Tauros, .moves = &.{.HyperBeam} }},
-            // &.{.{ .species = .Charmander, .hp = 5, .level = 5, .stats = .{}, .moves = &.{
-            //     .Scratch,
-            // } }},
-            // &.{.{ .species = .Squirtle, .hp = 4, .level = 5, .stats = .{}, .moves = &.{
-            //     .Tackle,
-            // } }},
+            &.{.{ .species = .Rhyhorn, .moves = &.{.Kinesis} }},
+            &.{.{ .species = .Tangela, .status = BRN, .moves = &.{.Substitute} }},
         ),
         else => unreachable,
     };
