@@ -163,7 +163,7 @@ pub fn update(
     return switch (gen) {
         1 => pkmn.gen1.calc.update(battle, c1, c2, options, allocator, writer, true),
         else => unreachable,
-     } catch unreachable;
+    } catch unreachable;
 }
 
 fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {
