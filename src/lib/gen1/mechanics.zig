@@ -932,7 +932,8 @@ fn doMove(
         } else {
             if (showdown or !zero) {
                 try options.chance.commit(player, .miss, !showdown or
-                    !foe.active.volatiles.Mist or !move.effect.isStatDown());
+                    (!foe.active.volatiles.Mist and !foe.active.volatiles.Substitute) or
+                    !move.effect.isStatDown());
             }
             try log.lastmiss(.{});
             try log.miss(.{battle.active(player)});
