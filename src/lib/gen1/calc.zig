@@ -213,6 +213,7 @@ pub fn transitions(
 
     const actions = options.actions;
     const cap = options.cap;
+    const summary = false; // DEBUG
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
@@ -315,14 +316,14 @@ pub fn transitions(
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
-                        try debug(writer, opts.chance.actions, false, .{ .color = i, .dim = true });
+                        if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i, .dim = true });
 
                         p1_min = p1_max;
                         p2_dmg.min = p2_max;
                         continue;
                     }
 
-                    try debug(writer, opts.chance.actions, false, .{ .color = i });
+                    if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i });
 
                     for (p1_dmg.min..@as(u9, p1_max) + 1) |p1d| {
                         for (p2_dmg.min..@as(u9, p2_max) + 1) |p2d| {
@@ -359,7 +360,7 @@ pub fn transitions(
                             .background = true,
                             .indent = false,
                         });
-                    } else {
+                    } else if (!summary) {
                         try debug(writer, opts.chance.actions, false, .{ .dim = true });
                     }
 
