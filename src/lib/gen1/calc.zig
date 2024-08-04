@@ -281,7 +281,7 @@ pub fn transitions(
         for (Rolls.moveSlot(template.p1, p1_hit)) |p1_slot| { a.p1.move_slot = p1_slot;
         for (Rolls.moveSlot(template.p2, p2_hit)) |p2_slot| { a.p2.move_slot = p2_slot;
         for (Rolls.multiHit(template.p1, p1_hit)) |p1_multi| { a.p1.multi_hit = p1_multi;
-        for (Rolls.multiHit(template.p2, p1_hit)) |p2_multi| { a.p2.multi_hit = p2_multi;
+        for (Rolls.multiHit(template.p2, p2_hit)) |p2_multi| { a.p2.multi_hit = p2_multi;
         for (Rolls.secondaryChance(template.p1, p1_hit)) |p1_sec| { a.p1.secondary_chance = p1_sec;
         for (Rolls.secondaryChance(template.p2, p2_hit)) |p2_sec| { a.p2.secondary_chance = p2_sec;
         for (Rolls.criticalHit(template.p1, p1_hit)) |p1_crit| { a.p1.critical_hit = p1_crit;
