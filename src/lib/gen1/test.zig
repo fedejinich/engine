@@ -10348,15 +10348,7 @@ test "RNG overrides" {
 test "transitions" {
     if (!pkmn.options.calc or !pkmn.options.chance) return error.SkipZigTest;
 
-    // const seed = 0x12345678; // DEBUG
-    const seed = seed: {
-        var secret: [std.Random.DefaultCsprng.secret_seed_length]u8 = undefined;
-        std.crypto.random.bytes(&secret);
-        var csprng = std.Random.DefaultCsprng.init(secret);
-        const random = csprng.random();
-        break :seed random.int(u64);
-    };
-
+    const seed = if (@hasDecl(std.testing, "random_seed")) std.testing.random_seed else 0x12345678;
     var battle = Battle.init(
         seed,
         &.{.{ .species = .Charmander, .hp = 5, .level = 5, .stats = .{}, .moves = &.{.Scratch} }},
