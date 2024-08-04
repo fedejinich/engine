@@ -938,7 +938,10 @@ fn doMove(
             if (!foe.active.volatiles.Substitute) try log.activate(.{ foe_ident, .Mist });
             try log.fail(.{ foe_ident, .None });
         } else {
-            if (showdown or !zero) options.chance.save(.miss, true);
+            if (showdown or !zero) {
+                options.chance.save(.miss, !showdown or
+                    !foe.active.volatiles.Mist or !move.effect.isStatDown());
+            }
             try log.lastmiss(.{});
             try log.miss(.{battle.active(player)});
         }
