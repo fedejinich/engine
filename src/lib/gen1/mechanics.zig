@@ -858,7 +858,7 @@ fn doMove(
 
     var late = showdown and move.effect != .Explode;
     const skip = status or immune;
-    if ((!showdown or (!skip or counter)) and !miss) blk: {
+    if (counter or ((!showdown or !skip) and !miss)) blk: {
         if (showdown and move.effect.isMulti()) {
             try Effects.multiHit(battle, player, move, options);
             hits = side.active.volatiles.attacks;
@@ -869,7 +869,7 @@ fn doMove(
         const check = !showdown or (!counter and move.effect != .OHKO);
         if (check) crit = try checkCriticalHit(battle, player, move, options);
 
-        if (counter) return counterDamage(battle, player, move, options);
+        if (counter) return counterDamage(battle, player, move, miss, options);
 
         battle.last_damage = 0;
 
@@ -1205,13 +1205,14 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     return null;
 }
 
-fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anytype) !?Result {
+fn counterDamage(
+    battle: anytype,
+    player: Player,
+    move: Move.Data,
+    miss: bool,
+    options: anytype,
+) !?Result {
     const foe = battle.foe(player);
-
-    if (battle.last_damage == 0) {
-        try options.log.fail(.{ battle.active(player), .None });
-        return null;
-    }
 
     // Pretend Splash was used as a stand-in when no move has been used to fail below with 0 BP
     const foe_last_selected_move =
@@ -1225,6 +1226,22 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
         foe.last_selected_move != .Counter and
         (foe_last_selected_move.type == .Normal or
         foe_last_selected_move.type == .Fighting);
+
+    if (miss) {
+        assert(showdown);
+        try options.chance.commit(player, .miss, battle.last_damage != 0 and used and selected);
+        // We couldn't set this to 0 in moveHit like how it works on Pokémon Showdown because
+        // otherwise the commit condition above would always be false, but now we correct it
+        if (!foe.active.volatiles.Invulnerable) battle.last_damage = 0;
+        try options.log.lastmiss(.{});
+        try options.log.miss(.{battle.active(player)});
+        return null;
+    }
+
+    if (battle.last_damage == 0) {
+        try options.log.fail(.{ battle.active(player), .None });
+        return null;
+    }
 
     if (!used and !selected) {
         try options.log.fail(.{ battle.active(player), .None });
@@ -1240,7 +1257,6 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
 
     battle.last_damage *|= 2;
 
-    // Pokémon Showdown calls checkHit before Counter
     if (!showdown) {
         if (try checkHit(battle, player, move, options)) |save| {
             try options.chance.commit(player, .miss, save);
@@ -1426,7 +1442,13 @@ fn moveHit(
     }
 
     if (!miss) return true;
-    if (!showdown or !foe.active.volatiles.Invulnerable) battle.last_damage = 0;
+    const m = side.last_selected_move;
+    // Pokémon Showdown doesn't actually special-case Counter like this, but we have to handle
+    // all Counter-related functionality within counterDamage as opposed to Pokémon Showdown's
+    // normal flow in order to properly update chance
+    if (!showdown or (!foe.active.volatiles.Invulnerable and m != .Counter)) {
+        battle.last_damage = 0;
+    }
     side.active.volatiles.Binding = false;
     return false;
 }
