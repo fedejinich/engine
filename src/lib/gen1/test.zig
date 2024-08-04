@@ -2675,6 +2675,7 @@ test "OHKO effect" {
     try t.log.expected.faint(.{ P1.ident(1), true });
 
     try expectEqual(Result{ .p1 = .Switch, .p2 = .Pass }, try t.update(move(1), move(1)));
+    // Pokémon Showdown does not roll to crit or randomize damage for OHKO moves
     // (76/256) * (196/256) * (1/39)
     try if (showdown) t.expectProbability(19, 64) else t.expectProbability(931, 159744);
 
