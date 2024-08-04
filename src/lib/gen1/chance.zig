@@ -312,18 +312,24 @@ pub fn Chance(comptime Rational: type) type {
 
         /// Convenience helper to clear fields which typically should be cleared between updates.
         pub fn reset(self: *Self) void {
+            if (!enabled) return;
+
             self.probability.reset();
             self.actions.reset();
             self.pending = .{};
         }
 
         pub fn save(self: *Self, kind: Commit, condition: bool) void {
+            if (!enabled) return;
+
             // assert(self.pending.kind == null); FIXME
             if (!condition) return;
             self.pending.kind = kind;
         }
 
         pub fn commit(self: *Self, player: Player) Error!void {
+            if (!enabled) return;
+
             defer self.pending = .{};
 
             if (self.pending.kind == null) return;
