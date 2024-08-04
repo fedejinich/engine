@@ -160,6 +160,7 @@ pub fn update(
 ) pkmn.Result {
     if (!chance) return battle.update(c1, c2, options) catch unreachable;
     const writer = std.io.null_writer;
+    // const writer = std.io.getStdErr().writer();
     return switch (gen) {
         1 => pkmn.gen1.calc.update(battle, c1, c2, options, allocator, writer, true),
         else => unreachable,

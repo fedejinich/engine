@@ -10455,10 +10455,10 @@ fn Test(comptime rolls: anytype) type {
         pub fn update(self: *Self, c1: Choice, c2: Choice) !Result {
             if (self.battle.actual.turn == 0) try self.start();
 
-            // FIXME
             const allocator = std.testing.allocator;
             const writer = std.io.null_writer;
-            // const writer = std.io.getStdErr().writer();
+            // const writer = std.io.getStdErr().writer(); // DEBUG
+            // TODO: pass true to compute transitions
             const result =
                 calc.update(&self.battle.actual, c1, c2, &self.options, allocator, writer, false);
 

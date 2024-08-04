@@ -38,6 +38,9 @@ const Duration = chance.Duration;
 
 const Rolls = helpers.Rolls;
 
+const tty = true; // DEBUG
+const summary = false; // DEBUG
+
 /// Information relevant to damage calculation that occured during a Generation I battle `update`.
 pub const Summaries = extern struct {
     /// Relevant information for Player 1.
@@ -213,7 +216,6 @@ pub fn transitions(
 
     const actions = options.actions;
     const cap = options.cap;
-    const summary = false; // DEBUG
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
@@ -445,8 +447,9 @@ pub fn update(
             .actions = actions,
             .cap = true,
         });
-        DEBUG(stats);
-        // TODO try expect(stats.frontier < pkmn.gen1.MAX_FRONTIER_SIZE);
+        _ = stats;
+        // DEBUG(stats);
+        // TODO: try expect(stats.frontier < pkmn.gen1.MAX_FRONTIER_SIZE);
     }
 
     // Demonstrate that we can produce the same state by forcing the RNG to behave the
@@ -509,13 +512,19 @@ const Style = struct {
 };
 
 fn debug(writer: anytype, actions: Actions, shape: bool, style: Style) !void {
-    const mod: usize = if (style.dim) 2 else 1;
-    const background: usize = if (style.background) 4 else 3;
-    const color: usize = if (style.color) |c| (c % 6) + 1 else 7;
     if (style.indent) try writer.writeAll("  ");
-    if (style.dim or style.bold) try writer.print("\x1b[{d}m", .{mod});
-    try writer.print("\x1b[{d}{d}m", .{ background, color });
-    try actions.fmt(writer, shape);
-    try writer.writeAll("\x1b[0m");
+    if (tty) {
+        const mod: usize = if (style.dim) 2 else 1;
+        const background: usize = if (style.background) 4 else 3;
+        const color: usize = if (style.color) |c| (c % 6) + 1 else 7;
+
+        if (style.dim or style.bold) try writer.print("\x1b[{d}m", .{mod});
+        try writer.print("\x1b[{d}{d}m", .{ background, color });
+        try actions.fmt(writer, shape);
+        try writer.writeAll("\x1b[0m");
+    } else {
+        if (style.dim) try writer.writeAll("  ");
+        try actions.fmt(writer, shape);
+    }
     if (style.newline) try writer.writeByte('\n');
 }
