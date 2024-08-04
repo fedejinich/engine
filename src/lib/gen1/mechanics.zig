@@ -166,7 +166,7 @@ fn selectMove(
             // to satisfy the conditions of the Desync Clause Mod. However, because Binding is still
             // set the selected move will not actually be used, it will just be reported as having
             // been used (this differs from how Pokémon Showdown works, but its impossible to
-            // replicate the incorrect behavior with the correct mechanisms).
+            // replicate the incorrect behavior with the correct mechanisms)
             saveMove(battle, player, choice);
         } else {
             assert(choice.data == 0);
@@ -431,7 +431,7 @@ fn executeMove(
             Status.is(stored.status, .FRZ) or Status.is(stored.status, .SLP);
         // If it wasn't Hyper Beam or the continuation of a move effect then we must have just
         // thawed, in which case we will desync unless the last_selected_move happened to be at
-        // index 1 and the current Pokémon has the same move in its first slot.
+        // index 1 and the current Pokémon has the same move in its first slot
         if (!auto) {
             // side.active.moves(slot) is safe to check even though the slot in question might not
             // technically be from this Pokémon because it must be exactly 1 to not desync and
@@ -958,7 +958,7 @@ fn doMove(
 
     // On the cartridge MultiHit doesn't get set up until after damage has been applied for the
     // first time but its more convenient and efficient to set it up here (Pokémon Showdown sets
-    // it up above before damage calculation).
+    // it up above before damage calculation)
     if (!showdown and move.effect.isMulti()) {
         try Effects.multiHit(battle, player, move, options);
         hits = side.active.volatiles.attacks;
@@ -1017,12 +1017,12 @@ fn doMove(
     }
 
     // Substitute being broken nullifies the move's effect completely so even
-    // if an effect was intended to "always happen" it will still get skipped.
+    // if an effect was intended to "always happen" it will still get skipped
     if (nullified) return null;
 
     // On the cartridge, "always happen" effect handlers are called in the applyDamage loop above,
     // but this is only done to setup the MultiHit looping in the first place. Moving the MultiHit
-    // setup before the loop means we can avoid having to waste time doing no-op handler searches.
+    // setup before the loop means we can avoid having to waste time doing no-op handler searches
     if (move.effect.alwaysHappens()) try alwaysHappens(battle, player, move, residual, options);
 
     if (foe.stored().hp == 0) return null;
@@ -1037,7 +1037,7 @@ fn doMove(
         // below). For Twineedle we change the data to that of one with PoisonChance1 given its
         // MultiHit behavior is complete after the loop above, though Pokémon Showdown handles the
         // Twineedle secondary effect in the MultiHit cleanup block above because it incorrectly
-        // puts the |-status| message before |-hitcount| instead of after.
+        // puts the |-status| message before |-hitcount| instead of after
         if (move.effect == .Twineedle) {
             if (!showdown) try Effects.poison(battle, player, Move.get(.PoisonSting), options);
         } else if (move.effect == .Disable) {
@@ -3142,7 +3142,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             const stored = side.stored();
 
             // While players are not given any input options on the cartridge in these cases,
-            // Pokémon Showdown instead produces a list with a single move that must be chosen.
+            // Pokémon Showdown instead produces a list with a single move that must be chosen
             //
             // Given that no input is allowed on the cartridge 'Pass' seems like it would be logical
             // here when not in compatibility mode, but the engine needs to be able to differentiate
@@ -3150,7 +3150,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // passing due to being forced into using a move. Instead of introducing another option
             // we simply repurpose Move with no move slot, even though pedantically this is not
             // strictly correct as the player would not have been presented the option to move or
-            // switch at all.
+            // switch at all
             if (isForced(active)) {
                 out[n] = .{ .type = .Move, .data = @intFromBool(showdown) };
                 n += 1;
@@ -3169,7 +3169,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // On the cartridge, all of these happen after "FIGHT" (indicating you are not
             // switching) but before you are allowed to select a move. Pokémon Showdown instead
             // either disables all other moves in the case of limited or requires you to select a
-            // move normally if sleeping/frozen/bound.
+            // move normally if sleeping/frozen/bound
             if (!showdown and (limited or foe.active.volatiles.Binding or
                 Status.is(stored.status, .FRZ) or Status.is(stored.status, .SLP)))
             {
@@ -3182,7 +3182,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // Pokémon Showdown handles Bide and Binding moves by checking if the move in question
             // is present in the Pokémon's moveset (which means moves called via Metronome / Mirror
             // Move will not result in forcing the subsequent use unless the user also had the
-            // proc-ed move in their moveset) and disabling all other moves.
+            // proc-ed move in their moveset) and disabling all other moves
             if (limited) {
                 assert(showdown);
                 assert(side.last_selected_move != .None);
