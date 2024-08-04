@@ -433,7 +433,7 @@ pub fn update(
     // Applying the diff to the battle should take us back to the original copy
     // of the battle (ignoring the RNG).
     var patched = battle.*;
-    copy.rng = patched.rng;
+    patched.rng = copy.rng;
     helpers.patch(&patched, buf[0..n]);
     try expectEqual(copy, patched);
 
