@@ -294,11 +294,9 @@ pub fn Chance(comptime Rational: type) type {
         // Finally, because each player's actions are processed sequentially we only need a single
         // shared structure to track this information (though it needs to be cleared appropriately)
         pending: if (showdown) struct {
-            kind: ?Commit = null,
             hit: bool = false,
             hit_probablity: uN = 0,
         } else struct {
-            kind: ?Commit = null,
             crit: bool = false,
             crit_probablity: u8 = 0,
             damage_roll: u8 = 0,
@@ -319,21 +317,9 @@ pub fn Chance(comptime Rational: type) type {
             self.pending = .{};
         }
 
-        pub fn save(self: *Self, kind: Commit, condition: bool) void {
+        pub fn commit(self: *Self, player: Player, kind: Commit, condition: bool) Error!void {
             if (!enabled) return;
-
-            // assert(self.pending.kind == null); FIXME
             if (!condition) return;
-            self.pending.kind = kind;
-        }
-
-        pub fn commit(self: *Self, player: Player) Error!void {
-            if (!enabled) return;
-
-            defer self.pending = .{};
-
-            if (self.pending.kind == null) return;
-            const kind = self.pending.kind.?;
 
             var action = self.actions.get(player);
 
@@ -372,6 +358,12 @@ pub fn Chance(comptime Rational: type) type {
                 try self.probability.update(1, 39);
                 action.damage = self.pending.damage_roll;
             }
+        }
+
+        pub fn clearPending(self: *Self) void {
+            if (!enabled) return;
+
+            self.pending = .{};
         }
 
         pub fn clearDurations(self: *Self, player: Player, haze: ?bool) void {
@@ -639,8 +631,9 @@ test "Chance.hit" {
     chance.hit(true, 229);
     try expectProbability(&chance.probability, 1, 1);
     try expectValue(Optional(bool).None, chance.actions.p1.hit);
-    chance.save(.hit, true);
-    try chance.commit(.P1);
+
+    try chance.commit(.P1, .hit, true);
+
     try expectValue(Optional(bool).true, chance.actions.p1.hit);
     try expectProbability(&chance.probability, 229, 256);
 
@@ -649,8 +642,9 @@ test "Chance.hit" {
     chance.hit(false, 255);
     try expectProbability(&chance.probability, 1, 1);
     try expectValue(Optional(bool).None, chance.actions.p2.hit);
-    chance.save(.miss, true);
-    try chance.commit(.P2);
+
+    try chance.commit(.P2, .miss, true);
+
     try expectValue(Optional(bool).false, chance.actions.p2.hit);
     try expectProbability(&chance.probability, 1, 256);
 }
@@ -667,7 +661,6 @@ test "Chance.criticalHit" {
         try expectValue(Optional(bool).None, chance.actions.p1.critical_hit);
 
         chance.hit(true, 128);
-        chance.save(.hit, true);
 
         try expectProbability(&chance.probability, 1, 1);
         try expectValue(Optional(bool).None, chance.actions.p1.critical_hit);
@@ -677,7 +670,7 @@ test "Chance.criticalHit" {
         try expectProbability(&chance.probability, 1, 1);
         try expectValue(Optional(bool).None, chance.actions.p1.critical_hit);
 
-        try chance.commit(.P1);
+        try chance.commit(.P1, .hit, true);
 
         try expectProbability(&chance.probability, 17, 19968); // (1/2) * (17/256) * (1/39)
         try expectValue(Optional(bool).true, chance.actions.p1.critical_hit);
@@ -694,15 +687,13 @@ test "Chance.criticalHit" {
         try expectValue(Optional(bool).None, chance.actions.p1.critical_hit);
 
         chance.hit(true, 128);
-        chance.save(.hit, true);
 
         try expectProbability(&chance.probability, 1, 1);
         try expectValue(Optional(bool).None, chance.actions.p1.critical_hit);
 
         try chance.damage(.P1, 217);
+        try chance.commit(.P1, .hit, true);
 
-        chance.save(.hit, true);
-        try chance.commit(.P1);
         try expectProbability(&chance.probability, 251, 19968); // (1/2) * (251/256) * (1/39)
         try expectValue(Optional(bool).false, chance.actions.p1.critical_hit);
     }
@@ -719,8 +710,7 @@ test "Chance.damage" {
         try expectProbability(&chance.probability, 1, 1);
         try expectValue(0, chance.actions.p1.damage);
 
-        chance.save(.hit, true);
-        try chance.commit(.P1);
+        try chance.commit(.P1, .hit, true);
 
         try expectProbability(&chance.probability, 1, 39);
         try expectValue(217, chance.actions.p1.damage);
@@ -811,8 +801,8 @@ test "Chance.duration" {
     if (!showdown) {
         try expectValue(0, chance.actions.p2.duration);
         try expectValue(0, chance.actions.p2.durations.binding);
-        chance.save(.hit, true);
-        try chance.commit(.P2);
+
+        try chance.commit(.P2, .hit, true);
     }
     try expectValue(4, chance.actions.p2.duration);
     try expectValue(1, chance.actions.p2.durations.binding);
@@ -974,12 +964,12 @@ pub const NULL: Null = .{};
 const Null = struct {
     pub const Error = error{};
 
-    pub fn save(self: Null, kind: Commit, condition: bool) void {
-        _ = .{ self, kind, condition };
+    pub fn commit(self: Null, player: Player, kind: Commit, condition: bool) Error!void {
+        _ = .{ self, player, kind, condition };
     }
 
-    pub fn commit(self: Null, player: Player) Error!void {
-        _ = .{ self, player };
+    pub fn clearPending(self: Null) void {
+        _ = .{self};
     }
 
     pub fn clearDurations(self: Null, player: Player, haze: ?bool) void {

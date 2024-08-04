@@ -344,12 +344,7 @@ fn doTurn(
         player_skip,
         &residual,
         options,
-    )) |r| {
-        try options.chance.commit(player);
-        return r;
-    } else {
-        try options.chance.commit(player);
-    }
+    )) |r| return r;
     if (!replace) {
         if (player_choice.type != .Switch) {
             if (try checkFaint(battle, foe_player, options)) |r| return r;
@@ -357,6 +352,8 @@ fn doTurn(
         if (residual) try handleResidual(battle, player, options);
         if (try checkFaint(battle, player, options)) |r| return r;
     } else if (foe_choice.type == .Pass) return null;
+
+    options.chance.clearPending();
 
     residual = true;
     replace = battle.side(foe_player).stored().hp == 0;
@@ -369,12 +366,7 @@ fn doTurn(
         foe_skip,
         &residual,
         options,
-    )) |r| {
-        try options.chance.commit(foe_player);
-        return r;
-    } else {
-        try options.chance.commit(foe_player);
-    }
+    )) |r| return r;
     if (!replace) {
         if (!calc and foe_choice.type != .Switch) {
             if (try checkFaint(battle, player, options)) |r| return r;
@@ -939,7 +931,7 @@ fn doMove(
             try log.fail(.{ foe_ident, .None });
         } else {
             if (showdown or !zero) {
-                options.chance.save(.miss, !showdown or
+                try options.chance.commit(player, .miss, !showdown or
                     !foe.active.volatiles.Mist or !move.effect.isStatDown());
             }
             try log.lastmiss(.{});
@@ -957,11 +949,11 @@ fn doMove(
         } else if (showdown and move.effect == .Disable) {
             try buildRage(battle, player.foe(), options);
         } else if (!showdown and immune and move.effect == .Binding) {
-            options.chance.save(.binding, true);
+            try options.chance.commit(player, .binding, true);
         }
         return null;
     } else {
-        options.chance.save(.hit, true);
+        try options.chance.commit(player, .hit, true);
     }
 
     // On the cartridge MultiHit doesn't get set up until after damage has been applied for the
@@ -1184,10 +1176,10 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     const foe = battle.foe(player);
 
     if (try checkHit(battle, player, move, options)) |save| {
-        options.chance.save(.miss, save);
+        try options.chance.commit(player, .miss, save);
         return null;
     }
-    options.chance.save(.hit, true);
+    try options.chance.commit(player, .hit, true);
 
     battle.last_damage = switch (side.last_selected_move) {
         .SuperFang => @max(foe.stored().hp / 2, 1),
@@ -1251,11 +1243,11 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     // Pokémon Showdown calls checkHit before Counter
     if (!showdown) {
         if (try checkHit(battle, player, move, options)) |save| {
-            options.chance.save(.miss, save);
+            try options.chance.commit(player, .miss, save);
             return null;
         }
     }
-    options.chance.save(.hit, true);
+    try options.chance.commit(player, .hit, true);
 
     const sub = showdown and foe.active.volatiles.Substitute;
     _ = try applyDamage(battle, player.foe(), player.foe(), .None, options);
@@ -1825,16 +1817,16 @@ pub const Effects = struct {
         } else {
             if (showdown) {
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save and !sub);
+                    return try options.chance.commit(player, .miss, save and !sub);
                 }
                 if (sub) return options.log.fail(.{ battle.active(player.foe()), .None });
             } else {
                 if (sub) return options.log.fail(.{ battle.active(player.foe()), .None });
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save);
+                    return try options.chance.commit(player, .miss, save);
                 }
             }
-            options.chance.save(.hit, true);
+            try options.chance.commit(player, .hit, true);
         }
 
         if (foe.active.volatiles.Confusion) return;
@@ -1869,10 +1861,10 @@ pub const Effects = struct {
         // Pokémon Showdown handles hit/miss earlier in doMove
         if (!showdown) {
             if (try checkHit(battle, player, move, options)) |save| {
-                options.chance.save(.miss, save);
+                try options.chance.commit(player, .miss, save);
                 return null;
             }
-            options.chance.save(.hit, true);
+            try options.chance.commit(player, .hit, true);
         }
 
         if (volatiles.disable_move != 0) {
@@ -2066,13 +2058,14 @@ pub const Effects = struct {
                 return options.log.immune(.{ battle.active(player.foe()), .None });
             }
             if (try checkHit(battle, player, move, options)) |save| {
-                return options.chance.save(.miss, save and !foe.active.volatiles.LeechSeed);
+                return try options.chance.commit(player, .miss, save and
+                    !foe.active.volatiles.LeechSeed);
             }
             if (foe.active.volatiles.LeechSeed) return;
         } else {
             if (try checkHit(battle, player, move, options)) |save| {
-                return options.chance.save(.miss, save and !foe.active.types.includes(.Grass) and
-                    !foe.active.volatiles.LeechSeed);
+                return try options.chance.commit(player, .miss, save and
+                    !foe.active.types.includes(.Grass) and !foe.active.volatiles.LeechSeed);
             }
             if (foe.active.types.includes(.Grass) or foe.active.volatiles.LeechSeed) {
                 try options.log.lastmiss(.{});
@@ -2080,7 +2073,7 @@ pub const Effects = struct {
             }
         }
 
-        options.chance.save(.hit, true);
+        try options.chance.commit(player, .hit, true);
         foe.active.volatiles.LeechSeed = true;
 
         try options.log.start(.{ battle.active(player.foe()), .LeechSeed });
@@ -2121,16 +2114,16 @@ pub const Effects = struct {
             if (!has_mimic) {
                 // Invulnerable foes or 1/256 miss can trigger |-miss| instead of |-fail|
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save);
+                    return try options.chance.commit(player, .miss, save);
                 }
-                options.chance.save(.hit, true);
+                try options.chance.commit(player, .hit, true);
                 return options.log.fail(.{ battle.active(player.foe()), .None });
             }
         }
         if (try checkHit(battle, player, move, options)) |save| {
-            return options.chance.save(.miss, save);
+            return try options.chance.commit(player, .miss, save);
         }
-        options.chance.save(.hit, true);
+        try options.chance.commit(player, .hit, true);
 
         const rslot = try Rolls.moveSlot(battle, player, &foe.active.moves, 0, options);
         side.active.move(oslot).id = foe.active.move(rslot).id;
@@ -2173,7 +2166,8 @@ pub const Effects = struct {
             if (immune and !foe.active.volatiles.Invulnerable) {
                 return log.immune(.{ foe_ident, .None });
             } else if (try checkHit(battle, player, move, options)) |save| {
-                return options.chance.save(.miss, save and !Status.any(foe_stored.status));
+                return try options.chance.commit(player, .miss, save and
+                    !Status.any(foe_stored.status));
             }
         }
         if (Status.any(foe_stored.status)) {
@@ -2185,10 +2179,10 @@ pub const Effects = struct {
         if (!showdown) {
             if (immune) return log.immune(.{ foe_ident, .None });
             if (try checkHit(battle, player, move, options)) |save| {
-                return options.chance.save(.miss, save);
+                return try options.chance.commit(player, .miss, save);
             }
         }
-        options.chance.save(.hit, true);
+        try options.chance.commit(player, .hit, true);
 
         foe_stored.status = Status.init(.PAR);
         foe.active.stats.spe = @max(foe.active.stats.spe / 4, 1);
@@ -2233,8 +2227,9 @@ pub const Effects = struct {
 
         if (showdown and move.effect == .Poison) {
             if (try checkHit(battle, player, move, options)) |save| {
-                return options.chance.save(.miss, save and !foe.active.volatiles.Substitute and
-                    !Status.any(foe_stored.status) and !foe.active.types.includes(.Poison));
+                return try options.chance.commit(player, .miss, save and
+                    !foe.active.volatiles.Substitute and !Status.any(foe_stored.status) and
+                    !foe.active.types.includes(.Poison));
             }
         }
         if (foe.active.volatiles.Substitute) {
@@ -2261,10 +2256,10 @@ pub const Effects = struct {
         if (move.effect == .Poison) {
             if (!showdown) {
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save);
+                    return try options.chance.commit(player, .miss, save);
                 }
             }
-            options.chance.save(.hit, true);
+            try options.chance.commit(player, .hit, true);
         } else {
             if (!try Rolls.poisonChance(battle, player, move.effect == .PoisonChance1, options)) {
                 return;
@@ -2336,10 +2331,10 @@ pub const Effects = struct {
             // If moveHit in doMove didn't return true Pokémon Showdown wouldn't be in here
             if (!showdown) {
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save);
+                    return try options.chance.commit(player, .miss, save);
                 }
             }
-            options.chance.save(.hit, true);
+            try options.chance.commit(player, .hit, true);
         }
 
         // Sleep Clause Mod
@@ -2393,9 +2388,9 @@ pub const Effects = struct {
         if (showdown) {
             if (battle.side(player).last_selected_move == .Teleport) return;
             if (try checkHit(battle, player, move, options)) |save| {
-                options.chance.save(.miss, save);
+                try options.chance.commit(player, .miss, save);
             } else {
-                options.chance.save(.hit, true);
+                try options.chance.commit(player, .hit, true);
             }
             battle.last_damage = 0;
         } else {
@@ -2573,10 +2568,10 @@ pub const Effects = struct {
             // checkHit already checks for Invulnerable
             if (!showdown) {
                 if (try checkHit(battle, player, move, options)) |save| {
-                    return options.chance.save(.miss, save);
+                    return try options.chance.commit(player, .miss, save);
                 }
             }
-            options.chance.save(.hit, true);
+            try options.chance.commit(player, .hit, true);
         }
 
         var stats = &foe.active.stats;
