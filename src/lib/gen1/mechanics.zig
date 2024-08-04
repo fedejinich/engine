@@ -852,13 +852,13 @@ fn doMove(
             break :miss true;
         }
         break :miss (move.target != .Self and
-            !moveHit(battle, player, move, &immune, &mist, options));
+            !try moveHit(battle, player, move, &immune, &mist, options));
     };
     assert(!immune or miss or (showdown and move.effect == .Binding));
 
     var late = showdown and move.effect != .Explode;
     const skip = status or immune;
-    if (counter or ((!showdown or !skip) and !miss)) blk: {
+    if ((!showdown or (!skip or counter)) and !miss) blk: {
         if (showdown and move.effect.isMulti()) {
             try Effects.multiHit(battle, player, move, options);
             hits = side.active.volatiles.attacks;
@@ -869,7 +869,7 @@ fn doMove(
         const check = !showdown or (!counter and move.effect != .OHKO);
         if (check) crit = try checkCriticalHit(battle, player, move, options);
 
-        if (counter) return counterDamage(battle, player, move, miss, options);
+        if (counter) return counterDamage(battle, player, move, options);
 
         battle.last_damage = 0;
 
@@ -899,7 +899,7 @@ fn doMove(
     miss = if (showdown or skip)
         miss
     else
-        (!moveHit(battle, player, move, &immune, &mist, options) or zero);
+        (!try moveHit(battle, player, move, &immune, &mist, options) or zero);
 
     assert(showdown or miss or battle.last_damage > 0 or skip);
     assert((!showdown and miss) or !(ohko and immune));
@@ -930,11 +930,7 @@ fn doMove(
             if (!foe.active.volatiles.Substitute) try log.activate(.{ foe_ident, .Mist });
             try log.fail(.{ foe_ident, .None });
         } else {
-            if (showdown or !zero) {
-                try options.chance.commit(player, .miss, !showdown or
-                    (!foe.active.volatiles.Mist and !foe.active.volatiles.Substitute) or
-                    !move.effect.isStatDown());
-            }
+            if (!showdown and !zero) try options.chance.commit(player, .miss);
             try log.lastmiss(.{});
             try log.miss(.{battle.active(player)});
         }
@@ -950,11 +946,11 @@ fn doMove(
         } else if (showdown and move.effect == .Disable) {
             try buildRage(battle, player.foe(), options);
         } else if (!showdown and immune and move.effect == .Binding) {
-            try options.chance.commit(player, .binding, true);
+            try options.chance.commit(player, .binding);
         }
         return null;
-    } else {
-        try options.chance.commit(player, .hit, true);
+    } else if (!showdown) {
+        try options.chance.commit(player, .hit);
     }
 
     // On the cartridge MultiHit doesn't get set up until after damage has been applied for the
@@ -1176,11 +1172,7 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     const side = battle.side(player);
     const foe = battle.foe(player);
 
-    if (try checkHit(battle, player, move, options)) |save| {
-        try options.chance.commit(player, .miss, save);
-        return null;
-    }
-    try options.chance.commit(player, .hit, true);
+    if (!try checkHit(battle, player, move, options)) return null;
 
     battle.last_damage = switch (side.last_selected_move) {
         .SuperFang => @max(foe.stored().hp / 2, 1),
@@ -1206,14 +1198,13 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     return null;
 }
 
-fn counterDamage(
-    battle: anytype,
-    player: Player,
-    move: Move.Data,
-    miss: bool,
-    options: anytype,
-) !?Result {
+fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anytype) !?Result {
     const foe = battle.foe(player);
+
+    if (battle.last_damage == 0) {
+        try options.log.fail(.{ battle.active(player), .None });
+        return null;
+    }
 
     // Pretend Splash was used as a stand-in when no move has been used to fail below with 0 BP
     const foe_last_selected_move =
@@ -1227,22 +1218,6 @@ fn counterDamage(
         foe.last_selected_move != .Counter and
         (foe_last_selected_move.type == .Normal or
         foe_last_selected_move.type == .Fighting);
-
-    if (miss) {
-        assert(showdown);
-        try options.chance.commit(player, .miss, battle.last_damage != 0 and used and selected);
-        // We couldn't set this to 0 in moveHit like how it works on Pokémon Showdown because
-        // otherwise the commit condition above would always be false, but now we correct it
-        if (!foe.active.volatiles.Invulnerable) battle.last_damage = 0;
-        try options.log.lastmiss(.{});
-        try options.log.miss(.{battle.active(player)});
-        return null;
-    }
-
-    if (battle.last_damage == 0) {
-        try options.log.fail(.{ battle.active(player), .None });
-        return null;
-    }
 
     if (!used and !selected) {
         try options.log.fail(.{ battle.active(player), .None });
@@ -1258,13 +1233,8 @@ fn counterDamage(
 
     battle.last_damage *|= 2;
 
-    if (!showdown) {
-        if (try checkHit(battle, player, move, options)) |save| {
-            try options.chance.commit(player, .miss, save);
-            return null;
-        }
-    }
-    try options.chance.commit(player, .hit, true);
+    // Pokémon Showdown calls moveHit before Counter
+    if (!showdown and !try checkHit(battle, player, move, options)) return null;
 
     const sub = showdown and foe.active.volatiles.Substitute;
     _ = try applyDamage(battle, player.foe(), player.foe(), .None, options);
@@ -1356,11 +1326,14 @@ fn metronome(
     return doMove(battle, player, mslot, rewrap, auto, residual, options);
 }
 
-fn checkHit(battle: anytype, player: Player, move: Move.Data, options: anytype) !?bool {
+fn checkHit(battle: anytype, player: Player, move: Move.Data, options: anytype) !bool {
     var immune = false;
     var mist = false;
 
-    if (moveHit(battle, player, move, &immune, &mist, options)) return null;
+    if (try moveHit(battle, player, move, &immune, &mist, options)) {
+        if (!showdown) try options.chance.commit(player, .hit);
+        return true;
+    }
 
     assert(!immune);
     if (mist) {
@@ -1368,11 +1341,13 @@ fn checkHit(battle: anytype, player: Player, move: Move.Data, options: anytype) 
         const foe_ident = battle.active(player.foe());
         try options.log.activate(.{ foe_ident, .Mist });
         try options.log.fail(.{ foe_ident, .None });
-        return false;
+    } else {
+        try options.log.lastmiss(.{});
+        try options.log.miss(.{battle.active(player)});
     }
-    try options.log.lastmiss(.{});
-    try options.log.miss(.{battle.active(player)});
-    return true;
+
+    if (!showdown) try options.chance.commit(player, .miss);
+    return false;
 }
 
 fn moveHit(
@@ -1382,7 +1357,7 @@ fn moveHit(
     immune: *bool,
     mist: *bool,
     options: anytype,
-) bool {
+) !bool {
     var side = battle.side(player);
     const foe = battle.foe(player);
 
@@ -1433,7 +1408,7 @@ fn moveHit(
         if (overwrite) side.active.volatiles.state = accuracy;
 
         // GLITCH: max accuracy is 255 so 1/256 chance of miss
-        break :miss !Rolls.hit(battle, player, @intCast(accuracy), options);
+        break :miss !try Rolls.hit(battle, player, @intCast(accuracy), options);
     };
 
     // Pokémon Showdown reports miss instead of fail for moves blocked by Mist that 1/256 miss
@@ -1443,13 +1418,7 @@ fn moveHit(
     }
 
     if (!miss) return true;
-    const m = side.last_selected_move;
-    // Pokémon Showdown doesn't actually special-case Counter like this, but we have to handle
-    // all Counter-related functionality within counterDamage as opposed to Pokémon Showdown's
-    // normal flow in order to properly update chance
-    if (!showdown or (!foe.active.volatiles.Invulnerable and m != .Counter)) {
-        battle.last_damage = 0;
-    }
+    if (!showdown or !foe.active.volatiles.Invulnerable) battle.last_damage = 0;
     side.active.volatiles.Binding = false;
     return false;
 }
@@ -1839,17 +1808,12 @@ pub const Effects = struct {
             if (!try Rolls.confusionChance(battle, player, options)) return;
         } else {
             if (showdown) {
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save and !sub);
-                }
+                if (!try checkHit(battle, player, move, options)) return;
                 if (sub) return options.log.fail(.{ battle.active(player.foe()), .None });
             } else {
                 if (sub) return options.log.fail(.{ battle.active(player.foe()), .None });
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save);
-                }
+                if (!try checkHit(battle, player, move, options)) return;
             }
-            try options.chance.commit(player, .hit, true);
         }
 
         if (foe.active.volatiles.Confusion) return;
@@ -1882,13 +1846,7 @@ pub const Effects = struct {
         const foe_ident = battle.active(player.foe());
 
         // Pokémon Showdown handles hit/miss earlier in doMove
-        if (!showdown) {
-            if (try checkHit(battle, player, move, options)) |save| {
-                try options.chance.commit(player, .miss, save);
-                return null;
-            }
-            try options.chance.commit(player, .hit, true);
-        }
+        if (!showdown and !try checkHit(battle, player, move, options)) return null;
 
         if (volatiles.disable_move != 0) {
             try options.log.fail(.{ foe_ident, .None });
@@ -2080,23 +2038,16 @@ pub const Effects = struct {
             if (!foe.active.volatiles.Invulnerable and foe.active.types.includes(.Grass)) {
                 return options.log.immune(.{ battle.active(player.foe()), .None });
             }
-            if (try checkHit(battle, player, move, options)) |save| {
-                return try options.chance.commit(player, .miss, save and
-                    !foe.active.volatiles.LeechSeed);
-            }
+            if (!try checkHit(battle, player, move, options)) return;
             if (foe.active.volatiles.LeechSeed) return;
         } else {
-            if (try checkHit(battle, player, move, options)) |save| {
-                return try options.chance.commit(player, .miss, save and
-                    !foe.active.types.includes(.Grass) and !foe.active.volatiles.LeechSeed);
-            }
+            if (!try checkHit(battle, player, move, options)) return;
             if (foe.active.types.includes(.Grass) or foe.active.volatiles.LeechSeed) {
                 try options.log.lastmiss(.{});
                 return options.log.miss(.{battle.active(player)});
             }
         }
 
-        try options.chance.commit(player, .hit, true);
         foe.active.volatiles.LeechSeed = true;
 
         try options.log.start(.{ battle.active(player.foe()), .LeechSeed });
@@ -2136,17 +2087,11 @@ pub const Effects = struct {
             };
             if (!has_mimic) {
                 // Invulnerable foes or 1/256 miss can trigger |-miss| instead of |-fail|
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save);
-                }
-                try options.chance.commit(player, .hit, true);
+                if (!try checkHit(battle, player, move, options)) return;
                 return options.log.fail(.{ battle.active(player.foe()), .None });
             }
         }
-        if (try checkHit(battle, player, move, options)) |save| {
-            return try options.chance.commit(player, .miss, save);
-        }
-        try options.chance.commit(player, .hit, true);
+        if (!try checkHit(battle, player, move, options)) return;
 
         const rslot = try Rolls.moveSlot(battle, player, &foe.active.moves, 0, options);
         side.active.move(oslot).id = foe.active.move(rslot).id;
@@ -2188,10 +2133,7 @@ pub const Effects = struct {
             // Invulnerability trumps type immunity on Pokémon Showdown
             if (immune and !foe.active.volatiles.Invulnerable) {
                 return log.immune(.{ foe_ident, .None });
-            } else if (try checkHit(battle, player, move, options)) |save| {
-                return try options.chance.commit(player, .miss, save and
-                    !Status.any(foe_stored.status));
-            }
+            } else if (!try checkHit(battle, player, move, options)) return;
         }
         if (Status.any(foe_stored.status)) {
             return log.fail(.{
@@ -2201,11 +2143,8 @@ pub const Effects = struct {
         }
         if (!showdown) {
             if (immune) return log.immune(.{ foe_ident, .None });
-            if (try checkHit(battle, player, move, options)) |save| {
-                return try options.chance.commit(player, .miss, save);
-            }
+            if (!try checkHit(battle, player, move, options)) return;
         }
-        try options.chance.commit(player, .hit, true);
 
         foe_stored.status = Status.init(.PAR);
         foe.active.stats.spe = @max(foe.active.stats.spe / 4, 1);
@@ -2248,14 +2187,9 @@ pub const Effects = struct {
         const foe_ident = battle.active(player.foe());
         const toxic = battle.side(player).last_selected_move == .Toxic;
 
-        if (showdown and move.effect == .Poison) {
-            if (try checkHit(battle, player, move, options)) |save| {
-                return try options.chance.commit(player, .miss, save and
-                    !foe.active.volatiles.Substitute and !Status.any(foe_stored.status) and
-                    !foe.active.types.includes(.Poison));
-            }
-        }
-        if (foe.active.volatiles.Substitute) {
+        if (showdown and move.effect == .Poison and !try checkHit(battle, player, move, options)) {
+            return;
+        } else if (foe.active.volatiles.Substitute) {
             if (move.effect != .Poison) return;
             return log.fail(.{ foe_ident, .None });
         } else if (Status.any(foe_stored.status)) {
@@ -2277,12 +2211,7 @@ pub const Effects = struct {
         }
 
         if (move.effect == .Poison) {
-            if (!showdown) {
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save);
-                }
-            }
-            try options.chance.commit(player, .hit, true);
+            if (!showdown and !try checkHit(battle, player, move, options)) return;
         } else {
             if (!try Rolls.poisonChance(battle, player, move.effect == .PoisonChance1, options)) {
                 return;
@@ -2352,12 +2281,7 @@ pub const Effects = struct {
                 });
             }
             // If moveHit in doMove didn't return true Pokémon Showdown wouldn't be in here
-            if (!showdown) {
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save);
-                }
-            }
-            try options.chance.commit(player, .hit, true);
+            if (!showdown and !try checkHit(battle, player, move, options)) return;
         }
 
         // Sleep Clause Mod
@@ -2410,11 +2334,7 @@ pub const Effects = struct {
         // Whirlwind/Roar should not roll to hit/reset damage but Pokémon Showdown does anyway
         if (showdown) {
             if (battle.side(player).last_selected_move == .Teleport) return;
-            if (try checkHit(battle, player, move, options)) |save| {
-                try options.chance.commit(player, .miss, save);
-            } else {
-                try options.chance.commit(player, .hit, true);
-            }
+            _ = try checkHit(battle, player, move, options);
             battle.last_damage = 0;
         } else {
             try options.log.fail(.{ battle.active(player), .None });
@@ -2589,12 +2509,7 @@ pub const Effects = struct {
             if (!proc or foe.active.volatiles.Invulnerable) return;
         } else {
             // checkHit already checks for Invulnerable
-            if (!showdown) {
-                if (try checkHit(battle, player, move, options)) |save| {
-                    return try options.chance.commit(player, .miss, save);
-                }
-            }
-            try options.chance.commit(player, .hit, true);
+            if (!showdown and !try checkHit(battle, player, move, options)) return;
         }
 
         var stats = &foe.active.stats;
@@ -2806,7 +2721,7 @@ pub const Rolls = struct {
     }
 
     const uN = if (pkmn.options.miss) u8 else u9;
-    fn hit(battle: anytype, player: Player, accuracy: u8, options: anytype) bool {
+    fn hit(battle: anytype, player: Player, accuracy: u8, options: anytype) !bool {
         const acc: uN = if (pkmn.options.miss) accuracy else @as(uN, accuracy) + 1;
         const ok = if (options.calc.overridden(player, .hit)) |val|
             val == .true
@@ -2817,7 +2732,7 @@ pub const Rolls = struct {
         else
             battle.rng.next() < acc;
 
-        options.chance.hit(ok, acc);
+        try options.chance.hit(player, ok, acc);
         return ok;
     }
 

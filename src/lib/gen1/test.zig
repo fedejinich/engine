@@ -565,7 +565,8 @@ test "turn order (complex speed tie)" {
         try t.log.expected.turn(.{2});
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
-        try t.expectProbability(1, 2);
+        // (1/2) * (255/256) * (255/256)
+        try if (showdown) t.expectProbability(65025, 131072) else t.expectProbability(1, 2);
 
         try t.verify();
     }
@@ -1398,7 +1399,7 @@ test "Poison effect" {
 
         // Poison-type Pokémon cannot be poisoned
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
-        try t.expectProbability(1, 1);
+        try if (showdown) t.expectProbability(27, 32) else t.expectProbability(1, 1);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Substitute, P1.ident(1) });
         try t.log.expected.start(.{ P1.ident(1), .Substitute });
@@ -1411,7 +1412,7 @@ test "Poison effect" {
         // Substitute blocks poison
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
         try expectEqual(0, t.actual.p1.get(1).status);
-        try t.expectProbability(1, 1);
+        try if (showdown) t.expectProbability(27, 32) else t.expectProbability(1, 1);
 
         try t.log.expected.switched(.{ P2.ident(2), t.expected.p2.get(2) });
         try t.log.expected.move(.{ P1.ident(1), Move.Toxic, P2.ident(2) });
@@ -1753,7 +1754,7 @@ test "FreezeChance effect" {
 
     // Freezing prevents action
     try expectEqual(Result.Default, try t.update(forced, move(1)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(255, 256) else t.expectProbability(1, 1);
 
     // ...Pokémon Showdown still lets you choose whatever
     const n = t.battle.actual.choices(.P1, .Move, &choices);
@@ -1902,7 +1903,8 @@ test "Paralyze effect" {
 
     // Electric-type Pokémon can be paralyzed
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(573, 1024); // (3/4) * (191/256)
+    // (255/256) * (3/4) * (191/256) vs. (3/4) * (191/256)
+    try if (showdown) t.expectProbability(146115, 262144) else t.expectProbability(573, 1024);
 
     try t.log.expected.switched(.{ P2.ident(2), t.expected.p2.get(2) });
     try t.log.expected.cant(.{ P1.ident(1), .Paralysis });
@@ -1920,7 +1922,8 @@ test "Paralyze effect" {
 
     // Glare ignores type immunity
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(573, 1024); // (3/4) * (191/256)
+    // (216/256) * (3/4) * (191/256) vs. (3/4) * (191/256)
+    try if (showdown) t.expectProbability(15471, 32768) else t.expectProbability(573, 1024);
 
     try t.log.expected.switched(.{ P1.ident(2), t.expected.p1.get(2) });
     try t.log.expected.move(.{ P2.ident(2), Move.ThunderWave, P1.ident(2) });
@@ -2120,7 +2123,7 @@ test "Sleep effect" {
 
     // Can't sleep someone already sleeping, turns only decrement while in battle
     try expectEqual(Result.Default, try t.update(move(1), swtch(2)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(255, 256) else t.expectProbability(1, 1);
     try expectEqual(t.expected.p2.get(1).status, t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Cut, P2.ident(1) });
@@ -2164,7 +2167,7 @@ test "Confusion effect" {
 
     // Confusion is blocked by Substitute
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(255, 256) else t.expectProbability(1, 1);
     try expect(!t.actual.p2.active.volatiles.Confusion);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
@@ -3531,8 +3534,14 @@ test "Thrashing effect" {
         try t.log.expected.turn(.{6});
 
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
-        // (3/4) ** 2 * (1/2) * (255/256) * (231/256) * (1/39)
-        try t.expectProbability(176715, 27262976);
+
+        if (showdown) {
+            // (3/4) ** 2 * (1/2) * (255/256) ** 2 * (231/256) * (1/39)
+            try t.expectProbability(45062325, 6979321856);
+        } else {
+            // (3/4) ** 2 * (1/2) * (255/256) * (231/256) * (1/39)
+            try t.expectProbability(176715, 27262976);
+        }
 
         try t.verify();
     }
@@ -3918,7 +3927,11 @@ test "Mist effect" {
 
     // Mist does protect against primary stat lowering effects
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
-    try t.expectProbability(9095, 425984); // (255/256) * (214/256) * (1/39)
+    if (showdown) {
+        try t.expectProbability(2319225, 109051904); // (255/256) ** 2 * (214/256) * (1/39)
+    } else {
+        try t.expectProbability(9095, 425984); // (255/256) * (214/256) * (1/39)
+    }
     try expectEqual(-1, t.actual.p1.active.boosts.atk);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1) });
@@ -4108,7 +4121,13 @@ test "Counter effect" {
 
     // Fails for moves which are not Normal / Fighting
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(1006825, 54525952); // (255/256) * (206/256) * (1/39) * (230/256)
+    if (showdown) {
+        // (255/256) ** 2 * (206/256) * (1/39) * (230/256)
+        try t.expectProbability(256740375, 13958643712);
+    } else {
+        // (255/256) * (206/256) * (1/39) * (230/256)
+        try t.expectProbability(1006825, 54525952);
+    }
 
     try t.log.expected.move(.{ P1.ident(1), Move.DoubleSlap, P2.ident(1) });
     t.expected.p2.get(1).hp -= 17;
@@ -4134,7 +4153,8 @@ test "Counter effect" {
 
     // Cannot Counter an opponent's Counter
     try expectEqual(Result.Default, try t.update(move(3), move(1)));
-    try t.expectProbability(1, 1);
+    // (255/256) ** 2
+    try if (showdown) t.expectProbability(65025, 65536) else t.expectProbability(1, 1);
 
     try t.log.expected.move(.{ P1.ident(1), Move.SonicBoom, P2.ident(1) });
     t.expected.p2.get(1).hp -= 20;
@@ -4184,7 +4204,7 @@ test "Counter effect" {
 
     // Certain zero damage moves like Teleport should not reset it
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(255, 256) else t.expectProbability(1, 1);
 
     try t.log.expected.move(.{ P1.ident(2), Move.SeismicToss, P2.ident(1) });
     t.expected.p2.get(1).hp -= 100;
@@ -4600,7 +4620,8 @@ test "LeechSeed effect" {
 
     // Leed Seed can miss / Grass-type Pokémon are immune
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(27, 256);
+    // (229/256) * (27/256)
+    try if (showdown) t.expectProbability(27, 256) else t.expectProbability(6183, 65536);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .Substitute });
@@ -5988,7 +6009,7 @@ test "Substitute effect" {
 
     // Takes 1/4 of maximum HP to make a Substitute with that HP + 1, protects against stat down
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(89, 128) else t.expectProbability(1, 1); // (178/256)
     try expectEqual(104, t.actual.p1.active.volatiles.substitute);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Substitute, P1.ident(1) });
@@ -6532,7 +6553,8 @@ test "Simultaneous Counter bug" {
 
     const result = if (showdown) Result.Default else Result.Error;
     try expectEqual(result, try t.update(move(1), move(1)));
-    try t.expectProbability(1, 1);
+    // (255/256) * (255/256)
+    try if (showdown) t.expectProbability(65025, 65536) else t.expectProbability(1, 1);
     try t.verify();
 }
 
@@ -6567,7 +6589,7 @@ test "Counter + sleep = Desync Clause Mod bug" {
     try t.log.expected.turn(.{3});
 
     try expectEqual(Result.Default, try t.update(swtch(2), move(3)));
-    try t.expectProbability(1, 1);
+    try if (showdown) t.expectProbability(255, 256) else t.expectProbability(1, 1);
 
     try t.log.expected.move(.{ P2.ident(1), Move.SoftBoiled, P2.ident(1) });
     t.expected.p2.get(1).hp += 100;
@@ -6606,7 +6628,7 @@ test "Counter + sleep = Desync Clause Mod bug" {
     const result = if (showdown) Result.Default else Result{ .p1 = .Switch, .p2 = .Pass };
     try expectEqual(result, try t.update(move(if (showdown) 2 else 0), move(3)));
     // (6/7) * (255/256)
-    try if (showdown) t.expectProbability(6, 7) else t.expectProbability(765, 896);
+    try t.expectProbability(765, 896);
 
     try t.verify();
 }
@@ -6645,7 +6667,11 @@ test "Counter via Metronome bug" {
         try t.log.expected.turn(.{3});
 
         try expectEqual(Result.Default, try t.update(move(1), move(2)));
-        try t.expectProbability(255, 41728); // (1/163) * (255/256)
+        if (showdown) {
+            try t.expectProbability(65025, 10682368); // (1/163) * (255/256) ** 2
+        } else {
+            try t.expectProbability(255, 41728); // (1/163) * (255/256)
+        }
         try t.verify();
     }
     // Counter second
@@ -6668,7 +6694,11 @@ test "Counter via Metronome bug" {
         try t.log.expected.turn(.{2});
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
-        try t.expectProbability(255, 41728); // (255/256) * (1/163)
+        if (showdown) {
+            try t.expectProbability(65025, 10682368); // (255/256) ** 2 * (1/163)
+        } else {
+            try t.expectProbability(255, 41728); // (255/256) * (1/163)
+        }
         try t.verify();
     }
 }
@@ -7737,7 +7767,8 @@ test "Counter glitches" {
 
         const result = if (showdown) Result.Default else Result.Error;
         try expectEqual(result, try t.update(move(1), move(3)));
-        try t.expectProbability(1, 4);
+        // (1/4) * (255/256) vs. (1/4)
+        try if (showdown) t.expectProbability(255, 1024) else t.expectProbability(1, 4);
         try t.verify();
     }
 }
@@ -9313,7 +9344,8 @@ test "Trapping sleep glitch" {
     try t.log.expected.turn(.{5});
 
     try expectEqual(Result.Default, try t.update(move(2), forced));
-    try if (showdown) t.expectProbability(6, 7) else t.expectProbability(1, 1);
+    // (191/256) * (6/7)
+    try if (showdown) t.expectProbability(573, 896) else t.expectProbability(1, 1);
     try expectEqual(t.expected.p2.get(2).status, t.actual.p2.get(1).status);
 
     try t.verify();
@@ -9690,7 +9722,8 @@ test "Substitute + Confusion glitch" {
 
         // If Substitute is up, opponent's sub takes damage for Confusion self-hit or 0 damage
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
-        try t.expectProbability(3, 8); // (3/4) * (1/2)
+        // (140/256) * (3/4) * (1/2) vs. (3/4) * (1/2)
+        try if (showdown) t.expectProbability(105, 512) else t.expectProbability(3, 8);
         try expectEqual(7, t.actual.p1.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Supersonic, P1.ident(1) });
@@ -9702,7 +9735,8 @@ test "Substitute + Confusion glitch" {
         // Pokémon Showdown incorrectly applies damage to the confused Pokémon's sub when
         // selecting a self-targeting move
         try expectEqual(Result.Default, try t.update(move(3), move(1)));
-        try t.expectProbability(1, 3); // (2/3) * (1/2)
+        // (140/256) * (2/3) * (1/2) vs.  (2/3) * (1/2)
+        try if (showdown) t.expectProbability(35, 192) else t.expectProbability(1, 3);
         try expectEqual(if (showdown) 2 else 7, t.actual.p1.active.volatiles.substitute);
 
         try t.verify();
