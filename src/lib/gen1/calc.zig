@@ -204,6 +204,8 @@ pub const Options = struct {
     metronome: bool = false,
 };
 
+pub const MAX_FRONTIER = 14;
+
 pub fn transitions(
     battle: anytype,
     c1: Choice,
@@ -443,13 +445,10 @@ pub fn update(
         // Ensure we can generate all transitions from the same original state
         // (we must change the battle's RNG from a FixedRNG to a PRNG because
         // the transitions function relies on RNG for discovery of states)
-        const stats = try transitions(unfix(copy), c1, c2, allocator, writer, .{
+        if (try transitions(unfix(copy), c1, c2, allocator, writer, .{
             .actions = actions,
             .cap = true,
-        });
-        _ = stats;
-        // DEBUG(stats);
-        // TODO: try expect(stats.frontier < pkmn.gen1.MAX_FRONTIER_SIZE);
+        })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
     }
 
     // Demonstrate that we can produce the same state by forcing the RNG to behave the
