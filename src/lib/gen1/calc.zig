@@ -301,6 +301,8 @@ pub fn transitions(
         while (p1_dmg.min < p1_dmg.max) : (p1_dmg.min += 1) {
             a.p1.damage = @intCast(p1_dmg.min);
 
+            const p1_min: u9 = p1_dmg.min;
+
             var p2_dmg = Rolls.damage(template.p2, p2_hit);
             while (p2_dmg.min < p2_dmg.max) : (p2_dmg.min += 1) {
                 a.p2.damage = @intCast(p2_dmg.min);
@@ -313,36 +315,51 @@ pub fn transitions(
                 _ = try b.update(c1, c2, &opts);
                 stats.updates += 1;
 
+                const summaries = &opts.calc.summaries;
+                const p1_max: u9 = if (p2_dmg.min != 217)
+                    p1_dmg.min
+                else
+                    try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, false);
                 const p2_max: u9 =
-                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), &opts.calc.summaries, false);
+                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, false);
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
                         if (!summary) {
                             try debug(writer, opts.chance.actions, .{
+                                .p1_max = p1_max,
                                 .p2_max = p2_max,
                                 .color = i,
                                 .dim = true,
                             });
                         }
 
+                        p1_dmg.min = p1_max;
                         p2_dmg.min = p2_max;
                         continue;
                     }
 
                     if (!summary) {
-                        try debug(writer, opts.chance.actions, .{ .p2_max = p2_max, .color = i });
+                        try debug(writer, opts.chance.actions, .{
+                            .p1_max = p1_max,
+                            .p2_max = p2_max,
+                            .color = i,
+                        });
                     }
 
-                    for (p2_dmg.min..p2_max + 1) |p2d| {
-                        var acts = opts.chance.actions;
-                        acts.p2.damage = @intCast(p2d);
-                        if ((try seen.getOrPut(acts)).found_existing) {
-                            err("already seen {}", .{acts}, options.seed);
-                            return error.TestUnexpectedResult;
+                    for (p1_min..p1_max + 1) |p1d| {
+                        for (p2_dmg.min..p2_max + 1) |p2d| {
+                            var acts = opts.chance.actions;
+                            acts.p1.damage = @intCast(p1d);
+                            acts.p2.damage = @intCast(p2d);
+                            if ((try seen.getOrPut(acts)).found_existing) {
+                                err("already seen {}", .{acts}, options.seed);
+                                return error.TestUnexpectedResult;
+                            }
                         }
                     }
 
+                    if (p1_max != p1_min) try q.update(p1_max - p1_min + 1, 1);
                     if (p2_max != p2_dmg.min) try q.update(p2_max - p2_dmg.min + 1, 1);
                     try p.add(q);
                     stats.saved += 1;
@@ -356,6 +373,7 @@ pub fn transitions(
                         try frontier.append(opts.chance.actions);
 
                         try debug(writer, opts.chance.actions, .{
+                            .p1_max = p1_max,
                             .p2_max = p2_max,
                             .dim = true,
                             .newline = false,
@@ -369,10 +387,15 @@ pub fn transitions(
                             .indent = false,
                         });
                     } else if (!summary) {
-                        try debug(writer, opts.chance.actions, .{ .p2_max = p2_max, .dim = true });
+                        try debug(writer, opts.chance.actions, .{
+                            .p1_max = p1_max,
+                            .p2_max = p2_max,
+                            .dim = true,
+                        });
                     }
                 }
 
+                p1_dmg.min = p1_max;
                 p2_dmg.min = p2_max;
             }
 
