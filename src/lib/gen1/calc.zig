@@ -318,13 +318,21 @@ pub fn transitions(
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
-                        if (!summary) try debug(writer, opts.chance.actions, .{ .color = i, .dim = true });
+                        if (!summary) {
+                            try debug(writer, opts.chance.actions, .{
+                                .p2_max = p2_max,
+                                .color = i,
+                                .dim = true,
+                            });
+                        }
 
                         p2_dmg.min = p2_max;
                         continue;
                     }
 
-                    if (!summary) try debug(writer, opts.chance.actions, .{ .color = i });
+                    if (!summary) {
+                        try debug(writer, opts.chance.actions, .{ .p2_max = p2_max, .color = i });
+                    }
 
                     for (p2_dmg.min..p2_max + 1) |p2d| {
                         var acts = opts.chance.actions;
@@ -347,7 +355,11 @@ pub fn transitions(
                     if (!matches(opts.chance.actions, i, frontier.items)) {
                         try frontier.append(opts.chance.actions);
 
-                        try debug(writer, opts.chance.actions, .{ .dim = true, .newline = false });
+                        try debug(writer, opts.chance.actions, .{
+                            .p2_max = p2_max,
+                            .dim = true,
+                            .newline = false,
+                        });
                         try writer.writeAll(" → ");
                         try debug(writer, opts.chance.actions, .{
                             .shape = true,
@@ -357,7 +369,7 @@ pub fn transitions(
                             .indent = false,
                         });
                     } else if (!summary) {
-                        try debug(writer, opts.chance.actions, .{ .dim = true });
+                        try debug(writer, opts.chance.actions, .{ .p2_max = p2_max, .dim = true });
                     }
                 }
 
@@ -368,7 +380,10 @@ pub fn transitions(
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
-            try writer.print("  = {s} ({d:.2}%)\n\n", .{p, 100 * @as(f128, @floatFromInt(p.p)) / @as(f128, @floatFromInt(p.q))});
+            try writer.print(
+                "  = {s} ({d:.2}%)\n\n",
+                .{p, 100 * @as(f128, @floatFromInt(p.p)) / @as(f128, @floatFromInt(p.q))},
+            );
         }
 
     }
@@ -488,6 +503,7 @@ fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
 
 const Style = struct {
     shape: bool = false,
+    p2_max: u9 = 0,
     color: ?usize = null,
     bold: bool = false,
     background: bool = false,
@@ -505,7 +521,28 @@ fn debug(writer: anytype, actions: Actions, style: Style) !void {
 
         if (style.dim or style.bold) try writer.print("\x1b[{d}m", .{mod});
         try writer.print("\x1b[{d}{d}m", .{ background, color });
-        try actions.fmt(writer, style.shape);
+        if (style.p2_max != 0 and style.p2_max != actions.p2.damage) {
+            var input: [1024]u8 = undefined;
+            var stream = std.io.fixedBufferStream(&input);
+            try actions.fmt(&stream.writer(), style.shape);
+            const len = stream.getWritten().len;
+
+            var needle: [16]u8 = undefined;
+            const n = try std.fmt.bufPrint(&needle, "P2 = (damage:{d}", .{actions.p2.damage});
+            var replace: [22]u8 = undefined;
+            const r = try std.fmt.bufPrint(
+                &replace,
+                "P2 = (damage:{d}…{d}",
+                .{ actions.p2.damage, style.p2_max },
+            );
+
+            var output: [1024]u8 = undefined;
+            assert(std.mem.replace(u8, input[0..len], n, r, output[0..]) == 1);
+
+            try writer.writeAll(output[0 .. len + 6]);
+        } else {
+            try actions.fmt(writer, style.shape);
+        }
         try writer.writeAll("\x1b[0m");
     } else {
         if (style.dim) try writer.writeAll("  ");
