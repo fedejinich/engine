@@ -70,7 +70,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
     while (elapsed.read() < duration) {
         last = random.src.seed;
 
-        const opt = .{ .cleric = showdown, .block = false, .durations = debug };
+        const opt = .{ .cleric = showdown or debug, .block = false, .durations = debug };
         var battle = switch (gen) {
             1 => pkmn.gen1.helpers.Battle.random(&random, opt),
             else => unreachable,
