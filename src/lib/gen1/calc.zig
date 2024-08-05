@@ -217,7 +217,6 @@ pub fn transitions(
     var stats: Stats = .{};
 
     const actions = options.actions;
-    const cap = options.cap;
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
@@ -295,7 +294,6 @@ pub fn transitions(
         var p1_dmg = Rolls.damage(template.p1, p1_hit);
         while (p1_dmg.min < p1_dmg.max) : (p1_dmg.min += 1) {
             a.p1.damage = @intCast(p1_dmg.min);
-            var p1_min: u8 = 0;
 
             var p2_dmg = Rolls.damage(template.p2, p2_hit);
             while (p2_dmg.min < p2_dmg.max) : (p2_dmg.min += 1) {
@@ -309,39 +307,28 @@ pub fn transitions(
                 _ = try b.update(c1, c2, &opts);
                 stats.updates += 1;
 
-                const p1_max: u8 = @intCast(p1_dmg.min);
-                const p2_max: u8 = @intCast(p2_dmg.min);
-                _ = cap;
-
-                // const p1_max = if (p1_min != 0) p1_min else
-                //     try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), &opts.calc.summaries, cap);
-                // const p2_max =
-                //     try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), &opts.calc.summaries, cap);
+                const p2_max: u9 =
+                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), &opts.calc.summaries, false);
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
                         if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i, .dim = true });
 
-                        p1_min = p1_max;
                         p2_dmg.min = p2_max;
                         continue;
                     }
 
                     if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i });
 
-                    for (p1_dmg.min..@as(u9, p1_max) + 1) |p1d| {
-                        for (p2_dmg.min..@as(u9, p2_max) + 1) |p2d| {
-                            var acts = opts.chance.actions;
-                            acts.p1.damage = @intCast(p1d);
-                            acts.p2.damage = @intCast(p2d);
-                            if ((try seen.getOrPut(acts)).found_existing) {
-                                err("already seen {}", .{acts}, options.seed);
-                                return error.TestUnexpectedResult;
-                            }
+                    for (p2_dmg.min..p2_max + 1) |p2d| {
+                        var acts = opts.chance.actions;
+                        acts.p2.damage = @intCast(p2d);
+                        if ((try seen.getOrPut(acts)).found_existing) {
+                            err("already seen {}", .{acts}, options.seed);
+                            return error.TestUnexpectedResult;
                         }
                     }
 
-                    if (p1_max != p1_dmg.min) try q.update(p1_max - p1_dmg.min + 1, 1);
                     if (p2_max != p2_dmg.min) try q.update(p2_max - p2_dmg.min + 1, 1);
                     try p.add(q);
                     stats.saved += 1;
@@ -351,8 +338,6 @@ pub fn transitions(
                         return error.TestUnexpectedResult;
                     }
                 } else {
-
-
                     if (!matches(opts.chance.actions, i, frontier.items)) {
                         try frontier.append(opts.chance.actions);
 
@@ -367,17 +352,10 @@ pub fn transitions(
                     } else if (!summary) {
                         try debug(writer, opts.chance.actions, false, .{ .dim = true });
                     }
-
-                    // if (opts.chance.actions.p1.damage == 0) p1_max = 255;
-                    // if (opts.chance.actions.p2.damage == 0) p2_max = 255;
                 }
 
-                p1_min = p1_max;
                 p2_dmg.min = p2_max;
             }
-
-            assert(p1_min > 0 or p1_dmg.min == 0);
-            p1_dmg.min = p1_min;
 
         }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
 
