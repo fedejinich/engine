@@ -503,6 +503,7 @@ fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
 
 const Style = struct {
     shape: bool = false,
+    p1_max: u9 = 0,
     p2_max: u9 = 0,
     color: ?usize = null,
     bold: bool = false,
@@ -521,25 +522,11 @@ fn debug(writer: anytype, actions: Actions, style: Style) !void {
 
         if (style.dim or style.bold) try writer.print("\x1b[{d}m", .{mod});
         try writer.print("\x1b[{d}{d}m", .{ background, color });
-        if (style.p2_max != 0 and style.p2_max != actions.p2.damage) {
-            var input: [1024]u8 = undefined;
-            var stream = std.io.fixedBufferStream(&input);
-            try actions.fmt(&stream.writer(), style.shape);
-            const len = stream.getWritten().len;
-
-            var needle: [16]u8 = undefined;
-            const n = try std.fmt.bufPrint(&needle, "P2 = (damage:{d}", .{actions.p2.damage});
-            var replace: [22]u8 = undefined;
-            const r = try std.fmt.bufPrint(
-                &replace,
-                "P2 = (damage:{d}…{d}",
-                .{ actions.p2.damage, style.p2_max },
-            );
-
-            var output: [1024]u8 = undefined;
-            assert(std.mem.replace(u8, input[0..len], n, r, output[0..]) == 1);
-
-            try writer.writeAll(output[0 .. len + 6]);
+        const p1 = if (style.p1_max != 0 and style.p1_max != actions.p1.damage) style.p1_max else 0;
+        const p2 = if (style.p2_max != 0 and style.p2_max != actions.p2.damage) style.p2_max else 0;
+        if (p1 != 0 or p2 != 0) {
+            assert(!style.shape);
+            try format(writer, actions, p1, p2);
         } else {
             try actions.fmt(writer, style.shape);
         }
@@ -549,4 +536,32 @@ fn debug(writer: anytype, actions: Actions, style: Style) !void {
         try actions.fmt(writer, style.shape);
     }
     if (style.newline) try writer.writeByte('\n');
+}
+
+fn format(writer: anytype, actions: Actions, p1: u9, p2: u9) !void {
+    var input: [1024]u8 = undefined;
+    var output: [1024]u8 = undefined;
+
+    var stream = std.io.fixedBufferStream(&input);
+    try actions.fmt(&stream.writer(), false);
+    var len = stream.getWritten().len;
+    @memcpy(output[0..len], input[0..len]);
+
+    var find: [16]u8 = undefined;
+    var repl: [22]u8 = undefined;
+    if (p1 != 0 and actions.p1.damage != 0) {
+        const n = try std.fmt.bufPrint(&find, "P1 = (damage:{d}", .{actions.p1.damage});
+        const r = try std.fmt.bufPrint(&repl, "P1 = (damage:{d}…{d}", .{ actions.p1.damage, p1 });
+        assert(std.mem.replace(u8, input[0..len], n, r, output[0 .. len + 6]) == 1);
+        @memcpy(input[0 .. len + 6], output[0 .. len + 6]);
+        len += 6;
+    }
+    if (p2 != 0 and actions.p2.damage != 0) {
+        const n = try std.fmt.bufPrint(&find, "P2 = (damage:{d}", .{actions.p2.damage});
+        const r = try std.fmt.bufPrint(&repl, "P2 = (damage:{d}…{d}", .{ actions.p2.damage, p2 });
+        assert(std.mem.replace(u8, input[0..len], n, r, output[0 .. len + 6]) == 1);
+        len += 6;
+    }
+
+    try writer.writeAll(output[0..len]);
 }
