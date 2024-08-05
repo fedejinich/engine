@@ -257,7 +257,13 @@ pub fn transitions(
             .p2 = template.p2.durations,
         };
 
-        try debug(writer, template, true, .{ .color = i, .bold = true, .background = true, .indent = false });
+        try debug(writer, template, .{
+            .shape = true,
+            .color = i,
+            .bold = true,
+            .background = true,
+            .indent = false,
+        });
 
         var a: Actions = .{ .p1 = .{ .metronome = p1_move }, .p2 = .{ .metronome = p2_move } };
 
@@ -312,13 +318,13 @@ pub fn transitions(
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {
-                        if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i, .dim = true });
+                        if (!summary) try debug(writer, opts.chance.actions, .{ .color = i, .dim = true });
 
                         p2_dmg.min = p2_max;
                         continue;
                     }
 
-                    if (!summary) try debug(writer, opts.chance.actions, false, .{ .color = i });
+                    if (!summary) try debug(writer, opts.chance.actions, .{ .color = i });
 
                     for (p2_dmg.min..p2_max + 1) |p2d| {
                         var acts = opts.chance.actions;
@@ -341,16 +347,17 @@ pub fn transitions(
                     if (!matches(opts.chance.actions, i, frontier.items)) {
                         try frontier.append(opts.chance.actions);
 
-                        try debug(writer, opts.chance.actions, false, .{ .dim = true, .newline = false });
+                        try debug(writer, opts.chance.actions, .{ .dim = true, .newline = false });
                         try writer.writeAll(" → ");
-                        try debug(writer, opts.chance.actions, true, .{
+                        try debug(writer, opts.chance.actions, .{
+                            .shape = true,
                             .color = frontier.items.len - 1,
                             .dim = true,
                             .background = true,
                             .indent = false,
                         });
                     } else if (!summary) {
-                        try debug(writer, opts.chance.actions, false, .{ .dim = true });
+                        try debug(writer, opts.chance.actions, .{ .dim = true });
                     }
                 }
 
@@ -480,6 +487,7 @@ fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
 }
 
 const Style = struct {
+    shape: bool = false,
     color: ?usize = null,
     bold: bool = false,
     background: bool = false,
@@ -488,7 +496,7 @@ const Style = struct {
     indent: bool = true,
 };
 
-fn debug(writer: anytype, actions: Actions, shape: bool, style: Style) !void {
+fn debug(writer: anytype, actions: Actions, style: Style) !void {
     if (style.indent) try writer.writeAll("  ");
     if (tty) {
         const mod: usize = if (style.dim) 2 else 1;
@@ -497,11 +505,11 @@ fn debug(writer: anytype, actions: Actions, shape: bool, style: Style) !void {
 
         if (style.dim or style.bold) try writer.print("\x1b[{d}m", .{mod});
         try writer.print("\x1b[{d}{d}m", .{ background, color });
-        try actions.fmt(writer, shape);
+        try actions.fmt(writer, style.shape);
         try writer.writeAll("\x1b[0m");
     } else {
         if (style.dim) try writer.writeAll("  ");
-        try actions.fmt(writer, shape);
+        try actions.fmt(writer, style.shape);
     }
     if (style.newline) try writer.writeByte('\n');
 }
