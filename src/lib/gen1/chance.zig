@@ -338,17 +338,19 @@ pub fn Chance(comptime Rational: type) type {
                 action.hit = if (self.pending.hit) .true else .false;
             }
 
-            // If the move actually lands we can commit any past critical hit / damage rolls. We
-            // avoid updating anything if there wasn't a damage roll as any "critical hit" not tied
-            // to a damage roll is actually a no-op
-            if (kind == .hit and self.pending.damage_roll > 0) {
-                assert(!self.pending.crit or self.pending.crit_probablity > 0);
+            // If the move actually lands we can commit any past critical hit / damage rolls. Note
+            // we can't rely on the presence or absence of a damage roll to determine whether a
+            // "critical hit" was spurious or not as moves that do 1 or less damage don't rol for
+            // damage but can still crit (instead, whether or not a roll is deemed to be a no-op is
+            // passed to the critical hit helper)
+            if (kind != .hit) return assert(!self.pending.crit or self.pending.crit_probablity > 0);
 
-                if (self.pending.crit_probablity != 0) {
-                    try self.probability.update(self.pending.crit_probablity, 256);
-                    action.critical_hit = if (self.pending.crit) .true else .false;
-                }
+            if (self.pending.crit_probablity != 0) {
+                try self.probability.update(self.pending.crit_probablity, 256);
+                action.critical_hit = if (self.pending.crit) .true else .false;
+            }
 
+            if (self.pending.damage_roll > 0) {
                 try self.probability.update(1, 39);
                 action.damage = self.pending.damage_roll;
             }

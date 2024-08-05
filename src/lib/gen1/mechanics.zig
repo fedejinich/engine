@@ -1058,7 +1058,9 @@ fn checkCriticalHit(battle: anytype, player: Player, move: Move.Data, options: a
     rate = if (side.active.volatiles.FocusEnergy) rate / 2 else @min(rate * 2, 255);
     rate = if (move.effect == .HighCritical) @min(rate * 4, 255) else rate / 2;
 
-    return Rolls.criticalHit(battle, player, @intCast(rate), options);
+    const spurious =
+        !showdown and ((move.bp == 0 and move.effect != .OHKO) or move.target == .Depends);
+    return Rolls.criticalHit(battle, player, @intCast(rate), spurious, options);
 }
 
 fn calcDamage(
@@ -2688,7 +2690,13 @@ pub const Rolls = struct {
         return p1;
     }
 
-    fn criticalHit(battle: anytype, player: Player, rate: u8, options: anytype) !bool {
+    fn criticalHit(
+        battle: anytype,
+        player: Player,
+        rate: u8,
+        spurious: bool,
+        options: anytype,
+    ) !bool {
         const crit = if (options.calc.overridden(player, .critical_hit)) |val|
             val == .true
         else if (@hasDecl(@TypeOf(battle.rng), "criticalHit"))
@@ -2698,7 +2706,7 @@ pub const Rolls = struct {
         else
             std.math.rotl(u8, battle.rng.next(), 3) < rate;
 
-        try options.chance.criticalHit(player, crit, rate);
+        if (!spurious) try options.chance.criticalHit(player, crit, rate);
         return crit;
     }
 
