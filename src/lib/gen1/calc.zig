@@ -75,7 +75,7 @@ pub const Summary = extern struct {
         /// Whether higher direct damage will saturate / result in the same outcome (e.g. additional
         /// direct damage gets ignored due to it already breaking a Substitute or causing the target
         /// to faint). Note that this field does not get set in scenarios where the target would
-        /// be guaranteed to faint due to any sort of subsequent recoil or residual damage.
+        /// only be guaranteed to faint due to some sort of subsequent recoil or residual damage.
         capped: bool = false,
 
         // NOTE: 15 bits padding
