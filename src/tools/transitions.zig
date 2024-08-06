@@ -24,12 +24,19 @@ pub fn main() !void {
 
     const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
-    // const PAR = pkmn.gen1.Status.init(.PAR);
+    const PAR = pkmn.gen1.Status.init(.PAR);
     var battle = switch (gen) {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
-            &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
-            &.{.{ .species = .Rhyhorn, .moves = &.{.Flamethrower} }},
+            // ALREADY PARALYZED
+            &.{.{ .species = .Dratini, .status = PAR, .moves = &.{.Gust} }},
+            &.{.{ .species = .Koffing, .moves = &.{.StunSpore} }},
+
+            // ONE DAMAGE
+            // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
+            // &.{.{ .species = .Rhyhorn, .moves = &.{.Flamethrower} }},
+
+            // MAX_FRONTIER
             // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
             // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
         ),
