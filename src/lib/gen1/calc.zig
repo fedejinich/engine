@@ -72,8 +72,10 @@ pub const Summary = extern struct {
         /// The final computed damage that gets applied to the Pokémon. May exceed the target's HP
         // (to determine the *actual* damage done compare the target's stored HP before and after).
         final: u16 = 0,
-        /// Whether higher damage will saturate / result in the same outcome (e.g. additional damage
-        /// gets ignored due to it already breaking a Substitute or causing the target to faint).
+        /// Whether higher direct damage will saturate / result in the same outcome (e.g. additional
+        /// direct damage gets ignored due to it already breaking a Substitute or causing the target
+        /// to faint). Note that this field does not get set in scenarios where the target would
+        /// be guaranteed to faint due to any sort of subsequent recoil or residual damage.
         capped: bool = false,
 
         // NOTE: 15 bits padding
@@ -217,6 +219,7 @@ pub fn transitions(
     var stats: Stats = .{};
 
     const actions = options.actions;
+    const cap = options.cap;
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
@@ -308,6 +311,7 @@ pub fn transitions(
                 a.p2.damage = @intCast(p2_dmg.min);
 
                 opts.calc.overrides.actions = a;
+                opts.calc.summaries = .{};
                 opts.chance = .{ .probability = .{}, .actions = actions };
                 const q = &opts.chance.probability;
 
@@ -319,9 +323,9 @@ pub fn transitions(
                 const p1_max: u9 = if (p2_dmg.min != 217)
                     p1_dmg.min
                 else
-                    try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, false);
+                    try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
                 const p2_max: u9 =
-                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, false);
+                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
 
                 if (opts.chance.actions.matches(template)) {
                     if (!opts.chance.actions.eql(a)) {

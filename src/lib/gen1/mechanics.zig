@@ -347,10 +347,10 @@ fn doTurn(
     )) |r| return r;
     if (!replace) {
         if (player_choice.type != .Switch) {
-            if (try checkFaint(battle, foe_player, options)) |r| return r;
+            if (try checkFaint(battle, foe_player, true, options)) |r| return r;
         }
         if (residual) try handleResidual(battle, player, options);
-        if (try checkFaint(battle, player, options)) |r| return r;
+        if (try checkFaint(battle, player, false, options)) |r| return r;
     } else if (foe_choice.type == .Pass) return null;
 
     options.chance.clearPending();
@@ -369,10 +369,10 @@ fn doTurn(
     )) |r| return r;
     if (!replace) {
         if (!calc and foe_choice.type != .Switch) {
-            if (try checkFaint(battle, player, options)) |r| return r;
+            if (try checkFaint(battle, player, true, options)) |r| return r;
         }
         if (residual) try handleResidual(battle, foe_player, options);
-        if (try checkFaint(battle, foe_player, options)) |r| return r;
+        if (try checkFaint(battle, foe_player, false, options)) |r| return r;
     }
 
     // Flinch is bugged on Pokémon Showdown because it gets implemented with a duration which causes
@@ -1265,7 +1265,7 @@ fn applyDamage(
             subbed.active.volatiles.Substitute = false;
             // battle.last_damage is not updated with the amount of HP the Substitute had
             try options.log.end(.{ battle.active(sub_player), .Substitute });
-            options.calc.capped(target_player);
+            options.calc.capped(sub_player);
             return true;
         } else {
             // Safe to truncate since less than subbed.volatiles.substitute which is a u8
@@ -1428,6 +1428,7 @@ fn moveHit(
 fn checkFaint(
     battle: anytype,
     player: Player,
+    cap: bool,
     options: anytype,
 ) @TypeOf(options.log).Error!?Result {
     const side = battle.side(player);
@@ -1440,8 +1441,8 @@ fn checkFaint(
     const foe_out = foe_fainted and findFirstAlive(foe) == 0;
     const more = player_out or foe_out;
 
-    if (try faint(battle, player, !(more or foe_fainted), options)) |r| return r;
-    if (foe_fainted) if (try faint(battle, player.foe(), !more, options)) |r| return r;
+    if (try faint(battle, player, !(more or foe_fainted), cap, options)) |r| return r;
+    if (foe_fainted) if (try faint(battle, player.foe(), !more, false, options)) |r| return r;
 
     assert(!side.active.volatiles.MultiHit);
     assert(!foe.active.volatiles.MultiHit);
@@ -1462,7 +1463,7 @@ fn checkFaint(
     return .{ .p1 = foe_choice, .p2 = .Switch };
 }
 
-fn faint(battle: anytype, player: Player, done: bool, options: anytype) !?Result {
+fn faint(battle: anytype, player: Player, done: bool, cap: bool, options: anytype) !?Result {
     var side = battle.side(player);
     var foe = battle.foe(player);
     assert(side.stored().hp == 0);
@@ -1496,7 +1497,9 @@ fn faint(battle: anytype, player: Player, done: bool, options: anytype) !?Result
     }
 
     try options.log.faint(.{ battle.active(player), done });
-    options.calc.capped(player);
+    // We can only safely set capped if the faint occured as the direct result of an opponent's
+    // move (as opposed to due to residual damage, recoil, Explosion, etc)
+    if (cap) options.calc.capped(player);
     return null;
 }
 
