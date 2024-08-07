@@ -297,8 +297,8 @@ pub fn transitions(
         for (Rolls.multiHit(template.p2, p2_hit)) |p2_multi| { a.p2.multi_hit = p2_multi;
         for (Rolls.secondaryChance(template.p1, p1_hit)) |p1_sec| { a.p1.secondary_chance = p1_sec;
         for (Rolls.secondaryChance(template.p2, p2_hit)) |p2_sec| { a.p2.secondary_chance = p2_sec;
-        for (Rolls.criticalHit(template.p1, p1_hit)) |p1_crit| { a.p1.critical_hit = p1_crit;
-        for (Rolls.criticalHit(template.p2, p2_hit)) |p2_crit| { a.p2.critical_hit = p2_crit;
+        for (Rolls.criticalHit(template.p1, p1_par, p1_hit)) |p1_crit| { a.p1.critical_hit = p1_crit;
+        for (Rolls.criticalHit(template.p2, p2_par, p2_hit)) |p2_crit| { a.p2.critical_hit = p2_crit;
 
         var p1_dmg = Rolls.damage(template.p1, p1_hit);
         while (p1_dmg.min < p1_dmg.max) : (p1_dmg.min += 1) {
