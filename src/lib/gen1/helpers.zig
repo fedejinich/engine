@@ -324,14 +324,12 @@ pub const Rolls = struct {
     }
 
     /// Returns a slice with the correct range of values for critical hits given the `action` state
-    /// and the state of `parent_par` (whether the player's Pokémon was fully paralyzed) and
-    /// `parent_hit` (whether the player's Pokémon's move hit).
+    /// and the state of the `parent` (whether the player's Pokémon's move hit).
     pub fn criticalHit(
         action: Action,
-        parent_par: Optional(bool),
-        parent_hit: Optional(bool),
+        parent: Optional(bool),
     ) []const Optional(bool) {
-        if (parent_par == .true or parent_hit == .false) return &BOOL_NONE;
+        if (parent == .false) return &BOOL_NONE;
         return if (action.critical_hit == .None) &BOOL_NONE else &BOOLS;
     }
 
@@ -555,14 +553,10 @@ test "Rolls.criticalHit" {
     try expectEqualSlices(
         Optional(bool),
         &.{ .false, .true },
-        Rolls.criticalHit(actions.p1, .false, .None),
+        Rolls.criticalHit(actions.p1, .None),
     );
-    try expectEqualSlices(
-        Optional(bool),
-        &.{.None},
-        Rolls.criticalHit(actions.p1, .false, .false),
-    );
-    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p2, .false, .None));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p1, .false));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p2, .None));
 }
 
 test "Rolls.confused" {
