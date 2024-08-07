@@ -325,20 +325,14 @@ pub const Rolls = struct {
 
     /// Returns a slice with the correct range of values for critical hits given the `action` state
     /// and the state of the `parent` (whether the player's Pokémon's move hit).
-    pub fn criticalHit(
-        action: Action,
-        parent: Optional(bool),
-    ) []const Optional(bool) {
+    pub fn criticalHit(action: Action, parent: Optional(bool)) []const Optional(bool) {
         if (parent == .false) return &BOOL_NONE;
         return if (action.critical_hit == .None) &BOOL_NONE else &BOOLS;
     }
 
     /// Returns a slice with the correct range of values for secondary chances hits given the
     /// `action` state and the state of the `parent` (whether the player's Pokémon's move hit).
-    pub fn secondaryChance(
-        action: Action,
-        parent: Optional(bool),
-    ) []const Optional(bool) {
+    pub fn secondaryChance(action: Action, parent: Optional(bool)) []const Optional(bool) {
         if (parent == .false) return &BOOL_NONE;
         return if (@field(action, "secondary_chance") == .None) &BOOL_NONE else &BOOLS;
     }
