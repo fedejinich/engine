@@ -201,23 +201,81 @@ pub fn Rational(comptime T: type) type {
     };
 }
 
-// https://en.wikipedia.org/wiki/Euclidean_algorithm
+// https://lemire.me/blog/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
 fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
     assert(p >= 1);
     assert(q >= 1);
 
-    var a = p;
-    var b = q;
-    var c: @TypeOf(p, q) = undefined;
+    const T = @TypeOf(p, q);
+    switch (@typeInfo(T)) {
+        .Int => {
+            var u: T = undefined;
+            var v: T = undefined;
+            if (p < q) {
+                u = q;
+                v = p;
+            } else {
+                u = p;
+                v = q;
+            }
+            assert(v <= u);
+            u %= v;
+            if (u == 0) return v;
 
-    while (b != 0) {
-        c = b;
-        b = @mod(a, b);
-        a = c;
+            const zu = @ctz(u);
+            const zv = @ctz(v);
+            const shift = @min(zu, zv);
+            u >>= @intCast(zu);
+            v >>= @intCast(zv);
+
+            while (true) {
+                const diff = u -% v;
+                if (u > v) {
+                    u = v;
+                    v = diff;
+                } else {
+                    v -= u;
+                }
+                if (diff != 0) v >>= @intCast(@ctz(diff));
+                if (v == 0) break;
+            }
+
+            const result = u << @intCast(shift);
+            assert(result > 0);
+            return result;
+        },
+        else => {
+            var a = p;
+            var b = q;
+            var c: T = undefined;
+
+            while (b != 0) {
+                c = b;
+                b = @mod(a, b);
+                a = c;
+            }
+
+            assert(a > 0);
+            return a;
+        },
     }
+}
 
-    assert(a > 0);
-    return a;
+test gcd {
+    const seed = if (@hasDecl(std.testing, "random_seed")) std.testing.random_seed else 0x12345678;
+    var prng = std.Random.DefaultPrng.init(seed);
+    var random = prng.random();
+
+    for (0..1000) |_| {
+        const a = random.int(u32);
+        const b = random.int(u32);
+        if (a == 0 or b == 0) continue;
+
+        try expectEqual(
+            gcd(a, b),
+            @as(u32, @intFromFloat(gcd(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))))),
+        );
+    }
 }
 
 fn doTurn(r: anytype) !void {
