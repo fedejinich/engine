@@ -412,3 +412,36 @@ test BigRational {
     try s.setRatio(71, 78);
     try expect((try s.order(r.val)) == .eq);
 }
+
+test "minimum" {
+    // TODO: ziglang/zig#21069
+    if (builtin.mode == .ReleaseFast or builtin.mode == .ReleaseSmall) {
+        return error.SkipZigTest;
+    }
+    var r = try BigRational.init(std.testing.allocator);
+    defer r.deinit();
+    var s = try std.math.big.Rational.init(std.testing.allocator);
+    defer s.deinit();
+
+    try r.reset();
+
+    try r.update(1, 2); // Speed Tie
+    for (0..2) |_| {
+        try r.update(1, 2); // Confusion
+        try r.update(1, 2); // Infatuation
+        try r.update(3, 4); // Paralysis
+        // Population Bomb
+        for (0..10) |_| {
+            try r.update(9, 10); // Accuracy
+            try r.update(1, 15); // Damage roll
+            try r.update(1, 24); // Critical Hit
+            try r.update(9, 10); // King's Rock non-proc
+        }
+    }
+
+    const ZEROS = std.math.pow(u310, 10, 31);
+    const n = 36472996377170786403;
+    const d: u310 = 146267071761884981524886149560653378220687632500762654519853056 * ZEROS;
+    try s.setRatio(n, d);
+    try expect((try s.order(r.val)) == .eq);
+}
