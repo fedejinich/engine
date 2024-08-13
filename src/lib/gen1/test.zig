@@ -10107,6 +10107,56 @@ test "MAX_LOGS" {
     try expectLog(&expected_buf, &actual_buf);
 }
 
+test "MIN_CHANCE" {
+    const TIE_1 = MIN;
+    const PAR = Status.init(.PAR);
+    const PAR_CAN = MAX;
+    const CFZ_5 = if (showdown) MAX else 3;
+    const CFZ_CAN = if (showdown) comptime ranged(128, 256) - 1 else MIN;
+    const NO_FLINCH = comptime ranged(77, 256);
+    const rollingKick = comptime metronome(.RollingKick);
+
+    var t = Test(if (showdown)
+        .{ TIE_1, PAR_CAN, HIT, CFZ_5, CFZ_CAN, PAR_CAN, HIT, CFZ_5, TIE_1 } ++
+            .{ CFZ_CAN, PAR_CAN, rollingKick, HIT, ~CRIT, MIN_DMG, NO_FLINCH } ** 2
+    else
+        .{ TIE_1, PAR_CAN, HIT, CFZ_5, CFZ_CAN, PAR_CAN, HIT, CFZ_5, TIE_1 } ++
+            .{ CFZ_CAN, PAR_CAN, ~CRIT, rollingKick, ~CRIT, MIN_DMG, HIT, NO_FLINCH } ** 2).init(
+        &.{.{ .species = .Hitmonlee, .status = PAR, .moves = &.{ .ConfuseRay, .Metronome } }},
+        &.{.{ .species = .Hitmonlee, .status = PAR, .moves = &.{ .ConfuseRay, .Metronome } }},
+    );
+    defer t.deinit();
+
+    try t.log.expected.move(.{ P1.ident(1), Move.ConfuseRay, P2.ident(1) });
+    try t.log.expected.start(.{ P2.ident(1), .Confusion });
+    try t.log.expected.activate(.{ P2.ident(1), .Confusion });
+    try t.log.expected.move(.{ P2.ident(1), Move.ConfuseRay, P1.ident(1) });
+    try t.log.expected.start(.{ P1.ident(1), .Confusion });
+    try t.log.expected.turn(.{2});
+
+    try expectEqual(Result.Default, try t.update(move(1), move(1)));
+    // (1/2) * (3/4) * (255/256) * (1/2) * (3/4) * (255/256)
+    try t.expectProbability(585225, 4194304);
+
+    try t.log.expected.activate(.{ P1.ident(1), .Confusion });
+    try t.log.expected.move(.{ P1.ident(1), Move.Metronome, P1.ident(1) });
+    try t.log.expected.move(.{ P1.ident(1), Move.RollingKick, P2.ident(1), Move.Metronome });
+    t.expected.p2.get(1).hp -= 108;
+    try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
+    try t.log.expected.activate(.{ P2.ident(1), .Confusion });
+    try t.log.expected.move(.{ P2.ident(1), Move.Metronome, P2.ident(1) });
+    try t.log.expected.move(.{ P2.ident(1), Move.RollingKick, P1.ident(1), Move.Metronome });
+    t.expected.p1.get(1).hp -= 108;
+    try t.log.expected.damage(.{ P1.ident(1), t.expected.p1.get(1), .None });
+    try t.log.expected.turn(.{3});
+
+    try expectEqual(Result.Default, try t.update(move(2), move(2)));
+    // (1/2) * ((1/2) * (3/4) * (1/163) * (216/256) * (213/256) * (1/39) * (179/256)) ** 2 * (3/4)
+    try t.expectProbability(3179172198123, 10110943703216766844928);
+
+    try t.verify();
+}
+
 test "RNG overrides" {
     var expected_buf: [data.MAX_LOGS]u8 = undefined;
     var actual_buf: [data.MAX_LOGS]u8 = undefined;
@@ -10425,7 +10475,7 @@ fn Test(comptime rolls: anytype) type {
             p2: *data.Side,
         },
 
-        options: pkmn.battle.Options(Log(ArrayList(u8).Writer), Chance(Rational(u64)), Calc),
+        options: pkmn.battle.Options(Log(ArrayList(u8).Writer), Chance(Rational(u128)), Calc),
         offset: usize,
 
         pub fn init(pokemon1: []const Pokemon, pokemon2: []const Pokemon) *Self {
@@ -10492,11 +10542,12 @@ fn Test(comptime rolls: anytype) type {
             return result;
         }
 
-        pub fn expectProbability(self: *Self, p: u64, q: u64) !void {
+        pub fn expectProbability(self: *Self, p: u128, q: u128) !void {
             if (!pkmn.options.chance) return;
 
             self.options.chance.probability.reduce();
             const r = self.options.chance.probability;
+            // DEBUG(r);
             if (r.p != p or r.q != q) {
                 print("expected {d}/{d}, found {}\n", .{ p, q, r });
                 return error.TestExpectedEqual;
