@@ -3808,7 +3808,7 @@ test "Disable effect" {
 
     t.actual.p2.active.volatiles.disable_duration = 0;
     t.actual.p2.active.volatiles.disable_move = 0;
-    t.options.chance.actions.p2.durations.disable = 0;
+    t.options.chance.actions.p2.durations_disable = 0;
     t.actual.p2.active.move(2).pp = 1;
     t.actual.p2.get(1).move(2).pp = 1;
 
