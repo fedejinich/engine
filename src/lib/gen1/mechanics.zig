@@ -257,7 +257,6 @@ fn switchIn(battle: anytype, player: Player, slot: u8, initial: bool, options: a
     foe.active.volatiles.Binding = false;
 
     try options.log.switched(.{ battle.active(player), incoming });
-    options.chance.switched(player, side.order[0], out);
 
     if (showdown and incoming.status == Status.TOX) {
         incoming.status = Status.init(.PSN);
@@ -485,17 +484,9 @@ fn beforeMove(
     if (Status.is(stored.status, .SLP)) {
         const before = stored.status;
         // Even if the EXT bit is set this will still correctly modify the sleep duration
-        if (options.calc.modify(player, .sleep)) |extend| {
-            if (!extend) stored.status = 0;
-        } else {
-            stored.status -= 1;
-        }
+        stored.status -= 1;
 
         const duration = Status.duration(stored.status);
-        if (!Status.is(stored.status, .EXT)) {
-            try options.chance.sleep(player, duration);
-        }
-
         if (duration == 0) {
             try log.curestatus(.{ ident, before, .Message });
             stored.status = 0; // clears EXT if present
@@ -532,12 +523,7 @@ fn beforeMove(
     }
 
     if (volatiles.disable_duration > 0) {
-        if (options.calc.modify(player, .disable)) |extend| {
-            if (!extend) volatiles.disable_duration = 0;
-        } else {
-            volatiles.disable_duration -= 1;
-        }
-        try options.chance.disable(player, volatiles.disable_duration);
+        volatiles.disable_duration -= 1;
 
         if (volatiles.disable_duration == 0) {
             volatiles.disable_move = 0;
@@ -556,13 +542,7 @@ fn beforeMove(
 
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
-
-        if (options.calc.modify(player, .confusion)) |extend| {
-            if (!extend) volatiles.confusion = 0;
-        } else {
-            volatiles.confusion -= 1;
-        }
-        try options.chance.confusion(player, volatiles.confusion);
+        volatiles.confusion -= 1;
 
         if (volatiles.confusion == 0) {
             volatiles.Confusion = false;
@@ -580,7 +560,6 @@ fn beforeMove(
                 volatiles.Charging = false;
                 volatiles.Binding = false;
                 volatiles.Invulnerable = false;
-                options.chance.clearDurations(player, null);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
                     // the opponent's defense with the user's defense and resets it after. As a
@@ -617,7 +596,6 @@ fn beforeMove(
         volatiles.Thrashing = false;
         volatiles.Charging = false;
         volatiles.Binding = false;
-        options.chance.clearDurations(player, null);
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
         try log.cant(.{ ident, .Paralysis });
         return .done;
@@ -635,13 +613,7 @@ fn beforeMove(
             volatiles.state +%= battle.last_damage;
         }
 
-        if (options.calc.modify(player, .attacking)) |extend| {
-            if (!extend) volatiles.attacks = 0;
-        } else {
-            volatiles.attacks -= 1;
-        }
-        try options.chance.attacking(player, volatiles.attacks);
-
+        volatiles.attacks -= 1;
         if (volatiles.attacks != 0) {
             try log.activate(.{ ident, .Bide });
             return .done;
@@ -674,12 +646,7 @@ fn beforeMove(
     }
 
     if (volatiles.Thrashing) {
-        if (options.calc.modify(player, .attacking)) |extend| {
-            if (!extend) volatiles.attacks = 0;
-        } else {
-            volatiles.attacks -= 1;
-        }
-        try options.chance.attacking(player, volatiles.attacks);
+        volatiles.attacks -= 1;
 
         if (!showdown and handleThrashing(battle, active, player, options)) {
             try log.start(.{ battle.active(player), .ConfusionSilent });
@@ -697,12 +664,7 @@ fn beforeMove(
     }
 
     if (volatiles.Binding) {
-        if (options.calc.modify(player, .binding)) |extend| {
-            if (!extend) volatiles.attacks = 0;
-        } else {
-            volatiles.attacks -= 1;
-        }
-        try options.chance.binding(player, volatiles.attacks);
+        volatiles.attacks -= 1;
 
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
         if (showdown or battle.last_damage != 0) {
@@ -945,8 +907,6 @@ fn doMove(
             try buildRage(battle, player.foe(), options);
         } else if (showdown and move.effect == .Disable) {
             try buildRage(battle, player.foe(), options);
-        } else if (!showdown and immune and move.effect == .Binding) {
-            try options.chance.commit(player, .binding);
         }
         return null;
     } else if (!showdown) {
@@ -1666,7 +1626,7 @@ fn handleThrashing(battle: anytype, active: *ActivePokemon, player: Player, opti
 
     volatiles.Thrashing = false;
     volatiles.Confusion = true;
-    volatiles.confusion = Rolls.confusionDuration(battle, player, true, options);
+    volatiles.confusion = Rolls.confusionDuration(battle, player, options);
     return true;
 }
 
@@ -1823,7 +1783,7 @@ pub const Effects = struct {
 
         if (foe.active.volatiles.Confusion) return;
         foe.active.volatiles.Confusion = true;
-        foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, false, options);
+        foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, options);
 
         try options.log.start(.{ battle.active(player.foe()), .Confusion });
     }
@@ -1991,7 +1951,7 @@ pub const Effects = struct {
                     s.stored().status = Status.init(.PSN);
                     try log.status(.{ battle.active(p), s.stored().status, .None });
                 }
-                try clearVolatiles(battle, p, p != player, options);
+                try clearVolatiles(battle, p, options);
             }
         } else {
             if (Status.any(foe_stored.status)) {
@@ -2001,8 +1961,8 @@ pub const Effects = struct {
                 try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                 foe_stored.status = 0;
             }
-            try clearVolatiles(battle, player, false, options);
-            try clearVolatiles(battle, player.foe(), true, options);
+            try clearVolatiles(battle, player, options);
+            try clearVolatiles(battle, player.foe(), options);
         }
     }
 
@@ -2628,13 +2588,11 @@ fn isForced(active: anytype) bool {
         active.volatiles.Thrashing or active.volatiles.Charging;
 }
 
-fn clearVolatiles(battle: anytype, who: Player, clear: bool, options: anytype) !void {
+fn clearVolatiles(battle: anytype, who: Player, options: anytype) !void {
     var log = options.log;
     var side = battle.side(who);
     var volatiles = &side.active.volatiles;
     const ident = battle.active(who);
-
-    options.chance.clearDurations(who, clear);
 
     if (volatiles.disable_move != 0) {
         volatiles.disable_move = 0;
@@ -2889,7 +2847,7 @@ pub const Rolls = struct {
         };
 
         assert(duration >= 1 and duration <= 7);
-        options.chance.duration(.sleep, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -2904,22 +2862,22 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 7) + 1);
 
         assert(duration >= 1 and duration <= 8);
-        options.chance.duration(.disable, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
-    fn confusionDuration(battle: anytype, player: Player, self: bool, options: anytype) u3 {
+    fn confusionDuration(battle: anytype, player: Player, options: anytype) u3 {
         const duration: u3 = if (options.calc.overridden(player, .duration)) |val|
             @intCast(val)
         else if (@hasDecl(@TypeOf(battle.rng), "confusionDuration"))
-            battle.rng.confusionDuration(player, self)
+            battle.rng.confusionDuration(player)
         else if (showdown)
             battle.rng.range(u3, 2, 6)
         else
             @intCast((battle.rng.next() & 3) + 2);
 
         assert(duration >= 2 and duration <= 5);
-        options.chance.duration(.confusion, player, if (self) player else player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -2934,7 +2892,7 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 1) + 2);
 
         assert(duration >= 2 and duration <= 3);
-        options.chance.duration(.attacking, player, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -2960,7 +2918,7 @@ pub const Rolls = struct {
 
         assert(n >= 2 and n <= 5);
         if (effect == .Binding) {
-            options.chance.duration(.binding, player, player, n);
+            options.chance.duration(player, n);
         } else {
             try options.chance.multiHit(player, n);
         }

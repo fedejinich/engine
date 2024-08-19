@@ -256,7 +256,6 @@ fn switchIn(battle: anytype, player: Player, slot: u8, kind: SwitchIn, options: 
     } else {
         try options.log.switched(.{ battle.active(player), incoming });
     }
-    options.chance.switched(player, side.pokemon[0].position, out);
 
     if (side.conditions.Spikes and !active.types.includes(.Flying)) {
         incoming.hp -|= @max(incoming.stats.hp / 8, 1);
@@ -442,18 +441,9 @@ fn beforeMove(battle: anytype, player: Player, move: Move, options: anytype) !bo
     if (Status.is(stored.status, .SLP)) slp: {
         const before = stored.status;
         // Even if the EXT bit is set this will still correctly modify the sleep duration
-        // if (options.calc.modify(player, .sleep)) |extend| {
-        //     if (!extend) stored.status = 0;
-        // } else {
         stored.status -= 1;
-        // }
 
-        const duration = Status.duration(stored.status);
-        if (!Status.is(stored.status, .EXT)) {
-            try options.chance.sleep(player, duration);
-        }
-
-        if (duration == 0) {
+        if (Status.duration(stored.status) == 0) {
             try log.curestatus(.{ ident, before, .Message });
             stored.status = 0; // clears EXT if present
             resetCant(volatiles);
@@ -483,12 +473,7 @@ fn beforeMove(battle: anytype, player: Player, move: Move, options: anytype) !bo
     }
 
     if (volatiles.disable.duration > 0) {
-        // if (options.calc.modify(player, .disable)) |extend| {
-        //     if (!extend) volatiles.disable.duration = 0;
-        // } else {
         volatiles.disable.duration -= 1;
-        // }
-        try options.chance.disable(player, volatiles.disable.duration);
 
         if (volatiles.disable.duration == 0) {
             volatiles.disable.move = 0;
@@ -498,13 +483,7 @@ fn beforeMove(battle: anytype, player: Player, move: Move, options: anytype) !bo
 
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
-
-        // if (options.calc.modify(player, .confusion)) |extend| {
-        //     if (!extend) volatiles.confusion = 0;
-        // } else {
         volatiles.confusion -= 1;
-        // }
-        try options.chance.confusion(player, volatiles.confusion);
 
         if (volatiles.confusion == 0) {
             volatiles.Confusion = false;
@@ -1341,13 +1320,7 @@ pub const Effects = struct {
 
             if (!volatiles.Bide) return;
 
-            // if (options.calc.modify(player, .attacking)) |extend| {
-            //     if (!extend) volatiles.attacks = 0;
-            // } else {
             volatiles.attacks -= 1;
-            // }
-            try options.chance.attacking(player, volatiles.attacks);
-
             if (volatiles.attacks != 0) return options.log.activate(.{ ident, .Bide });
 
             volatiles.Bide = false;
@@ -3362,7 +3335,7 @@ pub const Rolls = struct {
         };
 
         assert(duration >= 1 and duration <= 6);
-        options.chance.duration(.sleep, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration + 1;
     }
 
@@ -3376,7 +3349,7 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & if (self) 1 else 3) + 2);
 
         assert(duration >= 2 and duration <= if (!showdown and self) 3 else 5);
-        options.chance.duration(.confusion, player, if (self) player else player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -3394,7 +3367,7 @@ pub const Rolls = struct {
         };
 
         assert(duration >= 2 and duration <= (if (showdown) 5 else 7));
-        options.chance.duration(.disable, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -3407,7 +3380,7 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 1) + 2); // BUG: thrash is + 1 not +2
 
         assert(duration >= 2 and duration <= 3);
-        options.chance.duration(.attacking, player, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -3421,7 +3394,7 @@ pub const Rolls = struct {
             @intCast(battle.rng.next() & 3 + 2));
 
         assert(duration >= 2 and duration <= 5);
-        options.chance.duration(.binding, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration + 1;
     }
 
@@ -3435,7 +3408,7 @@ pub const Rolls = struct {
             @intCast(battle.rng.next() & 3 + 2));
 
         assert(duration >= 2 and duration <= 5);
-        options.chance.duration(.encore, player, player.foe(), duration);
+        options.chance.duration(player, duration);
         return duration + 1;
     }
 };

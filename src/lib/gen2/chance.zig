@@ -42,12 +42,6 @@ pub const Actions = extern struct {
         return if (player == .P1) &self.p1 else &self.p2;
     }
 
-    /// Perform a reset by clearing fields which should not persist across updates.
-    pub fn reset(self: *Actions) void {
-        self.p1.reset();
-        self.p2.reset();
-    }
-
     /// Returns true if `a` is equal to `b`.
     pub fn eql(a: Actions, b: Actions) bool {
         return @as(u128, @bitCast(a.p1)) == @as(u128, @bitCast(b.p1)) and
@@ -64,15 +58,6 @@ pub const Actions = extern struct {
                 const b_val = @field(@field(b, player.name), field.name);
 
                 switch (@typeInfo(@TypeOf(a_val))) {
-                    .Struct => inline for (@typeInfo(@TypeOf(a_val)).Struct.fields) |f| {
-                        const a_val_f = @field(a_val, f.name);
-                        const b_val_f = @field(b_val, f.name);
-                        switch (@typeInfo(@TypeOf(a_val_f))) {
-                            .Int => if ((a_val_f > 0) != (b_val_f > 0)) return false,
-                            .Bool => if (a_val_f != b_val_f) return false,
-                            else => unreachable,
-                        }
-                    },
                     .Enum => if ((@intFromEnum(a_val) > 0) != (@intFromEnum(b_val) > 0))
                         return false,
                     .Int => if ((a_val > 0) != (b_val > 0)) return false,
@@ -102,12 +87,6 @@ test Actions {
     const a: Actions = .{ .p1 = .{ .hit = .true, .critical_hit = .false, .damage = 245 } };
     const b: Actions = .{ .p1 = .{ .hit = .false, .critical_hit = .true, .damage = 246 } };
     const c: Actions = .{ .p1 = .{ .hit = .true } };
-    // const d: Actions = .{ .p2 = .{ .hit = .true, .durations = .{ .sleep = 2 } } };
-    // const e: Actions = .{ .p2 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
-    // const f: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .sleep = 4 } } };
-    // const g: Actions = .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1 } } };
-    // const h: Actions =
-    //     .{ .p1 = .{ .hit = .false, .durations = .{ .confusion = 1, .thrash = true } } };
 
     try expect(a.eql(a));
     try expect(!a.eql(b));
@@ -120,10 +99,6 @@ test Actions {
     try expect(b.matches(a));
     try expect(!a.matches(c));
     try expect(!c.matches(a));
-    // try expect(d.matches(e));
-    // try expect(!d.matches(f));
-    // try expect(!g.matches(h));
-    // try expect(h.matches(h));
 }
 
 /// Information about the RNG that was observed during a Generation II battle `update` for a
@@ -189,19 +164,9 @@ pub const Action = packed struct(u128) {
     /// If not None, the Move to return for Rolls.metronome.
     metronome: Move = .None,
 
-    _: u16 = 0,
-
-    /// Observed values of various durations. Does not influence future RNG calls. TODO
-    durations: Duration = .{},
-
-    pub const DURATIONS: u128 = 0xFFFFFFFF00000000_0000000000000000;
+    _: u48 = 0, // TODO
 
     pub const Field = std.meta.FieldEnum(Action);
-
-    /// Perform a reset by clearing fields which should not persist across updates.
-    pub fn reset(self: *Action) void {
-        self.* = @bitCast(@as(u128, @bitCast(self.*)) & DURATIONS);
-    }
 
     pub fn format(a: Action, comptime f: []const u8, o: std.fmt.FormatOptions, w: anytype) !void {
         _ = .{ f, o };
@@ -214,18 +179,6 @@ pub const Action = packed struct(u128) {
         inline for (@typeInfo(Action).Struct.fields) |field| {
             const val = @field(self, field.name);
             switch (@typeInfo(@TypeOf(val))) {
-                .Struct => inline for (@typeInfo(@TypeOf(val)).Struct.fields) |f| {
-                    const v = @field(val, f.name);
-                    if (v != 0) {
-                        if (printed) try writer.writeAll(", ");
-                        if (shape) {
-                            try writer.print("{s}:?", .{f.name});
-                        } else {
-                            try writer.print("{s}:{d}", .{ f.name, v });
-                        }
-                        printed = true;
-                    }
-                },
                 .Enum => if (val != .None) {
                     if (printed) try writer.writeAll(", ");
                     if (shape) {
@@ -256,36 +209,6 @@ pub const Action = packed struct(u128) {
     }
 };
 
-test Action {
-    var a: Action = .{ .hit = .true, .durations = .{ .sleep = 3 }, .damage = 225 };
-    a.reset();
-
-    try expectEqual(Action{ .hit = .None, .durations = .{ .sleep = 3 }, .damage = 0 }, a);
-}
-
-/// Observed values for various durations that need to be tracked in order to properly
-/// deduplicate transitions with a primary key. TODO
-pub const Duration = packed struct(u32) {
-    /// The number of turns a Pokémon has been observed to be sleeping.
-    sleep: u3 = 0,
-    /// The number of turns a Pokémon has been observed to be confused.
-    confusion: u3 = 0,
-    /// TODO
-    thrash: bool = false,
-    /// The number of turns a Pokémon has been observed to be disabled.
-    disable: u4 = 0,
-    /// The number of turns a Pokémon has been observed to be attacking.
-    attacking: u3 = 0,
-    /// The number of turns a Pokémon has been observed to be binding their opponent.
-    binding: u3 = 0,
-    /// The number of turns a Pokémon has been observed to be encored.
-    encore: u3 = 0,
-
-    _: u12 = 0,
-
-    pub const Field = std.meta.FieldEnum(Duration);
-};
-
 /// Tracks chance actions and their associated probability during a Generation II battle update when
 /// `options.chance` is enabled.
 pub fn Chance(comptime Rational: type) type {
@@ -298,37 +221,15 @@ pub fn Chance(comptime Rational: type) type {
         /// RNG events were observed during a battle `update`.
         actions: Actions = .{},
 
-        // Tracks the observed sleep durations for the Pokémon in both player's parties. Unlike
-        // other durations which are all tied to volatiles, sleep's counter persists through
-        // switching and so we must store it here. The indices of these arrays correspond to the
-        // `order` field of a Side. This information could be stored in actions but size is a
-        // concern so this is tracked separately as actions only purports to track RNG events
-        // observed during a single `update` (not across updates).
-        sleeps: [2][6]u3 = .{ .{0} ** 6, .{0} ** 6 },
-
         /// Possible error returned by operations tracking chance probability.
         pub const Error = Rational.Error;
 
         /// Convenience helper to clear fields which typically should be cleared between updates.
         pub fn reset(self: *Self) void {
-            self.probability.reset();
-            self.actions.reset();
-            // TODO: self.pending = .{};
-        }
-
-        pub fn switched(self: *Self, player: Player, in: u8, out: u8) void {
             if (!enabled) return;
 
-            assert(in >= 1 and in <= 6);
-            assert(out >= 1 and out <= 6);
-
-            var action = self.actions.get(player);
-
-            const slp = action.durations.sleep;
-            action.durations = .{};
-
-            self.sleeps[@intFromEnum(player)][out - 1] = slp;
-            action.durations.sleep = @intCast(self.sleeps[@intFromEnum(player)][in - 1]);
+            self.probability.reset();
+            self.actions = .{};
         }
 
         pub fn speedTie(self: *Self, p1: bool) Error!void {
@@ -518,122 +419,10 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).multi_hit = n;
         }
 
-        pub fn duration(
-            self: *Self,
-            comptime field: Duration.Field,
-            player: Player,
-            target: Player,
-            turns: u4,
-        ) void {
+        pub fn duration(self: *Self, player: Player, turns: u4) void {
             if (!enabled) return;
 
-            var durations = &self.actions.get(target).durations;
-            assert(@field(durations, @tagName(field)) == 0 or
-                (field == .confusion and player == target));
-            @field(durations, @tagName(field)) = 1;
-            if (field == .confusion) durations.thrash = player == target;
             self.actions.get(player).duration = if (options.key) 1 else turns;
-        }
-
-        pub fn sleep(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.sleep;
-            if (turns == 0) {
-                assert(n >= 1 and n <= 6);
-                if (n != 6) try self.probability.update(1, 7 - @as(u4, n));
-                durations.sleep = 0;
-            } else {
-                assert(n >= 1 and n < 6);
-                try self.probability.update(7 - @as(u4, n) - 1, 7 - @as(u4, n));
-                durations.sleep += 1;
-            }
-        }
-
-        pub fn confusion(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.confusion;
-            const hi: u8 = if (durations.thrash) 3 else 5;
-            const p = hi + 1;
-            if (turns == 0) {
-                assert(n >= 2 and n <= hi);
-                if (n != hi) try self.probability.update(1, p - @as(u4, n));
-                durations.confusion = 0;
-            } else {
-                assert(n >= 1 and n < hi);
-                if (n > 1) try self.probability.update(p - @as(u4, n) - 1, p - @as(u4, n));
-                durations.confusion += 1;
-            }
-        }
-
-        pub fn disable(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.disable;
-            const hi = if (showdown) 5 else 8;
-            const p = hi + 1;
-            if (turns == 0) {
-                assert(n >= 2 and n <= hi);
-                if (n != hi) try self.probability.update(1, p - n);
-                durations.disable = 0;
-            } else {
-                assert(n >= 1 and n < hi);
-                if (n > 1) try self.probability.update(p - n - 1, p - n);
-                durations.disable += 1;
-            }
-        }
-
-        pub fn attacking(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.attacking;
-            if (turns == 0) {
-                assert(n >= 2 and n <= 3);
-                if (n != 3) try self.probability.update(1, 4 - @as(u4, n));
-                durations.attacking = 0;
-            } else {
-                assert(n >= 1 and n < 3);
-                if (n > 1) try self.probability.update(4 - @as(u4, n) - 1, 4 - @as(u4, n));
-                durations.attacking += 1;
-            }
-        }
-
-        pub fn binding(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.binding;
-            if (turns == 0) {
-                assert(n >= 2 and n <= 5);
-                if (n != 5) try self.probability.update(1, 6 - @as(u4, n));
-                durations.binding = 0;
-            } else {
-                assert(n >= 1 and n < 5);
-                if (n > 1) try self.probability.update(6 - @as(u4, n) - 1, 6 - @as(u4, n));
-                durations.binding += 1;
-            }
-        }
-
-        // TODO: consider sharing implementation with binding
-        pub fn encore(self: *Self, player: Player, turns: u4) Error!void {
-            if (!enabled) return;
-
-            var durations = &self.actions.get(player).durations;
-            const n = durations.encore;
-            if (turns == 0) {
-                assert(n >= 2 and n <= 5);
-                if (n != 5) try self.probability.update(1, 6 - @as(u4, n));
-                durations.encore = 0;
-            } else {
-                assert(n >= 1 and n < 5);
-                if (n > 1) try self.probability.update(6 - @as(u4, n) - 1, 6 - @as(u4, n));
-                durations.encore += 1;
-            }
         }
     };
 }
@@ -968,200 +757,8 @@ test "Chance.multiHit" {
 test "Chance.duration" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-    chance.duration(.sleep, .P1, .P2, 2);
+    chance.duration(.P1, 2);
     try expectValue(2, chance.actions.p1.duration);
-    try expectValue(1, chance.actions.p2.durations.sleep);
-}
-
-test "Chance.sleep" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-
-    for ([_]u8{ 6, 5, 4, 3, 2, 1 }, 1..7) |d, i| {
-        chance.actions.p1.durations.sleep = @intCast(i);
-        try chance.sleep(.P1, 0);
-        try expectProbability(&chance.probability, 1, d);
-        try expectValue(0, chance.actions.p1.durations.sleep);
-
-        chance.reset();
-
-        if (i < 6) {
-            chance.actions.p1.durations.sleep = @intCast(i);
-            try chance.sleep(.P1, 1);
-            try expectProbability(&chance.probability, d - 1, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p1.durations.sleep);
-
-            chance.reset();
-        }
-    }
-}
-
-test "Chance.confusion" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-
-    chance.actions.p2.durations.thrash = false;
-    for ([_]u8{ 1, 4, 3, 2, 1 }, 1..6) |d, i| {
-        if (i > 1) {
-            chance.actions.p2.durations.confusion = @intCast(i);
-            try chance.confusion(.P2, 0);
-            try expectProbability(&chance.probability, 1, d);
-            try expectValue(0, chance.actions.p2.durations.confusion);
-            try expectValue(false, chance.actions.p2.durations.thrash);
-
-            chance.reset();
-        }
-
-        if (i < 5) {
-            chance.actions.p2.durations.confusion = @intCast(i);
-            try chance.confusion(.P2, 1);
-            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p2.durations.confusion);
-            try expectValue(false, chance.actions.p2.durations.thrash);
-
-            chance.reset();
-        }
-    }
-
-    chance.reset();
-
-    chance.actions.p2.durations.thrash = true;
-    for ([_]u8{ 1, 2, 1 }, 1..4) |d, i| {
-        if (i > 1) {
-            chance.actions.p2.durations.confusion = @intCast(i);
-            try chance.confusion(.P2, 0);
-            try expectProbability(&chance.probability, 1, d);
-            try expectValue(0, chance.actions.p2.durations.confusion);
-            try expectValue(true, chance.actions.p2.durations.thrash);
-
-            chance.reset();
-        }
-
-        if (i < 3) {
-            chance.actions.p2.durations.confusion = @intCast(i);
-            try chance.confusion(.P2, 1);
-            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p2.durations.confusion);
-            try expectValue(true, chance.actions.p2.durations.thrash);
-
-            chance.reset();
-        }
-    }
-}
-
-test "Chance.disable" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-    if (showdown) {
-        for ([_]u8{ 1, 4, 3, 2, 1 }, 1..6) |d, i| {
-            if (i > 1) {
-                chance.actions.p2.durations.disable = @intCast(i);
-                try chance.disable(.P2, 0);
-                try expectProbability(&chance.probability, 1, d);
-                try expectValue(0, chance.actions.p2.durations.disable);
-
-                chance.reset();
-            }
-
-            if (i < 5) {
-                chance.actions.p2.durations.disable = @intCast(i);
-                try chance.disable(.P2, 1);
-                try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-                try expectValue(@as(u4, @intCast(i)) + 1, chance.actions.p2.durations.disable);
-
-                chance.reset();
-            }
-        }
-    } else {
-        for ([_]u8{ 1, 7, 6, 5, 4, 3, 2, 1 }, 1..9) |d, i| {
-            if (i > 1) {
-                chance.actions.p2.durations.disable = @intCast(i);
-                try chance.disable(.P2, 0);
-                try expectProbability(&chance.probability, 1, d);
-                try expectValue(0, chance.actions.p2.durations.disable);
-
-                chance.reset();
-            }
-
-            if (i < 8) {
-                chance.actions.p2.durations.disable = @intCast(i);
-                try chance.disable(.P2, 1);
-                try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-                try expectValue(@as(u4, @intCast(i)) + 1, chance.actions.p2.durations.disable);
-
-                chance.reset();
-            }
-        }
-    }
-}
-
-test "Chance.attacking" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-
-    for ([_]u8{ 1, 2, 1 }, 1..4) |d, i| {
-        if (i > 1) {
-            chance.actions.p2.durations.attacking = @intCast(i);
-            try chance.attacking(.P2, 0);
-            try expectProbability(&chance.probability, 1, d);
-            try expectValue(0, chance.actions.p2.durations.attacking);
-
-            chance.reset();
-        }
-
-        if (i < 3) {
-            chance.actions.p2.durations.attacking = @intCast(i);
-            try chance.attacking(.P2, 1);
-            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p2.durations.attacking);
-
-            chance.reset();
-        }
-    }
-}
-
-test "Chance.binding" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-
-    for ([_]u8{ 1, 4, 3, 2, 1 }, 1..6) |d, i| {
-        if (i > 1) {
-            chance.actions.p2.durations.binding = @intCast(i);
-            try chance.binding(.P2, 0);
-            try expectProbability(&chance.probability, 1, d);
-            try expectValue(0, chance.actions.p2.durations.binding);
-
-            chance.reset();
-        }
-
-        if (i < 5) {
-            chance.actions.p2.durations.binding = @intCast(i);
-            try chance.binding(.P2, 1);
-            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p2.durations.binding);
-
-            chance.reset();
-        }
-    }
-}
-
-test "Chance.encore" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
-
-    for ([_]u8{ 1, 4, 3, 2, 1 }, 1..6) |d, i| {
-        if (i > 1) {
-            chance.actions.p2.durations.encore = @intCast(i);
-            try chance.encore(.P2, 0);
-            try expectProbability(&chance.probability, 1, d);
-            try expectValue(0, chance.actions.p2.durations.encore);
-
-            chance.reset();
-        }
-
-        if (i < 5) {
-            chance.actions.p2.durations.encore = @intCast(i);
-            try chance.encore(.P2, 1);
-            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.actions.p2.durations.encore);
-
-            chance.reset();
-        }
-    }
 }
 
 pub fn expectProbability(r: anytype, p: u64, q: u64) !void {
@@ -1279,37 +876,7 @@ const Null = struct {
         _ = .{ self, player, move, n };
     }
 
-    pub fn duration(
-        self: Null,
-        comptime field: Duration.Field,
-        player: Player,
-        target: Player,
-        turns: u4,
-    ) void {
-        _ = .{ self, field, player, target, turns };
-    }
-
-    pub fn sleep(self: Null, player: Player, turns: u4) Error!void {
-        _ = .{ self, player, turns };
-    }
-
-    pub fn confusion(self: Null, player: Player, turns: u4) Error!void {
-        _ = .{ self, player, turns };
-    }
-
-    pub fn disable(self: Null, player: Player, turns: u4) Error!void {
-        _ = .{ self, player, turns };
-    }
-
-    pub fn attacking(self: Null, player: Player, turns: u4) Error!void {
-        _ = .{ self, player, turns };
-    }
-
-    pub fn binding(self: Null, player: Player, turns: u4) Error!void {
-        _ = .{ self, player, turns };
-    }
-
-    pub fn encore(self: Null, player: Player, turns: u4) Error!void {
+    pub fn duration(self: Null, player: Player, turns: u4) void {
         _ = .{ self, player, turns };
     }
 };

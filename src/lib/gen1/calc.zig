@@ -94,13 +94,9 @@ pub const Summary = extern struct {
 pub const Overrides = extern struct {
     /// TODO
     actions: Actions = .{},
-    /// TODO
-    durations: Durations = .{},
-
-    _: u32 = 0,
 
     comptime {
-        assert(@sizeOf(Overrides) == 24);
+        assert(@sizeOf(Overrides) == 16);
     }
 };
 
@@ -127,18 +123,6 @@ pub const Calc = struct {
             .Int => val != 0,
             else => unreachable,
         }) val else null;
-    }
-
-    pub fn modify(self: Calc, player: Player, comptime field: Duration.Field) ?bool {
-        if (!enabled) return null;
-
-        const durations = self.overrides.durations;
-        const set = @field(if (player == .P1) durations.p1 else durations.p2, @tagName(field));
-        if (set == 0) return null;
-
-        const actions = self.overrides.actions;
-        const overrides = if (player == .P1) actions.p1.durations() else actions.p2.durations();
-        return @field(overrides, @tagName(field)) != 0;
     }
 
     pub fn base(self: *Calc, player: Player, val: u16) void {
@@ -174,11 +158,6 @@ const Null = struct {
         return null;
     }
 
-    pub fn modify(self: Null, player: Player, comptime field: Duration.Field) ?bool {
-        _ = .{ self, player, field };
-        return null;
-    }
-
     pub fn base(self: Null, player: Player, val: u16) void {
         _ = .{ self, player, val };
     }
@@ -200,7 +179,6 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
-    actions: Actions = .{},
     seed: ?u64 = null,
     cap: bool = false,
     metronome: bool = false,
@@ -218,7 +196,6 @@ pub fn transitions(
 ) !?Stats {
     var stats: Stats = .{};
 
-    const actions = options.actions;
     const cap = options.cap;
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
@@ -228,8 +205,8 @@ pub fn transitions(
 
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{}, .actions = actions },
-        Calc{ .overrides = .{ .actions = actions, .durations = actions.durations() } },
+        Chance(Rational(u128)){ .probability = .{} },
+        Calc{},
     );
 
     var b = battle;
@@ -252,7 +229,6 @@ pub fn transitions(
     assert(frontier.items.len == 1);
     while (i < frontier.items.len) : (i += 1) {
         const template = frontier.items[i];
-        opts.calc.overrides.durations = template.durations();
 
         try debug(writer, template, .{
             .shape = true,
@@ -265,20 +241,10 @@ pub fn transitions(
         var a: Actions = .{ .p1 = .{ .metronome = p1_move }, .p2 = .{ .metronome = p2_move } };
 
         for (Rolls.speedTie(template.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
-        for (Rolls.sleep(template.p1, actions.p1)) |p1_slp| { a.p1.durations_sleep = p1_slp;
-        for (Rolls.sleep(template.p2, actions.p2)) |p2_slp| { a.p2.durations_sleep = p2_slp;
-        for (Rolls.disable(template.p1, actions.p1, p1_slp)) |p1_disable| { a.p1.durations_disable = p1_disable;
-        for (Rolls.disable(template.p2, actions.p2, p2_slp)) |p2_disable| { a.p2.durations_disable = p2_disable;
-        for (Rolls.confusion(template.p1, actions.p1, p1_slp)) |p1_cfz| { a.p1.durations_confusion = p1_cfz;
-        for (Rolls.confusion(template.p2, actions.p2, p1_slp)) |p2_cfz| { a.p2.durations_confusion = p2_cfz;
-        for (Rolls.confused(template.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
-        for (Rolls.confused(template.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
+        for (Rolls.confused(template.p1)) |p1_cfzd| { a.p1.confused = p1_cfzd;
+        for (Rolls.confused(template.p2)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(template.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(template.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.attacking(template.p1, actions.p1, p1_par)) |p1_atk| { a.p1.durations_attacking = p1_atk;
-        for (Rolls.attacking(template.p2, actions.p2, p2_par)) |p2_atk| { a.p2.durations_attacking = p2_atk;
-        for (Rolls.binding(template.p1, actions.p1, p1_par)) |p1_bind| { a.p1.durations_binding = p1_bind;
-        for (Rolls.binding(template.p2, actions.p2, p2_par)) |p2_bind| { a.p2.durations_binding = p2_bind;
         for (Rolls.duration(template.p1, p1_par)) |p1_dur| { a.p1.duration = p1_dur;
         for (Rolls.duration(template.p2, p2_par)) |p2_dur| { a.p2.duration = p2_dur;
         for (Rolls.hit(template.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
@@ -308,7 +274,7 @@ pub fn transitions(
 
                 opts.calc.overrides.actions = a;
                 opts.calc.summaries = .{};
-                opts.chance = .{ .probability = .{}, .actions = actions };
+                opts.chance = .{ .probability = .{} };
                 const q = &opts.chance.probability;
 
                 b = battle;
@@ -399,7 +365,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
