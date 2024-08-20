@@ -104,19 +104,62 @@ pub const Durations = extern struct {
         assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
         return if (player == .P1) &self.p1 else &self.p2;
     }
+
+    pub fn format(
+        self: Durations,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = .{ fmt, options };
+        try writer.print("<P1 = {}, P2 = {}>", .{ self.p1, self.p2 });
+    }
 };
+
+/// TODO
+pub const Override = enum { extend, end };
 
 // FIXME
 pub const Duration = packed struct(u16) {
-    sleep: u3 = 0,
-    confusion: u3 = 0,
-    disable: u4 = 0,
-    attacking: u3 = 0,
-    binding: u3 = 0,
+    sleep: Optional(Override) = .None,
+    confusion: Optional(Override) = .None,
+    disable: Optional(Override) = .None,
+    attacking: Optional(Override) = .None,
+    binding: Optional(Override) = .None,
+
+    _: u6 = 0,
 
     pub const Field = std.meta.FieldEnum(Duration);
-};
 
+    pub fn format(
+        self: Duration,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = .{ fmt, options };
+        try writer.writeByte('(');
+        var printed = false;
+        inline for (@typeInfo(Duration).Struct.fields) |field| {
+            const val = @field(self, field.name);
+            switch (@typeInfo(@TypeOf(val))) {
+                .Enum => {
+                    if (val != .None) {
+                        if (printed) try writer.writeAll(", ");
+                        if (val == .extend) {
+                            try writer.print("+{s}", .{field.name});
+                        } else {
+                            try writer.print("-{s}", .{field.name});
+                        }
+                        printed = true;
+                    }
+                },
+                else => {},
+            }
+        }
+        try writer.writeByte(')');
+    }
+};
 
 /// TODO
 pub const Overrides = extern struct {
@@ -159,8 +202,8 @@ pub const Calc = struct {
         if (!enabled) return null;
 
         const val = @field(self.overrides.durations.get(player), @tagName(field));
-        if (val == 0) return null;
-        return val == 1;
+        if (val == .None) return null;
+        return val == .extend;
     }
 
     pub fn base(self: *Calc, player: Player, val: u16) void {
@@ -222,12 +265,7 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
-    actions: Actions = .{},
     durations: chance.Durations = .{},
-    overrides: struct {
-        actions: Actions = .{},
-        durations: Durations = .{},
-    } = .{},
     seed: ?u64 = null,
     cap: bool = false,
     metronome: bool = false,
@@ -256,17 +294,11 @@ pub fn transitions(
     var frontier = std.ArrayList(Element).init(allocator);
     defer frontier.deinit();
 
+    const durations = options.durations;
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){
-            .probability = .{},
-            .actions = options.actions,
-            .durations = options.durations,
-        },
-        Calc{ .overrides = .{
-            .actions = options.overrides.actions,
-            .durations = options.overrides.durations,
-        } },
+        Chance(Rational(u128)){ .probability = .{}, .durations = durations },
+        Calc{},
     );
 
     var b = battle;
@@ -290,7 +322,6 @@ pub fn transitions(
     while (i < frontier.items.len) : (i += 1) {
         const template = frontier.items[i];
         const actions = template.actions;
-        const durations = template.durations;
 
         try debug(writer, actions, .{
             .shape = true,
@@ -304,20 +335,20 @@ pub fn transitions(
         var d: Durations = .{};
 
         for (Rolls.speedTie(actions.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
-        for (Rolls.sleep(durations.p1, durations.p1)) |p1_slp| { d.p1.sleep = p1_slp;
-        for (Rolls.sleep(durations.p2, durations.p2)) |p2_slp| { d.p2.sleep = p2_slp;
-        for (Rolls.disable(durations.p1, durations.p1, p1_slp)) |p1_disable| { d.p1.disable = p1_disable;
-        for (Rolls.disable(durations.p2, durations.p2, p2_slp)) |p2_disable| { d.p2.disable = p2_disable;
-        for (Rolls.confusion(durations.p1, durations.p1, p1_slp)) |p1_cfz| { d.p1.confusion = p1_cfz;
-        for (Rolls.confusion(durations.p2, durations.p2, p1_slp)) |p2_cfz| { d.p2.confusion = p2_cfz;
+        for (Rolls.sleep(durations.p1)) |p1_slp| { d.p1.sleep = p1_slp;
+        for (Rolls.sleep(durations.p2)) |p2_slp| { d.p2.sleep = p2_slp;
+        // for (Rolls.disable(durations.p1, durations.p1, p1_slp)) |p1_disable| { d.p1.disable = p1_disable;
+        // for (Rolls.disable(durations.p2, durations.p2, p2_slp)) |p2_disable| { d.p2.disable = p2_disable;
+        for (Rolls.confusion(durations.p1, p1_slp)) |p1_cfz| { d.p1.confusion = p1_cfz;
+        for (Rolls.confusion(durations.p2, p1_slp)) |p2_cfz| { d.p2.confusion = p2_cfz;
         for (Rolls.confused(actions.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(actions.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(actions.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(actions.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.attacking(durations.p1, durations.p1, p1_par)) |p1_atk| { d.p1.attacking = p1_atk;
-        for (Rolls.attacking(durations.p2, durations.p2, p2_par)) |p2_atk| { d.p2.attacking = p2_atk;
-        for (Rolls.binding(durations.p1, durations.p1, p1_par)) |p1_bind| { d.p1.binding = p1_bind;
-        for (Rolls.binding(durations.p2, durations.p2, p2_par)) |p2_bind| { d.p2.binding = p2_bind;
+        for (Rolls.attacking(durations.p1, p1_par)) |p1_atk| { d.p1.attacking = p1_atk;
+        for (Rolls.attacking(durations.p2, p2_par)) |p2_atk| { d.p2.attacking = p2_atk;
+        // for (Rolls.binding(durations.p1, p1_par)) |p1_bind| { d.p1.binding = p1_bind;
+        // for (Rolls.binding(durations.p2, p2_par)) |p2_bind| { d.p2.binding = p2_bind;
         for (Rolls.duration(actions.p1, p1_par)) |p1_dur| { a.p1.duration = p1_dur;
         for (Rolls.duration(actions.p2, p2_par)) |p2_dur| { a.p2.duration = p2_dur;
         for (Rolls.hit(actions.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
@@ -346,12 +377,9 @@ pub fn transitions(
                 a.p2.damage = @intCast(p2_dmg.min);
 
                 opts.calc.overrides.actions = a;
+                opts.calc.overrides.durations = d;
                 opts.calc.summaries = .{};
-                opts.chance = .{
-                    .probability = .{},
-                    .actions = options.actions,
-                    .durations = options.durations,
-                };
+                opts.chance = .{ .probability = .{}, .durations = options.durations };
                 const q = &opts.chance.probability;
 
                 b = battle;
@@ -445,7 +473,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}}}}}}}}}//}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
