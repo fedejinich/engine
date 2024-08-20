@@ -136,9 +136,7 @@ pub const Calc = struct {
         const set = @field(if (player == .P1) durations.p1 else durations.p2, @tagName(field));
         if (set == 0) return null;
 
-        const actions = self.overrides.actions;
-        const overrides = if (player == .P1) actions.p1.durations() else actions.p2.durations();
-        return @field(overrides, @tagName(field)) != 0;
+        return null; // TODO
     }
 
     pub fn base(self: *Calc, player: Player, val: u16) void {
@@ -201,12 +199,18 @@ pub const Stats = struct {
 
 pub const Options = struct {
     actions: Actions = .{},
+    durations: Durations = .{},
     seed: ?u64 = null,
     cap: bool = false,
     metronome: bool = false,
 };
 
 pub const MAX_FRONTIER = 19;
+
+const Element = struct {
+    actions: Actions,
+    durations: Durations,
+};
 
 pub fn transitions(
     battle: anytype,
@@ -219,17 +223,18 @@ pub fn transitions(
     var stats: Stats = .{};
 
     const actions = options.actions;
+    const durations = options.durations;
     const cap = options.cap;
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
-    var frontier = std.ArrayList(Actions).init(allocator);
+    var frontier = std.ArrayList(Element).init(allocator);
     defer frontier.deinit();
 
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{}, .actions = actions },
-        Calc{ .overrides = .{ .actions = actions, .durations = actions.durations() } },
+        Chance(Rational(u128)){ .probability = .{}, .actions = actions, .durations = durations },
+        Calc{ .overrides = .{ .actions = actions, .durations = durations } },
     );
 
     var b = battle;
@@ -240,11 +245,11 @@ pub fn transitions(
     const p2 = b.side(.P2);
 
     var p: Rational(u128) = .{ .p = 0, .q = 1 };
-    try frontier.append(opts.chance.actions);
+    try frontier.append(.{ .actions = opts.chance.actions, .durations = opts.chance.durations });
 
     // zig fmt: off
-    for (Rolls.metronome(frontier.items[0].p1)) |p1_move| {
-    for (Rolls.metronome(frontier.items[0].p2)) |p2_move| {
+    for (Rolls.metronome(frontier.items[0].actions.p1)) |p1_move| {
+    for (Rolls.metronome(frontier.items[0].actions.p2)) |p2_move| {
 
     if (!options.metronome and (p1_move != .None or p2_move != .None)) return null;
 
@@ -252,9 +257,8 @@ pub fn transitions(
     assert(frontier.items.len == 1);
     while (i < frontier.items.len) : (i += 1) {
         const template = frontier.items[i];
-        opts.calc.overrides.durations = template.durations();
 
-        try debug(writer, template, .{
+        try debug(writer, template.actions, .{
             .shape = true,
             .color = i,
             .bold = true,
@@ -263,42 +267,43 @@ pub fn transitions(
         });
 
         var a: Actions = .{ .p1 = .{ .metronome = p1_move }, .p2 = .{ .metronome = p2_move } };
+        var d: Durations = .{};
 
-        for (Rolls.speedTie(template.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
-        for (Rolls.sleep(template.p1, actions.p1)) |p1_slp| { a.p1.durations_sleep = p1_slp;
-        for (Rolls.sleep(template.p2, actions.p2)) |p2_slp| { a.p2.durations_sleep = p2_slp;
-        for (Rolls.disable(template.p1, actions.p1, p1_slp)) |p1_disable| { a.p1.durations_disable = p1_disable;
-        for (Rolls.disable(template.p2, actions.p2, p2_slp)) |p2_disable| { a.p2.durations_disable = p2_disable;
-        for (Rolls.confusion(template.p1, actions.p1, p1_slp)) |p1_cfz| { a.p1.durations_confusion = p1_cfz;
-        for (Rolls.confusion(template.p2, actions.p2, p1_slp)) |p2_cfz| { a.p2.durations_confusion = p2_cfz;
-        for (Rolls.confused(template.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
-        for (Rolls.confused(template.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
-        for (Rolls.paralyzed(template.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
-        for (Rolls.paralyzed(template.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.attacking(template.p1, actions.p1, p1_par)) |p1_atk| { a.p1.durations_attacking = p1_atk;
-        for (Rolls.attacking(template.p2, actions.p2, p2_par)) |p2_atk| { a.p2.durations_attacking = p2_atk;
-        for (Rolls.binding(template.p1, actions.p1, p1_par)) |p1_bind| { a.p1.durations_binding = p1_bind;
-        for (Rolls.binding(template.p2, actions.p2, p2_par)) |p2_bind| { a.p2.durations_binding = p2_bind;
-        for (Rolls.duration(template.p1, p1_par)) |p1_dur| { a.p1.duration = p1_dur;
-        for (Rolls.duration(template.p2, p2_par)) |p2_dur| { a.p2.duration = p2_dur;
-        for (Rolls.hit(template.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
-        for (Rolls.hit(template.p2, p2_par)) |p2_hit| { a.p2.hit = p2_hit;
-        for (Rolls.psywave(template.p1, p1, p1_hit)) |p1_psywave| { a.p1.psywave = p1_psywave;
-        for (Rolls.psywave(template.p2, p2, p2_hit)) |p2_psywave| { a.p2.psywave = p2_psywave;
-        for (Rolls.moveSlot(template.p1, p1_hit)) |p1_slot| { a.p1.move_slot = p1_slot;
-        for (Rolls.moveSlot(template.p2, p2_hit)) |p2_slot| { a.p2.move_slot = p2_slot;
-        for (Rolls.multiHit(template.p1, p1_hit)) |p1_multi| { a.p1.multi_hit = p1_multi;
-        for (Rolls.multiHit(template.p2, p2_hit)) |p2_multi| { a.p2.multi_hit = p2_multi;
-        for (Rolls.secondaryChance(template.p1, p1_hit)) |p1_sec| { a.p1.secondary_chance = p1_sec;
-        for (Rolls.secondaryChance(template.p2, p2_hit)) |p2_sec| { a.p2.secondary_chance = p2_sec;
-        for (Rolls.criticalHit(template.p1, p1_hit)) |p1_crit| { a.p1.critical_hit = p1_crit;
-        for (Rolls.criticalHit(template.p2, p2_hit)) |p2_crit| { a.p2.critical_hit = p2_crit;
+        for (Rolls.speedTie(template.actions.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
+        for (Rolls.sleep(template.durations.p1, durations.p1)) |p1_slp| { d.p1.sleep = p1_slp;
+        for (Rolls.sleep(template.durations.p2, durations.p2)) |p2_slp| { d.p2.sleep = p2_slp;
+        for (Rolls.disable(template.durations.p1, durations.p1, p1_slp)) |p1_disable| { d.p1.disable = p1_disable;
+        for (Rolls.disable(template.durations.p2, durations.p2, p2_slp)) |p2_disable| { d.p2.disable = p2_disable;
+        for (Rolls.confusion(template.durations.p1, durations.p1, p1_slp)) |p1_cfz| { d.p1.confusion = p1_cfz;
+        for (Rolls.confusion(template.durations.p2, durations.p2, p1_slp)) |p2_cfz| { d.p2.confusion = p2_cfz;
+        for (Rolls.confused(template.actions.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
+        for (Rolls.confused(template.actions.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
+        for (Rolls.paralyzed(template.actions.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
+        for (Rolls.paralyzed(template.actions.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
+        for (Rolls.attacking(template.durations.p1, durations.p1, p1_par)) |p1_atk| { d.p1.attacking = p1_atk;
+        for (Rolls.attacking(template.durations.p2, durations.p2, p2_par)) |p2_atk| { d.p2.attacking = p2_atk;
+        for (Rolls.binding(template.durations.p1, durations.p1, p1_par)) |p1_bind| { d.p1.binding = p1_bind;
+        for (Rolls.binding(template.durations.p2, durations.p2, p2_par)) |p2_bind| { d.p2.binding = p2_bind;
+        for (Rolls.duration(template.actions.p1, p1_par)) |p1_dur| { a.p1.duration = p1_dur;
+        for (Rolls.duration(template.actions.p2, p2_par)) |p2_dur| { a.p2.duration = p2_dur;
+        for (Rolls.hit(template.actions.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
+        for (Rolls.hit(template.actions.p2, p2_par)) |p2_hit| { a.p2.hit = p2_hit;
+        for (Rolls.psywave(template.actions.p1, p1, p1_hit)) |p1_psywave| { a.p1.psywave = p1_psywave;
+        for (Rolls.psywave(template.actions.p2, p2, p2_hit)) |p2_psywave| { a.p2.psywave = p2_psywave;
+        for (Rolls.moveSlot(template.actions.p1, p1_hit)) |p1_slot| { a.p1.move_slot = p1_slot;
+        for (Rolls.moveSlot(template.actions.p2, p2_hit)) |p2_slot| { a.p2.move_slot = p2_slot;
+        for (Rolls.multiHit(template.actions.p1, p1_hit)) |p1_multi| { a.p1.multi_hit = p1_multi;
+        for (Rolls.multiHit(template.actions.p2, p2_hit)) |p2_multi| { a.p2.multi_hit = p2_multi;
+        for (Rolls.secondaryChance(template.actions.p1, p1_hit)) |p1_sec| { a.p1.secondary_chance = p1_sec;
+        for (Rolls.secondaryChance(template.actions.p2, p2_hit)) |p2_sec| { a.p2.secondary_chance = p2_sec;
+        for (Rolls.criticalHit(template.actions.p1, p1_hit)) |p1_crit| { a.p1.critical_hit = p1_crit;
+        for (Rolls.criticalHit(template.actions.p2, p2_hit)) |p2_crit| { a.p2.critical_hit = p2_crit;
 
-        var p1_dmg = Rolls.damage(template.p1, p1_hit);
+        var p1_dmg = Rolls.damage(template.actions.p1, p1_hit);
         while (p1_dmg.min < p1_dmg.max) : (p1_dmg.min += 1) {
             a.p1.damage = @intCast(p1_dmg.min);
 
-            var p2_dmg = Rolls.damage(template.p2, p2_hit);
+            var p2_dmg = Rolls.damage(template.actions.p2, p2_hit);
 
             const p1_min: u9 = p1_dmg.min;
             const p2_min: u9 = p2_dmg.min;
@@ -323,7 +328,7 @@ pub fn transitions(
                 const p2_max: u9 =
                     try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
 
-                if (opts.chance.actions.matches(template)) {
+                if (opts.chance.actions.matches(template.actions)) {
                     if (!opts.chance.actions.eql(a)) {
                         if (!summary) {
                             try debug(writer, opts.chance.actions, .{
@@ -370,7 +375,10 @@ pub fn transitions(
                     }
                 } else {
                     if (!matches(opts.chance.actions, i, frontier.items)) {
-                        try frontier.append(opts.chance.actions);
+                        try frontier.append(.{
+                            .actions = opts.chance.actions,
+                            .durations = opts.chance.durations,
+                        });
 
                         try debug(writer, opts.chance.actions, .{
                             .p1_max = p1_max,
@@ -508,11 +516,11 @@ fn unfix(actual: anytype) data.Battle(data.PRNG) {
     };
 }
 
-fn matches(actions: Actions, i: usize, frontier: []Actions) bool {
+fn matches(actions: Actions, i: usize, frontier: []Element) bool {
     for (frontier, 0..) |f, j| {
         // TODO: is skipping this redundant check worth it?
         if (i == j) continue;
-        if (f.matches(actions)) return true;
+        if (f.actions.matches(actions)) return true;
     }
     return false;
 }
