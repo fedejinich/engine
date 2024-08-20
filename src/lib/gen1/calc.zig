@@ -33,8 +33,6 @@ const PointerType = util.PointerType;
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
-const Durations = chance.Durations;
-const Duration = chance.Duration;
 
 const Rolls = helpers.Rolls;
 
@@ -91,6 +89,36 @@ pub const Summary = extern struct {
 };
 
 /// TODO
+pub const Durations = extern struct {
+    /// Information about the durations for Player 1.
+    p1: Duration = .{},
+    /// Information about the durations for Player 2.
+    p2: Duration = .{},
+
+    comptime {
+        assert(@sizeOf(Durations) == 4);
+    }
+
+    /// Returns the `Duration` for the given `player`.
+    pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Duration) {
+        assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
+        return if (player == .P1) &self.p1 else &self.p2;
+    }
+};
+
+// FIXME
+pub const Duration = packed struct(u16) {
+    sleep: u3 = 0,
+    confusion: u3 = 0,
+    disable: u4 = 0,
+    attacking: u3 = 0,
+    binding: u3 = 0,
+
+    pub const Field = std.meta.FieldEnum(Duration);
+};
+
+
+/// TODO
 pub const Overrides = extern struct {
     /// TODO
     actions: Actions = .{},
@@ -112,7 +140,7 @@ pub const Calc = struct {
     /// Information relevant to damage calculation.
     summaries: Summaries = .{},
 
-    pub fn overridden(
+    pub fn action(
         self: Calc,
         player: Player,
         comptime field: Action.Field,
@@ -127,13 +155,12 @@ pub const Calc = struct {
         }) val else null;
     }
 
-    pub fn modify(self: Calc, player: Player, comptime field: Duration.Field) ?bool {
+    pub fn duration(self: Calc, player: Player, comptime field: Duration.Field) ?bool {
         if (!enabled) return null;
 
-        const set = @field(self.overrides.durations.get(player), @tagName(field));
-        if (set == 0) return null;
-
-        return null; // TODO
+        const val = @field(self.overrides.durations.get(player), @tagName(field));
+        if (val == 0) return null;
+        return val == 1;
     }
 
     pub fn base(self: *Calc, player: Player, val: u16) void {
@@ -160,7 +187,7 @@ pub const Calc = struct {
 pub const NULL: Null = .{};
 
 const Null = struct {
-    pub fn overridden(
+    pub fn action(
         self: Null,
         player: Player,
         comptime field: Action.Field,
@@ -169,7 +196,7 @@ const Null = struct {
         return null;
     }
 
-    pub fn modify(self: Null, player: Player, comptime field: Duration.Field) ?bool {
+    pub fn duration(self: Null, player: Player, comptime field: Duration.Field) ?bool {
         _ = .{ self, player, field };
         return null;
     }
@@ -196,7 +223,11 @@ pub const Stats = struct {
 
 pub const Options = struct {
     actions: Actions = .{},
-    durations: Durations = .{},
+    durations: chance.Durations = .{},
+    overrides: struct {
+        actions: Actions = .{},
+        durations: Durations = .{},
+    } = .{},
     seed: ?u64 = null,
     cap: bool = false,
     metronome: bool = false,
@@ -206,7 +237,7 @@ pub const MAX_FRONTIER = 19;
 
 const Element = struct {
     actions: Actions,
-    durations: Durations,
+    durations: chance.Durations,
 };
 
 pub fn transitions(
@@ -230,8 +261,15 @@ pub fn transitions(
 
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{}, .actions = actions, .durations = durations },
-        Calc{ .overrides = .{ .actions = actions, .durations = durations } },
+        Chance(Rational(u128)){
+            .probability = .{},
+            .actions = options.actions,
+            .durations = options.durations,
+        },
+        Calc{ .overrides = .{
+            .actions = options.overrides.actions,
+            .durations = options.overrides.durations,
+        } },
     );
 
     var b = battle;
