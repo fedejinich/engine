@@ -100,9 +100,9 @@ test Actions {
 }
 
 /// TODO
-pub const Duration = enum { extend, end };
+pub const Duration = enum { continuing, ended };
 /// TODO
-pub const Thrashing = enum { confirmed, unconfirmed };
+pub const Thrashing = enum { continuing, hidden };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -174,12 +174,12 @@ pub const Action = packed struct(u64) {
                         });
                     } else if (@TypeOf(val) == Optional(Duration)) {
                         try writer.print("{s}{s}", .{
-                            if (val == .extend) "+" else "-",
+                            if (val == .continuing) "+" else "-",
                             field.name,
                         });
                     } else if (@TypeOf(val) == Optional(Thrashing)) {
                         try writer.print("{s}{s}", .{
-                            if (val == .unconfirmed) "~" else "",
+                            if (val == .hidden) "~" else "",
                             field.name,
                         });
                     } else {
@@ -393,6 +393,15 @@ pub fn Chance(comptime Rational: type) type {
             if (!enabled) return;
 
             self.actions.get(player).duration = if (options.key) 1 else turns;
+        }
+
+        pub fn durations(self: *Self, comptime f: Action.Field, player: Player, turns: u4) void {
+            if (!enabled) return;
+
+            @field(self.actions.get(player), @tagName(f)) = switch (f) {
+                .thrashing => if (turns <= 1) .hidden else .continuing,
+                else => if (turns == 0) .ended else .continuing,
+            };
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -693,6 +702,10 @@ const Null = struct {
 
     pub fn duration(self: Null, player: Player, turns: u4) void {
         _ = .{ self, player, turns };
+    }
+
+    pub fn durations(self: Null, comptime f: Action.Field, player: Player, turns: u4) void {
+        _ = .{ self, f, player, turns };
     }
 
     pub fn psywave(self: Null, player: Player, power: u8, max: u8) Error!void {

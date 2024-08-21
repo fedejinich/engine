@@ -487,6 +487,8 @@ fn beforeMove(
         stored.status -= 1;
 
         const duration = Status.duration(stored.status);
+        options.chance.durations(.sleep, player, duration);
+
         if (duration == 0) {
             try log.curestatus(.{ ident, before, .Message });
             stored.status = 0; // clears EXT if present
@@ -524,6 +526,7 @@ fn beforeMove(
 
     if (volatiles.disable_duration > 0) {
         volatiles.disable_duration -= 1;
+        options.chance.durations(.disable, player, volatiles.disable_duration);
 
         if (volatiles.disable_duration == 0) {
             volatiles.disable_move = 0;
@@ -543,6 +546,7 @@ fn beforeMove(
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
         volatiles.confusion -= 1;
+        options.chance.durations(.confusion, player, volatiles.confusion);
 
         if (volatiles.confusion == 0) {
             volatiles.Confusion = false;
@@ -614,6 +618,8 @@ fn beforeMove(
         }
 
         volatiles.attacks -= 1;
+        options.chance.durations(.bide, player, volatiles.attacks);
+
         if (volatiles.attacks != 0) {
             try log.activate(.{ ident, .Bide });
             return .done;
@@ -665,6 +671,7 @@ fn beforeMove(
 
     if (volatiles.Binding) {
         volatiles.attacks -= 1;
+        options.chance.durations(.binding, player, volatiles.attacks);
 
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
         if (showdown or battle.last_damage != 0) {
@@ -1622,6 +1629,8 @@ fn buildRage(battle: anytype, who: Player, options: anytype) !void {
 fn handleThrashing(battle: anytype, active: *ActivePokemon, player: Player, options: anytype) bool {
     var volatiles = &active.volatiles;
     assert(volatiles.Thrashing);
+
+    options.chance.durations(.thrashing, player, volatiles.attacks);
     if (volatiles.attacks > 0) return false;
 
     volatiles.Thrashing = false;
@@ -1716,8 +1725,10 @@ pub const Effects = struct {
 
         side.active.volatiles.Bide = true;
         assert(!side.active.volatiles.Thrashing and !side.active.volatiles.Rage);
+
         side.active.volatiles.state = 0;
         side.active.volatiles.attacks = Rolls.attackingDuration(battle, player, options);
+        options.chance.durations(.bide, player, side.active.volatiles.attacks);
 
         try options.log.start(.{ battle.active(player), .Bide });
     }
@@ -1783,7 +1794,9 @@ pub const Effects = struct {
 
         if (foe.active.volatiles.Confusion) return;
         foe.active.volatiles.Confusion = true;
+
         foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, options);
+        options.chance.durations(.confusion, player.foe(), foe.active.volatiles.confusion);
 
         try options.log.start(.{ battle.active(player.foe()), .Confusion });
     }
@@ -1841,6 +1854,7 @@ pub const Effects = struct {
         volatiles.disable_move =
             @intCast(try Rolls.moveSlot(battle, player, &foe.active.moves, n, options));
         volatiles.disable_duration = Rolls.disableDuration(battle, player, options);
+        options.chance.durations(.disable, player.foe(), volatiles.disable_duration);
 
         const id = foe.active.move(volatiles.disable_move).id;
         try options.log.start(.{ foe_ident, .Disable, id });
@@ -2258,6 +2272,8 @@ pub const Effects = struct {
         foe.active.volatiles.Recharging = false;
 
         foe_stored.status = Status.slp(Rolls.sleepDuration(battle, player, options));
+        options.chance.durations(.sleep, player.foe(), Status.duration(foe_stored.status));
+
         const last = battle.side(player).last_selected_move;
         try options.log.status(.{ foe_ident, foe_stored.status, .From, last });
     }
@@ -2314,6 +2330,8 @@ pub const Effects = struct {
 
         volatiles.Thrashing = true;
         volatiles.attacks = Rolls.attackingDuration(battle, player, options);
+
+        options.chance.durations(.thrashing, player, volatiles.attacks);
     }
 
     fn transform(battle: anytype, player: Player, options: anytype) !void {
@@ -2359,6 +2377,7 @@ pub const Effects = struct {
 
         side.active.volatiles.attacks =
             try Rolls.distribution(battle, .Binding, player, options) - 1;
+        options.chance.durations(.binding, player, side.active.volatiles.attacks);
     }
 
     fn boost(battle: anytype, player: Player, move: Move.Data, options: anytype) !void {
