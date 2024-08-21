@@ -123,6 +123,8 @@ pub const Action = packed struct(u64) {
     /// or Rolls.{sleepDuration,disableDuration,confusionDuration,attackingDuration} otherwise.
     duration: u4 = 0,
 
+    _: u16 = 0,
+
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
     move_slot: u4 = 0,
@@ -134,8 +136,6 @@ pub const Action = packed struct(u64) {
 
     /// If not None, the Move to return for Rolls.metronome.
     metronome: Move = .None,
-
-    _: u16 = 0,
 
     pub const Field = std.meta.FieldEnum(Action);
 
