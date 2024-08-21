@@ -119,7 +119,9 @@ pub const Calc = struct {
     ) ?std.meta.FieldType(Action, field) {
         if (!enabled) return null;
 
-        const val = @field(self.overrides.actions.get(player), @tagName(field));
+        const overrides =
+            if (player == .P1) self.overrides.actions.p1 else self.overrides.actions.p2;
+        const val = @field(overrides, @tagName(field));
         return if (switch (@typeInfo(@TypeOf(val))) {
             .Enum => val != .None,
             .Int => val != 0,
@@ -130,7 +132,8 @@ pub const Calc = struct {
     pub fn modify(self: Calc, player: Player, comptime field: Duration.Field) ?bool {
         if (!enabled) return null;
 
-        const set = @field(self.overrides.durations.get(player), @tagName(field));
+        const durations = self.overrides.durations;
+        const set = @field(if (player == .P1) durations.p1 else durations.p2, @tagName(field));
         if (set == 0) return null;
 
         return null; // TODO
