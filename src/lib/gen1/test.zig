@@ -3485,9 +3485,8 @@ test "Thrashing effect" {
         try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
 
         try t.log.expected.activate(.{ P1.ident(1), .Confusion });
-        if (!showdown) try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
         try t.log.expected.move(.{ P1.ident(1), Move.Thrash, P2.ident(1) });
-        if (showdown) try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
+        try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
         t.expected.p2.get(1).hp -= 68;
         try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
         try t.log.expected.move(.{ P2.ident(1), Move.PetalDance, P1.ident(1) });
@@ -3579,9 +3578,8 @@ test "Thrashing effect" {
 
         try t.log.expected.move(.{ P2.ident(3), Move.Splash, P2.ident(3) });
         try t.log.expected.activate(.{ P2.ident(3), .Splash });
-        if (!showdown) try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
         try t.log.expected.move(.{ P1.ident(1), Move.Thrash, P2.ident(3) });
-        if (showdown) try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
+        try t.log.expected.start(.{ P1.ident(1), .ConfusionSilent });
         try t.log.expected.immune(.{ P2.ident(3), .None });
         try t.log.expected.turn(.{4});
 
@@ -5456,9 +5454,8 @@ test "Metronome effect" {
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(1, 256);
 
-    if (!showdown) try t.log.expected.start(.{ P2.ident(1), .ConfusionSilent });
     try t.log.expected.move(.{ P2.ident(1), Move.PetalDance, P1.ident(1) });
-    if (showdown) try t.log.expected.start(.{ P2.ident(1), .ConfusionSilent });
+    try t.log.expected.start(.{ P2.ident(1), .ConfusionSilent });
     try t.log.expected.lastmiss(.{});
     try t.log.expected.miss(.{P2.ident(1)});
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });

@@ -661,20 +661,27 @@ fn beforeMove(
     }
 
     if (volatiles.Thrashing) {
-        volatiles.attacks -= 1;
+        try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
-        if (!showdown and handleThrashing(battle, active, player, options)) {
+        volatiles.attacks -= 1;
+        options.chance.durations(.thrashing, player, volatiles.attacks);
+
+        if (volatiles.attacks == 0) {
+            volatiles.Thrashing = false;
+            volatiles.Confusion = true;
+            volatiles.confusion = Rolls.confusionDuration(battle, player, options);
+
+            // On Pokémon Showdown this could leak information to the opponent that thrashing has
+            // ended (the engine's protocol is always from the omniscient perspective and clients
+            // can be expected to recognize this pattern and pass the information only to the
+            // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
         }
-        try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
-        if (showdown) {
-            // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
-            // used in useMove and doesn't have the notion of skipping canMove semantics
-            side.last_used_move = side.last_selected_move;
-            if (handleThrashing(battle, active, player, options)) {
-                try log.start(.{ battle.active(player), .ConfusionSilent });
-            }
-        }
+
+        // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
+        // used in useMove and doesn't have the notion of skipping canMove semantics
+        if (showdown) side.last_used_move = side.last_selected_move;
+
         return .skip_can;
     }
 
@@ -1633,19 +1640,6 @@ fn buildRage(battle: anytype, who: Player, options: anytype) !void {
     if (side.active.volatiles.Rage and side.active.boosts.atk < 6) {
         try Effects.boost(battle, who, Move.get(.Rage), options);
     }
-}
-
-fn handleThrashing(battle: anytype, active: *ActivePokemon, player: Player, options: anytype) bool {
-    var volatiles = &active.volatiles;
-    assert(volatiles.Thrashing);
-
-    options.chance.durations(.thrashing, player, volatiles.attacks);
-    if (volatiles.attacks > 0) return false;
-
-    volatiles.Thrashing = false;
-    volatiles.Confusion = true;
-    volatiles.confusion = Rolls.confusionDuration(battle, player, options);
-    return true;
 }
 
 fn onBegin(

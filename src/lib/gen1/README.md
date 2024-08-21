@@ -638,8 +638,9 @@ only pedantic UI correctness):
 - **Teleport**: Teleport should `|-fail|...|[still]` instead of doing nothing.
 - **Twineedle**: the `|-hitcount|` ("Hit 2 times") should come before the `|-status|` message, not
   after.
-- **Thrash** / **Petal Dance**: confusion should silently get applied before the `|move|` message,
-  not after.
+- **Thrash** / **Petal Dance**: confusion being silently added should only be shown to the user of
+  the move unless it the rampage lasted for 4 turns, otherwise it leaks the duration of the move to
+  the opponent.
 
 Pokémon Showdown also implements a number of modifications to the cartridge (usually but not always
 called out in the `|rule|` section at the beginning of a battle's log):
