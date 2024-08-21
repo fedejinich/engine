@@ -99,7 +99,7 @@ test Actions {
     try expect(!c.matches(a));
 }
 
-pub const Duration = enum { continuing, ended, other };
+pub const Observation = enum { continuing, ended, other };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -126,12 +126,12 @@ pub const Action = packed struct(u64) {
     duration: u4 = 0,
 
     // TODO
-    sleep: Optional(Duration) = .None,
-    confusion: Optional(Duration) = .None,
-    disable: Optional(Duration) = .None,
-    bide: Optional(Duration) = .None,
-    binding: Optional(Duration) = .None,
-    thrashing: Optional(Duration) = .None,
+    sleep: Optional(Observation) = .None,
+    confusion: Optional(Observation) = .None,
+    disable: Optional(Observation) = .None,
+    bide: Optional(Observation) = .None,
+    binding: Optional(Observation) = .None,
+    thrashing: Optional(Observation) = .None,
 
     _: u4 = 0, // TODO
 
@@ -169,7 +169,7 @@ pub const Action = packed struct(u64) {
                             if (val == .false) "!" else "",
                             field.name,
                         });
-                    } else if (@TypeOf(val) == Optional(Duration)) {
+                    } else if (@TypeOf(val) == Optional(Observation)) {
                         try writer.print("{s}{s}", .{
                             if (val == .other) "~" else if (val == .continuing) "+" else "-",
                             field.name,
