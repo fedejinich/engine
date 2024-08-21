@@ -255,7 +255,6 @@ fn switchIn(battle: anytype, player: Player, slot: u8, initial: bool, options: a
     statusModify(incoming.status, &active.stats);
 
     foe.active.volatiles.Binding = false;
-    options.chance.durations(.binding, foe.player(), null);
 
     try options.log.switched(.{ battle.active(player), incoming });
 
