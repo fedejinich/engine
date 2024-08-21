@@ -289,7 +289,7 @@ pub fn transitions(
     var stats: Stats = .{};
     const cap = options.cap;
 
-    var seen = std.AutoHashMap(Element, void).init(allocator);
+    var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
     var frontier = std.ArrayList(Element).init(allocator);
     defer frontier.deinit();
@@ -335,8 +335,8 @@ pub fn transitions(
         var d: Durations = .{};
 
         for (Rolls.speedTie(actions.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
-        for (Rolls.sleep(durations.p1, template.durations.p1)) |p1_slp| { d.p1.sleep = p1_slp;
-        for (Rolls.sleep(durations.p2, template.durations.p2)) |p2_slp| { d.p2.sleep = p2_slp;
+        for (Rolls.sleep(durations.p1)) |p1_slp| { d.p1.sleep = p1_slp;
+        for (Rolls.sleep(durations.p2)) |p2_slp| { d.p2.sleep = p2_slp;
         // for (Rolls.disable(durations.p1, durations.p1, p1_slp)) |p1_disable| { d.p1.disable = p1_disable;
         // for (Rolls.disable(durations.p2, durations.p2, p2_slp)) |p2_disable| { d.p2.disable = p2_disable;
         for (Rolls.confusion(durations.p1, p1_slp)) |p1_cfz| { d.p1.confusion = p1_cfz;
@@ -375,8 +375,6 @@ pub fn transitions(
 
             while (p2_dmg.min < p2_dmg.max) : (p2_dmg.min += 1) {
                 a.p2.damage = @intCast(p2_dmg.min);
-
-                DEBUG(.{a, d, durations, template.durations});
 
                 opts.calc.overrides.actions = a;
                 opts.calc.overrides.durations = d;
@@ -423,11 +421,10 @@ pub fn transitions(
                     for (p1_min..p1_max + 1) |p1d| {
                         for (p2_dmg.min..p2_max + 1) |p2d| {
                             var acts = opts.chance.actions;
-                            const durs = opts.chance.durations;
                             acts.p1.damage = @intCast(p1d);
                             acts.p2.damage = @intCast(p2d);
-                            if ((try seen.getOrPut(.{.actions = acts, .durations = durs})).found_existing) {
-                                err("already seen {} {}", .{acts, durs}, options.seed);
+                            if ((try seen.getOrPut(acts)).found_existing) {
+                                err("already seen {}", .{acts}, options.seed);
                                 return error.TestUnexpectedResult;
                             }
                         }
