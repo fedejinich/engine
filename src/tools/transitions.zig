@@ -48,7 +48,7 @@ pub fn main() !void {
         else => unreachable,
     };
     const durations = switch (gen) {
-        1 => pkmn.gen1.helpers.Durations{},
+        1 => pkmn.gen1.chance.Durations{},
         else => unreachable,
     };
     _ = try battle.update(.{}, .{}, &options);

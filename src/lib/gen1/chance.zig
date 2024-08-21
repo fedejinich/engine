@@ -195,6 +195,61 @@ pub const Action = packed struct(u64) {
     }
 };
 
+/// TODO
+pub const Durations = struct {
+    /// TODO
+    p1: Duration = .{},
+    /// TODO
+    p2: Duration = .{},
+
+    /// TODO
+    pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Duration) {
+        assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
+        return if (player == .P1) &self.p1 else &self.p2;
+    }
+
+    /// TODO
+    pub fn update(self: *Durations, battle: anytype, q: anytype, actions: Actions) !void {
+        for (&battle.sides, 0..) |*s, i| {
+            const p: Player = @enumFromInt(i);
+            const action = actions.get(p);
+            var duration = self.get(p);
+
+            // TODO sleeps
+
+            duration.confusion =
+                if (@intFromEnum(action.confusion) > 0) duration.confusion + 1 else 0;
+            duration.disable =
+                if (@intFromEnum(action.disable) > 0) duration.disable + 1 else 0;
+            duration.bide =
+                if (@intFromEnum(action.bide) > 0) duration.bide + 1 else 0;
+            duration.binding =
+                if (@intFromEnum(action.binding) > 0) duration.binding + 1 else 0;
+
+            // NOTE: this relies on private information!
+            if (action.thrashing == .other) {
+                duration.thrashing =
+                    if (s.active.volatiles.Thrashing) duration.thrashing + 1 else 0;
+            } else {
+                duration.thrashing =
+                    if (@intFromEnum(action.thrashing) > 0) duration.thrashing + 1 else 0;
+            }
+
+            _ = q;
+        }
+    }
+};
+
+/// TODO
+pub const Duration = struct {
+    sleeps: [6]u3 = .{0} ** 6,
+    confusion: u3 = 0,
+    disable: u4 = 0,
+    bide: u3 = 0,
+    thrashing: u3 = 0,
+    binding: u3 = 0,
+};
+
 pub const Commit = enum { hit, miss };
 
 const uN = if (options.miss) u8 else u9;

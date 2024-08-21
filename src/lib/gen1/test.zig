@@ -38,6 +38,7 @@ const Rational = rational.Rational;
 
 const Calc = calc.Calc;
 const Chance = chance.Chance;
+const Durations = chance.Durations;
 
 const Move = data.Move;
 const Species = data.Species;
@@ -48,7 +49,6 @@ const NULL = data.NULL;
 
 const Battle = helpers.Battle;
 const EXP = helpers.EXP;
-const Durations = helpers.Durations;
 const move = helpers.move;
 const Pokemon = helpers.Pokemon;
 const Side = helpers.Side;

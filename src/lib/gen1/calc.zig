@@ -34,8 +34,7 @@ const PointerType = util.PointerType;
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
-
-const Durations = helpers.Durations;
+const Durations = chance.Durations;
 
 const tty = true; // DEBUG
 const summary = false; // DEBUG
