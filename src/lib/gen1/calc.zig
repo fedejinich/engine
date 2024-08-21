@@ -17,6 +17,7 @@ const assert = std.debug.assert;
 
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const expectEqualSlices = std.testing.expectEqualSlices;
 
 const enabled = pkmn.options.calc;
 
@@ -34,7 +35,6 @@ const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
 
-const Rolls = helpers.Rolls;
 const Durations = helpers.Durations;
 
 const tty = true; // DEBUG
@@ -563,4 +563,250 @@ fn format(writer: anytype, actions: Actions, p1: u9, p2: u9) !void {
     }
 
     try writer.writeAll(output[0..len]);
+}
+
+const NONE = @intFromEnum(Optional(bool).None);
+
+/// Helper functions that efficiently return valid ranges for various RNG events based on the
+/// state of an `Action` and other events to be used to construct a "transitions" function.
+pub const Rolls = struct {
+    const PLAYER_NONE = [_]Optional(Player){.None};
+    const PLAYERS = [_]Optional(Player){ .P1, .P2 };
+
+    /// Returns a slice with the correct range of values for speed ties given the `action` state.
+    pub fn speedTie(action: Action) []const Optional(Player) {
+        return if (action.speed_tie == .None) &PLAYER_NONE else &PLAYERS;
+    }
+
+    const BOOL_NONE = [_]Optional(bool){.None};
+    const BOOLS = [_]Optional(bool){ .false, .true };
+
+    /// Returns a slice with the correct range of values for hits given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon was fully paralyzed).
+    pub fn hit(action: Action, parent: Optional(bool)) []const Optional(bool) {
+        if (parent == .true) return &BOOL_NONE;
+        return if (action.hit == .None) &BOOL_NONE else &BOOLS;
+    }
+
+    /// Returns a slice with the correct range of values for critical hits given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon's move hit).
+    pub fn criticalHit(action: Action, parent: Optional(bool)) []const Optional(bool) {
+        if (parent == .false) return &BOOL_NONE;
+        return if (action.critical_hit == .None) &BOOL_NONE else &BOOLS;
+    }
+
+    /// Returns a slice with the correct range of values for secondary chances hits given the
+    /// `action` state and the state of the `parent` (whether the player's Pokémon's move hit).
+    pub fn secondaryChance(action: Action, parent: Optional(bool)) []const Optional(bool) {
+        if (parent == .false) return &BOOL_NONE;
+        return if (@field(action, "secondary_chance") == .None) &BOOL_NONE else &BOOLS;
+    }
+
+    /// The min and max bounds on iteration over damage rolls.
+    pub const Range = struct { min: u9, max: u9 };
+
+    /// Returns the range bounding damage rolls given the `action` state and the state of
+    /// the `parent` (whether the player's Pokémon's move hit).
+    pub fn damage(action: Action, parent: Optional(bool)) Range {
+        return if (parent == .false or action.damage == 0)
+            .{ .min = 0, .max = 1 }
+        else
+            .{ .min = 217, .max = 256 };
+    }
+
+    /// Returns the max damage roll which will produce the same damage as `roll`
+    /// given the base damage in `summaries`.
+    pub fn coalesce(player: Player, roll: u8, summaries: *Summaries, cap: bool) !u8 {
+        if (roll == 0) return roll;
+
+        const dmg = summaries.get(player.foe()).damage;
+        if (dmg.base == 0 or (cap and dmg.capped)) return 255;
+
+        // Closed form solution for max damage roll provided by Orion Taylor (taylorott)
+        return @min(255, roll + ((254 - ((@as(u32, dmg.base) * roll) % 255)) / dmg.base));
+    }
+
+    /// Returns a slice with the correct range of values for confused.
+    pub fn confused(action: Action) []const Optional(bool) {
+        return if (action.confused == .None) &BOOL_NONE else &BOOLS;
+    }
+
+    /// Returns a slice with the correct range of values for paralysis given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon was confused).
+    pub fn paralyzed(action: Action, parent: Optional(bool)) []const Optional(bool) {
+        if (parent == .true) return &BOOL_NONE;
+        return if (action.paralyzed == .None) &BOOL_NONE else &BOOLS;
+    }
+
+    const DURATION_NONE = [_]u2{0};
+    // NB: DURATION must be at least 2 because that is the maximum of the minimums for all rolls
+    const DURATION = [_]u2{2};
+
+    /// Returns a slice with a range of values for duration given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon's move hit).
+    pub fn duration(action: Action, parent: Optional(bool)) []const u2 {
+        if (parent == .false) return &DURATION_NONE;
+        return if (action.duration == 0) &DURATION_NONE else &DURATION;
+    }
+
+    const SLOT_NONE = [_]u4{0};
+    const SLOT = [_]u4{ 1, 2, 3, 4 };
+
+    /// Returns a slice with a range of values for move slots given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon's move hit).
+    ///
+    /// These slots may or **may not be valid** as slots may be unset / have 0 PP.
+    pub fn moveSlot(action: Action, parent: Optional(bool)) []const u4 {
+        if (parent == .false) return &SLOT_NONE;
+        return if (action.move_slot == 0) &SLOT_NONE else &SLOT;
+    }
+
+    const MULTI_NONE = [_]u4{0};
+    const MULTI = [_]u4{ 2, 3, 4, 5 };
+
+    /// Returns a slice with the correct range of values for multi hit given the `action` state
+    /// and the state of the `parent` (whether the player's Pokémon's move hit).
+    pub fn multiHit(action: Action, parent: Optional(bool)) []const u4 {
+        if (parent == .false) return &MULTI_NONE;
+        return if (action.multi_hit == 0) &MULTI_NONE else &MULTI;
+    }
+
+    const PSYWAVE_NONE = [_]u8{0};
+    const PSYWAVE = init: {
+        var rolls: [150]u8 = undefined;
+        for (0..150) |i| rolls[i] = i + 1;
+        break :init rolls;
+    };
+
+    /// Returns a slice with the correct range of values for psywave given the `action` state,
+    /// the `side`, and the state of the `parent` (whether the player's Pokémon's move hit).
+    pub fn psywave(
+        action: Action,
+        side: *data.Side,
+        parent: Optional(bool),
+    ) []const u8 {
+        if (parent == .false) return &PSYWAVE_NONE;
+        return if (action.psywave == 0)
+            &PSYWAVE_NONE
+        else
+            PSYWAVE[0 .. @as(u16, side.stored().level) * 3 / 2];
+    }
+
+    const MOVE_NONE = [_]data.Move{.None};
+
+    /// Returns a slice with the correct range of values for metronome given the `action` state.
+    pub fn metronome(action: Action) []const data.Move {
+        return if (action.metronome == .None) &MOVE_NONE else &data.Move.METRONOME;
+    }
+};
+
+test "Rolls.speedTie" {
+    const actions: Actions = .{ .p1 = .{ .speed_tie = .P2 } };
+    try expectEqualSlices(Optional(Player), &.{ .P1, .P2 }, Rolls.speedTie(actions.p1));
+    try expectEqualSlices(Optional(Player), &.{.None}, Rolls.speedTie(actions.p2));
+}
+
+test "Rolls.damage" {
+    const actions: Actions = .{ .p2 = .{ .damage = 221 } };
+    try expectEqual(Rolls.Range{ .min = 0, .max = 1 }, Rolls.damage(actions.p1, .None));
+    try expectEqual(Rolls.Range{ .min = 217, .max = 256 }, Rolls.damage(actions.p2, .None));
+    try expectEqual(Rolls.Range{ .min = 0, .max = 1 }, Rolls.damage(actions.p2, .false));
+}
+
+test "Rolls.coalesce" {
+    var summaries = Summaries{ .p1 = .{ .damage = .{ .base = 74, .final = 69, .capped = true } } };
+    try expectEqual(0, try Rolls.coalesce(.P2, 0, &summaries, false));
+    try expectEqual(241, try Rolls.coalesce(.P2, 238, &summaries, false));
+    try expectEqual(255, try Rolls.coalesce(.P2, 238, &summaries, true));
+    summaries.p1.damage.final = 74;
+    try expectEqual(217, try Rolls.coalesce(.P2, 217, &summaries, false));
+    try expectEqual(255, try Rolls.coalesce(.P2, 217, &summaries, true));
+}
+
+test "Rolls.hit" {
+    const actions: Actions = .{ .p2 = .{ .hit = .true } };
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.hit(actions.p1, .None));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.hit(actions.p2, .None));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.hit(actions.p2, .true));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.hit(actions.p2, .false));
+}
+
+test "Rolls.secondaryChance" {
+    const actions: Actions = .{ .p1 = .{ .secondary_chance = .true } };
+    try expectEqualSlices(
+        Optional(bool),
+        &.{ .false, .true },
+        Rolls.secondaryChance(actions.p1, .None),
+    );
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.secondaryChance(actions.p1, .false));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.secondaryChance(actions.p2, .None));
+}
+
+test "Rolls.criticalHit" {
+    const actions: Actions = .{ .p1 = .{ .critical_hit = .true } };
+    try expectEqualSlices(
+        Optional(bool),
+        &.{ .false, .true },
+        Rolls.criticalHit(actions.p1, .None),
+    );
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p1, .false));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p2, .None));
+}
+
+test "Rolls.confused" {
+    const actions: Actions = .{ .p2 = .{ .confused = .true } };
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p1));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.confused(actions.p2));
+}
+
+test "Rolls.paralyzed" {
+    const actions: Actions = .{ .p2 = .{ .paralyzed = .true } };
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.paralyzed(actions.p1, .None));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.paralyzed(actions.p2, .None));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.paralyzed(actions.p2, .false));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.paralyzed(actions.p2, .true));
+}
+
+test "Rolls.duration" {
+    const actions: Actions = .{ .p2 = .{ .duration = 3 } };
+    try expectEqualSlices(u2, &.{0}, Rolls.duration(actions.p1, .None));
+    try expectEqualSlices(u2, &.{2}, Rolls.duration(actions.p2, .None));
+    try expectEqualSlices(u2, &.{0}, Rolls.duration(actions.p2, .false));
+}
+
+test "Rolls.moveSlot" {
+    const actions: Actions = .{ .p2 = .{ .move_slot = 3 } };
+    try expectEqualSlices(u4, &.{0}, Rolls.moveSlot(actions.p1, .None));
+    try expectEqualSlices(u4, &.{ 1, 2, 3, 4 }, Rolls.moveSlot(actions.p2, .None));
+    try expectEqualSlices(u4, &.{0}, Rolls.moveSlot(actions.p2, .false));
+}
+
+test "Rolls.multiHit" {
+    const actions: Actions = .{ .p2 = .{ .multi_hit = 3 } };
+    try expectEqualSlices(u4, &.{0}, Rolls.multiHit(actions.p1, .None));
+    try expectEqualSlices(u4, &.{ 2, 3, 4, 5 }, Rolls.multiHit(actions.p2, .None));
+    try expectEqualSlices(u4, &.{0}, Rolls.multiHit(actions.p2, .false));
+}
+
+test "Rolls.metronome" {
+    const actions: Actions = .{ .p2 = .{ .metronome = .Surf } };
+    try expectEqualSlices(data.Move, &.{.None}, Rolls.metronome(actions.p1));
+    try expectEqual(@as(data.Move, @enumFromInt(24)), Rolls.metronome(actions.p2)[23]);
+}
+
+test "Rolls.psywave" {
+    const actions: Actions = .{ .p2 = .{ .psywave = 79 } };
+    var side = helpers.Side.init(&[_]helpers.Pokemon{.{
+        .species = .Bulbasaur,
+        .level = 100,
+        .moves = &[_]data.Move{.Tackle},
+    }});
+
+    try expectEqualSlices(u8, &.{0}, Rolls.psywave(actions.p1, &side, .None));
+    var rolls = Rolls.psywave(actions.p2, &side, .None);
+    try expectEqual(150, rolls[rolls.len - 1]);
+    side.stored().level = 81;
+    rolls = Rolls.psywave(actions.p2, &side, .None);
+    try expectEqual(121, rolls[rolls.len - 1]);
+    try expectEqualSlices(u8, &.{0}, Rolls.psywave(actions.p2, &side, .false));
 }
