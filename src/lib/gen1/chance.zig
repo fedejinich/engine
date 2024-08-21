@@ -99,10 +99,10 @@ test Actions {
     try expect(!c.matches(a));
 }
 
-/// TODO
-pub const Duration = enum { continuing, ended };
-/// TODO
-pub const Thrashing = enum { continuing, hidden };
+pub const Duration = enum { continuing, ended, other };
+
+// TODO
+pub const ENDED = 0xF;
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -134,7 +134,7 @@ pub const Action = packed struct(u64) {
     disable: Optional(Duration) = .None,
     bide: Optional(Duration) = .None,
     binding: Optional(Duration) = .None,
-    thrashing: Optional(Thrashing) = .None,
+    thrashing: Optional(Duration) = .None,
 
     _: u4 = 0, // TODO
 
@@ -174,12 +174,7 @@ pub const Action = packed struct(u64) {
                         });
                     } else if (@TypeOf(val) == Optional(Duration)) {
                         try writer.print("{s}{s}", .{
-                            if (val == .continuing) "+" else "-",
-                            field.name,
-                        });
-                    } else if (@TypeOf(val) == Optional(Thrashing)) {
-                        try writer.print("{s}{s}", .{
-                            if (val == .hidden) "~" else "",
+                            if (val == .other) "~" else if (val == .continuing) "+" else "-",
                             field.name,
                         });
                     } else {
@@ -399,7 +394,9 @@ pub fn Chance(comptime Rational: type) type {
             if (!enabled) return;
 
             @field(self.actions.get(player), @tagName(f)) = switch (f) {
-                .thrashing => if (turns <= 1) .hidden else .continuing,
+                .thrashing => if (turns == ENDED)
+                    .ended
+                else if (turns <= 1) .other else .continuing,
                 else => if (turns == 0) .ended else .continuing,
             };
         }
