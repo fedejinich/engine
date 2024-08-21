@@ -33,10 +33,9 @@ const PointerType = util.PointerType;
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
-const Durations = chance.Durations;
-const Duration = chance.Duration;
 
 const Rolls = helpers.Rolls;
+const Durations = helpers.Durations;
 
 const tty = true; // DEBUG
 const summary = false; // DEBUG
@@ -179,6 +178,7 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
+    durations: Durations,
     seed: ?u64 = null,
     cap: bool = false,
     metronome: bool = false,
@@ -211,6 +211,10 @@ pub fn transitions(
 
     var b = battle;
     _ = try b.update(c1, c2, &opts);
+
+    var d = options.durations;
+    try d.update(&battle, &opts.chance.probability, opts.chance.actions);
+
     stats.updates += 1;
 
     const p1 = b.side(.P1);
@@ -279,6 +283,10 @@ pub fn transitions(
 
                 b = battle;
                 _ = try b.update(c1, c2, &opts);
+
+                d = options.durations;
+                try d.update(&b, &q, opts.chance.actions);
+
                 stats.updates += 1;
 
                 const summaries = &opts.calc.summaries;
@@ -397,6 +405,7 @@ pub fn transitions(
 
 pub fn update(
     battle: anytype,
+    durations: *Durations,
     c1: Choice,
     c2: Choice,
     options: anytype,
@@ -411,10 +420,12 @@ pub fn update(
     }
 
     var copy = battle.*;
+    const saved = durations.*;
     const actions = options.chance.actions;
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
+    try durations.update(&battle, actions, &options.chance.probability);
 
     // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
     var buf: [helpers.MAX_DIFFS]u8 = undefined;
@@ -435,14 +446,13 @@ pub fn update(
         // (we must change the battle's RNG from a FixedRNG to a PRNG because
         // the transitions function relies on RNG for discovery of states)
         if (try transitions(unfix(copy), c1, c2, allocator, writer, .{
-            .actions = actions,
+            .durations = saved,
             .cap = true,
         })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
     }
 
     // Demonstrate that we can produce the same state by forcing the RNG to behave the
-    // same as we observed - note that because we do not pass in a durations override
-    // mask none of the durations will be extended.
+    // same as we observed.
     var override = pkmn.battle.options(
         protocol.NULL,
         chance.NULL,

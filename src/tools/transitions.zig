@@ -47,11 +47,17 @@ pub fn main() !void {
         1 => pkmn.gen1.NULL,
         else => unreachable,
     };
+    const durations = switch (gen) {
+        1 => pkmn.gen1.helpers.Durations{},
+        else => unreachable,
+    };
     _ = try battle.update(.{}, .{}, &options);
+    // try durations.update(&battle, &options.chance.probability, options.chance.actions);
 
     const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
     const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
+        .durations = durations,
         .cap = true,
         .seed = seed,
     });

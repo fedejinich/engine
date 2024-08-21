@@ -48,6 +48,7 @@ const NULL = data.NULL;
 
 const Battle = helpers.Battle;
 const EXP = helpers.EXP;
+const Durations = helpers.Durations;
 const move = helpers.move;
 const Pokemon = helpers.Pokemon;
 const Side = helpers.Side;
@@ -10440,6 +10441,7 @@ test "transitions" {
     const writer = std.io.null_writer;
     // const writer = std.io.getStdErr().writer();
     _ = try calc.transitions(battle, move(1), move(1), allocator, writer, .{
+        .durations = Durations{},
         .seed = seed,
         .cap = true,
     });
@@ -10471,6 +10473,7 @@ fn Test(comptime rolls: anytype) type {
             p2: *data.Side,
         },
 
+        durations: Durations = .{},
         options: pkmn.battle.Options(Log(ArrayList(u8).Writer), Chance(Rational(u128)), Calc),
         offset: usize,
 
@@ -10531,8 +10534,16 @@ fn Test(comptime rolls: anytype) type {
             const writer = std.io.null_writer;
             // const writer = std.io.getStdErr().writer(); // DEBUG
             // TODO: pass true to compute transitions
-            const result =
-                calc.update(&self.battle.actual, c1, c2, &self.options, allocator, writer, false);
+            const result = calc.update(
+                &self.battle.actual,
+                &self.durations,
+                c1,
+                c2,
+                &self.options,
+                allocator,
+                writer,
+                false,
+            );
 
             try self.validate();
             return result;
@@ -10550,14 +10561,11 @@ fn Test(comptime rolls: anytype) type {
             }
         }
 
-        // TODO: add params for initial probability of insert expectProbability calls at callsites
+        // TODO: switch to expectProbability when durations are fixed
         pub fn expectFinalProbability(self: *Self, p: u128, q: u128) !void {
             if (!pkmn.options.chance) return;
 
-            // TODO: update probability with durations
             _ = .{ self, p, q };
-
-            // return self.expectProbability(p, q);
         }
 
         pub fn verify(self: *Self) !void {
