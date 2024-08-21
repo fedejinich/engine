@@ -99,6 +99,11 @@ test Actions {
     try expect(!c.matches(a));
 }
 
+/// TODO
+pub const Duration = enum { extend, end };
+/// TODO
+pub const Thrashing = enum { confirmed, unconfirmed };
+
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
 pub const Action = packed struct(u64) {
@@ -123,6 +128,16 @@ pub const Action = packed struct(u64) {
     /// or Rolls.{sleepDuration,disableDuration,confusionDuration,attackingDuration} otherwise.
     duration: u4 = 0,
 
+    // TODO
+    sleep: Optional(Duration) = .None,
+    confusion: Optional(Duration) = .None,
+    disable: Optional(Duration) = .None,
+    bide: Optional(Duration) = .None,
+    binding: Optional(Duration) = .None,
+    thrashing: Optional(Thrashing) = .None,
+
+    _: u4 = 0, // TODO
+
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
     move_slot: u4 = 0,
@@ -134,8 +149,6 @@ pub const Action = packed struct(u64) {
 
     /// If not None, the Move to return for Rolls.metronome.
     metronome: Move = .None,
-
-    _: u16 = 0, // TODO
 
     pub const Field = std.meta.FieldEnum(Action);
 
@@ -157,6 +170,16 @@ pub const Action = packed struct(u64) {
                     } else if (@TypeOf(val) == Optional(bool)) {
                         try writer.print("{s}{s}", .{
                             if (val == .false) "!" else "",
+                            field.name,
+                        });
+                    } else if (@TypeOf(val) == Optional(Duration)) {
+                        try writer.print("{s}{s}", .{
+                            if (val == .extend) "+" else "-",
+                            field.name,
+                        });
+                    } else if (@TypeOf(val) == Optional(Thrashing)) {
+                        try writer.print("{s}{s}", .{
+                            if (val == .unconfirmed) "~" else "",
                             field.name,
                         });
                     } else {
