@@ -24,12 +24,13 @@ pub fn main() !void {
 
     const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
+    const PAR = pkmn.gen1.Status.init(.PAR);
     var battle = switch (gen) {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
             // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .moves = &.{ .Thrash, .Teleport } }},
-            &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
+            &.{.{ .species = .Dratini, .status = PAR, .moves = &.{.Gust} }},
+            &.{.{ .species = .Koffing, .moves = &.{.StunSpore} }},
 
             // ONE DAMAGE
             // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -43,33 +44,14 @@ pub fn main() !void {
     };
 
     var options = switch (gen) {
-        1 => blk: {
-            var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
-            break :blk pkmn.battle.options(
-                pkmn.protocol.NULL,
-                &chance,
-                pkmn.gen1.calc.NULL,
-            );
-        },
+        1 => pkmn.gen1.NULL,
         else => unreachable,
     };
     _ = try battle.update(.{}, .{}, &options);
-    options.chance.reset();
-    _ = try battle.update(move(1), move(1), &options);
-    options.chance.reset();
-    _ = try battle.update(move(1), move(1), &options);
-    options.chance.reset();
-    _ = try battle.update(move(1), move(1), &options);
-    options.chance.reset();
-    // _ = try battle.update(move(2), move(1), &options);
-    // options.chance.reset();
-    // _ = try battle.update(move(2), move(1), &options);
-    // options.chance.reset();
 
     const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
     const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
-        .durations = options.chance.durations,
         .cap = true,
         .seed = seed,
     });
