@@ -101,9 +101,6 @@ test Actions {
 
 pub const Duration = enum { continuing, ended, other };
 
-// TODO
-pub const ENDED = 0xF;
-
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
 pub const Action = packed struct(u64) {
@@ -390,15 +387,13 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).duration = if (options.key) 1 else turns;
         }
 
-        pub fn durations(self: *Self, comptime f: Action.Field, player: Player, turns: u4) void {
+        pub fn durations(self: *Self, comptime f: Action.Field, player: Player, turns: ?u4) void {
             if (!enabled) return;
 
-            @field(self.actions.get(player), @tagName(f)) = switch (f) {
-                .thrashing => if (turns == ENDED)
-                    .ended
-                else if (turns <= 1) .other else .continuing,
-                else => if (turns == 0) .ended else .continuing,
-            };
+            @field(self.actions.get(player), @tagName(f)) = if (turns) |n| switch (f) {
+                .thrashing => if (n <= 1) .other else .continuing,
+                else => if (n == 0) .ended else .continuing,
+            } else .None;
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -701,7 +696,7 @@ const Null = struct {
         _ = .{ self, player, turns };
     }
 
-    pub fn durations(self: Null, comptime f: Action.Field, player: Player, turns: u4) void {
+    pub fn durations(self: Null, comptime f: Action.Field, player: Player, turns: ?u4) void {
         _ = .{ self, f, player, turns };
     }
 

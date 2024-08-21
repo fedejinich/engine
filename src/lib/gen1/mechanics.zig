@@ -255,6 +255,7 @@ fn switchIn(battle: anytype, player: Player, slot: u8, initial: bool, options: a
     statusModify(incoming.status, &active.stats);
 
     foe.active.volatiles.Binding = false;
+    options.chance.durations(.binding, foe.player(), null);
 
     try options.log.switched(.{ battle.active(player), incoming });
 
@@ -564,6 +565,10 @@ fn beforeMove(
                 volatiles.Charging = false;
                 volatiles.Binding = false;
                 volatiles.Invulnerable = false;
+
+                options.chance.durations(.bide, player, null);
+                options.chance.durations(.thrashing, player, null);
+                options.chance.durations(.binding, player, null);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
                     // the opponent's defense with the user's defense and resets it after. As a
@@ -600,6 +605,11 @@ fn beforeMove(
         volatiles.Thrashing = false;
         volatiles.Charging = false;
         volatiles.Binding = false;
+
+        options.chance.durations(.bide, player, null);
+        options.chance.durations(.thrashing, player, null);
+        options.chance.durations(.binding, player, null);
+
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
         try log.cant(.{ ident, .Paralysis });
         return .done;
@@ -1961,6 +1971,7 @@ pub const Effects = struct {
                 if (p != player and Status.any(s.stored().status)) {
                     try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                     s.stored().status = 0;
+                    options.chance.durations(.sleep, p, null);
                 } else if (showdown and s.stored().status == Status.TOX) {
                     s.stored().status = Status.init(.PSN);
                     try log.status(.{ battle.active(p), s.stored().status, .None });
@@ -1971,6 +1982,7 @@ pub const Effects = struct {
             if (Status.any(foe_stored.status)) {
                 if (Status.is(foe_stored.status, .FRZ) or Status.is(foe_stored.status, .SLP)) {
                     foe.last_selected_move = .SKIP_TURN;
+                    options.chance.durations(.sleep, player.foe(), null);
                 }
                 try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                 foe_stored.status = 0;
@@ -2616,11 +2628,13 @@ fn clearVolatiles(battle: anytype, who: Player, options: anytype) !void {
     if (volatiles.disable_move != 0) {
         volatiles.disable_move = 0;
         volatiles.disable_duration = 0;
+        options.chance.durations(.disable, who, null);
         try log.end(.{ ident, .DisableSilent });
     }
     if (volatiles.Confusion) {
         // volatiles.confusion is left unchanged
         volatiles.Confusion = false;
+        options.chance.durations(.confusion, who, null);
         try log.end(.{ ident, .ConfusionSilent });
     }
     if (volatiles.Mist) {
