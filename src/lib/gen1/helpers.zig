@@ -393,9 +393,14 @@ pub const Rolls = struct {
     const DURATIONS_UNFORCED = [_]Optional(Override){ .extend, .end };
 
     /// TODO
-    pub inline fn sleep(dur: Duration) []const Optional(Override) {
-        if (dur.sleep == 0) return &DURATIONS_NONE;
-        return if (dur.sleep >= 7) &DURATIONS_NONE else &DURATIONS_UNFORCED;
+    // pub inline fn sleep(before: Duration, after: Duration) []const Optional(Override) {
+    //     if (before.sleep == after.sleep) return if (before.sleep == 0) &DURATIONS_NONE else &DURATIONS_FORCED;
+    //     return if (before.sleep >= 7) return &DURATIONS_NONE else &DURATIONS_UNFORCED;
+    // }
+
+     pub inline fn sleep(dur: Duration, _: Duration) []const Optional(Override) {
+        if (dur.sleep == 0 or dur.sleep >= 7) return &DURATIONS_NONE;
+        return &DURATIONS_UNFORCED;
     }
 
     const DISABLE_NONE = [_]u4{0};
@@ -427,7 +432,7 @@ pub const Rolls = struct {
     }
 
     /// TODO
-    // pub inline fn binding(dur: Duration, origin: Duration, parent: Optional(bool)) []const u3 {
+    // pub inline fn binding(dur: Duration, parent: Optional(bool)) []const u3 {
     //     if (parent == .true) return &U3_NONE;
     //     const a = dur.binding;
     //     const o = origin.binding;

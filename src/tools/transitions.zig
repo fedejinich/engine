@@ -28,7 +28,7 @@ pub fn main() !void {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
             // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .moves = &.{ .Thrash, .Teleport } }},
+            &.{.{ .species = .Dratini, .moves = &.{ .ConfuseRay, .Teleport } }},
             &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
 
             // ONE DAMAGE
@@ -57,10 +57,10 @@ pub fn main() !void {
     options.chance.reset();
     _ = try battle.update(move(1), move(1), &options);
     options.chance.reset();
-    _ = try battle.update(move(1), move(1), &options);
-    options.chance.reset();
-    _ = try battle.update(move(1), move(1), &options);
-    options.chance.reset();
+    // _ = try battle.update(move(1), move(1), &options);
+    // options.chance.reset();
+    // _ = try battle.update(move(1), move(1), &options);
+    // options.chance.reset();
     // _ = try battle.update(move(2), move(1), &options);
     // options.chance.reset();
     // _ = try battle.update(move(2), move(1), &options);
@@ -68,7 +68,7 @@ pub fn main() !void {
 
     const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
-    const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
+    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(1), allocator, out, .{
         .durations = options.chance.durations,
         .cap = true,
         .seed = seed,
