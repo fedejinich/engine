@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
 const assert = std.debug.assert;
 const print = std.debug.print;
@@ -22,8 +21,6 @@ const showdown = options.showdown;
 
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
-
-const safety = builtin.mode == .Debug or builtin.mode == .ReleaseSafe;
 
 /// Actions taken by a hypothetical "chance player" that convey information about which RNG events
 /// were observed during a Generation I battle `update`. This can additionally be provided as input
@@ -222,8 +219,6 @@ pub const Durations = struct {
     /// TODO
     p2: Duration = .{},
 
-    const FIELDS = .{ .sleep, .confusion, .disable, .bide, .binding, .thrashing };
-
     /// TODO
     pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Duration) {
         assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
@@ -238,17 +233,7 @@ pub const Durations = struct {
             const post = after.get(p);
             const duration = self.get(p);
 
-            if (safety) {
-                inline for (FIELDS) |field| {
-                    const then = @field(pre, @tagName(field));
-                    const now = @field(post, @tagName(field));
-                    assert(now != .ended or
-                        (then == .started or then == .continuing) or
-                        (field == .sleep or field == .disable));
-                }
-            }
-
-            _ = .{ q, duration };
+            _ = .{ pre, post, q, duration };
         }
     }
 
