@@ -100,6 +100,7 @@ test Actions {
 }
 
 pub const Observation = enum { started, continuing, ended };
+pub const Confusion = enum { started, continuing, ended, overwritten };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -127,13 +128,13 @@ pub const Action = packed struct(u64) {
 
     // TODO
     sleep: Optional(Observation) = .None,
-    confusion: Optional(Observation) = .None,
+    confusion: Optional(Confusion) = .None,
     disable: Optional(Observation) = .None,
     bide: Optional(Observation) = .None,
     binding: Optional(Observation) = .None,
     thrashing: Optional(Observation) = .None,
 
-    _: u4 = 0, // TODO
+    _: u3 = 0, // TODO
 
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
@@ -175,6 +176,17 @@ pub const Action = packed struct(u64) {
                                 .started => "+",
                                 .continuing => "",
                                 .ended => "-",
+                                else => unreachable,
+                            },
+                            field.name,
+                        });
+                    } else if (@TypeOf(val) == Optional(Confusion)) {
+                        try writer.print("{s}{s}", .{
+                            switch (val) {
+                                .started => "+",
+                                .continuing => "",
+                                .ended => "-",
+                                .overwritten => "#",
                                 else => unreachable,
                             },
                             field.name,
@@ -491,11 +503,17 @@ pub fn Chance(comptime Rational: type) type {
             self: *Self,
             comptime field: Action.Field,
             player: Player,
-            observation: Optional(Observation),
+            observation: Optional(Confusion),
         ) void {
             if (!enabled) return;
 
-            @field(self.actions.get(player), @tagName(field)) = observation;
+            if (observation == .overwritten) {
+                assert(field == .confusion);
+                self.actions.get(player).confusion = observation;
+            } else {
+                @field(self.actions.get(player), @tagName(field)) =
+                    @enumFromInt(@intFromEnum(observation));
+            }
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -798,7 +816,7 @@ const Null = struct {
         self: Null,
         comptime field: Action.Field,
         player: Player,
-        observation: Optional(Observation),
+        observation: Optional(Confusion),
     ) void {
         _ = .{ self, field, player, observation };
     }

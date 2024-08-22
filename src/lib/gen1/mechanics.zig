@@ -559,7 +559,17 @@ fn beforeMove(
 
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
-        volatiles.confusion = decrement(.confusion, player, options, volatiles.confusion);
+        if (options.calc.overridden(player, .confusion)) |obs| switch (obs) {
+            .ended => volatiles.confusion = 0,
+            .continuing => if (volatiles.confusion > 1) {
+                volatiles.confusion -= 1;
+            },
+            .overwritten => {},
+            else => unreachable,
+        } else {
+            volatiles.confusion -= 1;
+        }
+
         options.chance.durations(.confusion, player, observation(volatiles.confusion));
 
         if (volatiles.confusion == 0) {
@@ -681,6 +691,8 @@ fn beforeMove(
         options.chance.durations(.thrashing, player, observation(volatiles.attacks));
 
         if (volatiles.attacks == 0) {
+            const overwritten = volatiles.Confusion;
+
             volatiles.Thrashing = false;
             volatiles.Confusion = true;
             volatiles.confusion = Rolls.confusionDuration(battle, player, options);
@@ -690,6 +702,11 @@ fn beforeMove(
             // can be expected to recognize this pattern and pass the information only to the
             // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
+            options.chance.durations(
+                .confusion,
+                player,
+                if (overwritten) .overwritten else .started,
+            );
         }
 
         // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
@@ -2695,16 +2712,14 @@ fn decrement(
     options: anytype,
     n: anytype,
 ) @TypeOf(n) {
-    if (options.calc.overridden(player, field)) |obs| {
-        return switch (obs) {
-            .ended => 0,
-            .continuing => if (n > 1) n - 1 else n,
-            else => unreachable,
-        };
-    } else return n - 1;
+    return if (options.calc.overridden(player, field)) |obs| switch (obs) {
+        .ended => 0,
+        .continuing => if (n > 1) n - 1 else n,
+        else => unreachable,
+    } else n - 1;
 }
 
-fn observation(n: anytype) optional.Optional(chance.Observation) {
+fn observation(n: anytype) optional.Optional(chance.Confusion) {
     return if (n == 0) .ended else .continuing;
 }
 
