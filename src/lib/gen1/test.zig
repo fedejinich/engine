@@ -37,6 +37,8 @@ const Log = protocol.Log;
 const Rational = rational.Rational;
 
 const Calc = calc.Calc;
+
+const Actions = chance.Actions;
 const Chance = chance.Chance;
 const Durations = chance.Durations;
 
@@ -10439,6 +10441,7 @@ test "transitions" {
     const writer = std.io.null_writer;
     // const writer = std.io.getStdErr().writer();
     _ = try calc.transitions(battle, move(1), move(1), allocator, writer, .{
+        .actions = Actions{},
         .durations = Durations{},
         .seed = seed,
         .cap = true,

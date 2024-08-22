@@ -226,26 +226,14 @@ pub const Durations = struct {
     }
 
     /// TODO
-    pub fn update(self: *Durations, q: anytype, actions: Actions) !void {
+    pub fn update(self: *Durations, q: anytype, before: Actions, after: Actions) !void {
         for (0..2) |i| {
             const p: Player = @enumFromInt(i);
-            const action = actions.get(p);
-            var duration = self.get(p);
+            const pre = before.get(p);
+            const post = after.get(p);
+            const duration = self.get(p);
 
-            // TODO sleeps
-
-            duration.confusion =
-                if (@intFromEnum(action.confusion) > 1) duration.confusion + 1 else 0;
-            duration.disable =
-                if (@intFromEnum(action.disable) > 1) duration.disable + 1 else 0;
-            duration.bide =
-                if (@intFromEnum(action.bide) > 1) duration.bide + 1 else 0;
-            duration.thrashing =
-                if (@intFromEnum(action.thrashing) > 1) duration.thrashing + 1 else 0;
-            duration.binding =
-                if (@intFromEnum(action.binding) > 1) duration.binding + 1 else 0;
-
-            _ = q;
+            _ = .{ pre, post, q, duration };
         }
     }
 
@@ -507,10 +495,23 @@ pub fn Chance(comptime Rational: type) type {
         ) void {
             if (!enabled) return;
 
+            const val = @field(self.actions.get(player), @tagName(field));
             if (observation == .overwritten) {
                 assert(field == .confusion);
+                assert(val == .started or val == .continuing);
+                assert(self.actions.get(player).duration > 0);
                 self.actions.get(player).confusion = observation;
             } else {
+                assert(observation == .None or val == .None or
+                    (val == .started and observation != .started) or
+                    (val == .ended and observation == .started));
+                assert(observation != .started or (if (field == .confusion)
+                    self.actions.get(player).duration > 0 or
+                        self.actions.get(player.foe()).duration > 0
+                else if (field == .sleep or field == .disable)
+                    self.actions.get(player.foe()).duration > 0
+                else
+                    self.actions.get(player).duration > 0));
                 @field(self.actions.get(player), @tagName(field)) =
                     @enumFromInt(@intFromEnum(observation));
             }

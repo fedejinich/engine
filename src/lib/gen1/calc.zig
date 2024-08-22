@@ -177,6 +177,7 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
+    actions: Actions,
     durations: Durations,
     seed: ?u64 = null,
     cap: bool = false,
@@ -212,7 +213,7 @@ pub fn transitions(
     _ = try b.update(c1, c2, &opts);
 
     var d = options.durations;
-    try d.update(&opts.chance.probability, opts.chance.actions);
+    try d.update(&opts.chance.probability, options.actions, opts.chance.actions);
 
     stats.updates += 1;
 
@@ -284,7 +285,7 @@ pub fn transitions(
                 _ = try b.update(c1, c2, &opts);
 
                 d = options.durations;
-                try d.update(&q, opts.chance.actions);
+                try d.update(&q, options.actions, opts.chance.actions);
 
                 stats.updates += 1;
 
@@ -412,6 +413,7 @@ pub fn update(
     writer: anytype,
     transition: bool,
 ) !Result {
+    const actions = options.chance.actions;
     options.chance.reset();
 
     if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
@@ -421,8 +423,8 @@ pub fn update(
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
-    const actions = options.chance.actions;
-    try durations.update(&options.chance.probability, actions);
+    const overrides = options.chance.actions;
+    try durations.update(&options.chance.probability, actions, overrides);
 
     if (@TypeOf(battle.rng) == data.PRNG) {
         // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
@@ -443,6 +445,7 @@ pub fn update(
         // (we must change the battle's RNG from a FixedRNG to a PRNG because
         // the transitions function relies on RNG for discovery of states)
         if (try transitions(unfix(copy), c1, c2, allocator, writer, .{
+            .actions = actions,
             .durations = saved,
             .cap = true,
         })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
@@ -453,13 +456,13 @@ pub fn update(
     var override = pkmn.battle.options(
         protocol.NULL,
         Chance(Rational(u128)){ .probability = .{} },
-        Calc{ .overrides = .{ .actions = actions } },
+        Calc{ .overrides = .{ .actions = overrides } },
     );
     const overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
-    expectEqual(actions, override.chance.actions) catch |e| switch (e) {
+    expectEqual(overrides, override.chance.actions) catch |e| switch (e) {
         error.TestExpectedEqual => {
-            std.debug.print("expected {}, found {}\n", .{ actions, override.chance.actions });
+            std.debug.print("expected {}, found {}\n", .{ overrides, override.chance.actions });
             return e;
         },
         else => return e,

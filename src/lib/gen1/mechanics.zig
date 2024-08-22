@@ -486,15 +486,13 @@ fn beforeMove(
     if (Status.is(stored.status, .SLP)) {
         const before = stored.status;
         // Even if the EXT bit is set this will still correctly modify the sleep duration
-        if (options.calc.overridden(player, .sleep)) |obs| {
-            stored.status = switch (obs) {
-                .ended => 0,
-                .continuing => if (Status.duration(stored.status) > 1)
-                    stored.status - 1
-                else
-                    stored.status,
-                else => unreachable,
-            };
+        if (options.calc.overridden(player, .sleep)) |obs| switch (obs) {
+            .ended => stored.status = 0,
+            .continuing => if (Status.duration(stored.status) > 1) {
+                stored.status -= 1;
+            },
+            .started => {},
+            else => unreachable,
         } else {
             stored.status -= 1;
         }
