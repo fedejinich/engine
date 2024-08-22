@@ -238,6 +238,16 @@ pub const Durations = struct {
             _ = q;
         }
     }
+
+    pub fn format(
+        self: Durations,
+        comptime fmt: []const u8,
+        opts: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = .{ fmt, opts };
+        try writer.print("[P1 = {}, P2 = {}]", .{ self.p1, self.p2 });
+    }
 };
 
 /// TODO
@@ -248,6 +258,43 @@ pub const Duration = struct {
     bide: u3 = 0,
     thrashing: u3 = 0,
     binding: u3 = 0,
+
+    pub fn format(
+        self: Duration,
+        comptime fmt: []const u8,
+        opts: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = .{ fmt, opts };
+        try writer.writeByte('(');
+        var printed = false;
+        inline for (@typeInfo(Duration).Struct.fields) |field| {
+            const val = @field(self, field.name);
+            switch (@typeInfo(@TypeOf(val))) {
+                .Int => if (val != 0) {
+                    if (printed) try writer.writeAll(", ");
+                    try writer.print("{s}:{d}", .{ field.name, val });
+                    printed = true;
+                },
+                .Array => {
+                    var total: usize = 0;
+                    for (val) |v| total += v;
+                    if (total > 0) {
+                        if (printed) try writer.writeAll(", ");
+                        try writer.print("{s}:[", .{field.name});
+                        for (val, 0..) |v, i| {
+                            if (i != 0) try writer.writeByte(',');
+                            try writer.print("{d}", .{v});
+                        }
+                        try writer.writeAll("]");
+                        printed = true;
+                    }
+                },
+                else => unreachable,
+            }
+        }
+        try writer.writeByte(')');
+    }
 };
 
 pub const Commit = enum { hit, miss };
