@@ -468,7 +468,7 @@ pub fn update(
     // The actual battle excluding its RNG field should match a copy updated with
     // overridden RNG (the copy RNG may have advanced because of no-ops)
     copy.rng = battle.rng;
-    try expectEqual(copy, battle.*);
+    try expectEqual(battle.*, copy);
 
     return result;
 }
