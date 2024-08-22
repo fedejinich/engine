@@ -42,11 +42,13 @@ pub fn main() !void {
         else => unreachable,
     };
 
+    var buf: [pkmn.LOGS_SIZE]u8 = undefined;
+    var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
     var options = switch (gen) {
         1 => blk: {
             var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
             break :blk pkmn.battle.options(
-                pkmn.protocol.NULL,
+                pkmn.protocol.FixedLog{ .writer = stream.writer() },
                 &chance,
                 pkmn.gen1.calc.NULL,
             );
@@ -58,26 +60,28 @@ pub fn main() !void {
         else => unreachable,
     };
     _ = try battle.update(.{}, .{}, &options);
+    format(&stream);
 
     _ = try battle.update(move(1), move(1), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
+    format(&stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
     options.chance.reset();
 
     _ = try battle.update(move(1), move(2), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
-    options.chance.reset();
+    format(&stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(1), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
-    options.chance.reset();
+    format(&stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(2), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
-    options.chance.reset();
+    format(&stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     // const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
@@ -87,6 +91,12 @@ pub fn main() !void {
     //     .seed = seed,
     // });
     // try out.print("{}\n", .{stats.?});
+}
+
+fn format(stream: *pkmn.protocol.ByteStream) void {
+    if (!pkmn.options.log) return;
+    pkmn.protocol.format(pkmn.gen1, stream.buffer[0..stream.pos], null, false); // TODO
+    stream.reset();
 }
 
 fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {
