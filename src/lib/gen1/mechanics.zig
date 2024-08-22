@@ -497,7 +497,7 @@ fn beforeMove(
         }
 
         const duration = Status.duration(stored.status);
-        options.chance.durations(.sleep, player, observation(duration));
+        options.chance.observe(.sleep, player, observation(duration));
 
         if (duration == 0) {
             try log.curestatus(.{ ident, before, .Message });
@@ -537,7 +537,7 @@ fn beforeMove(
     if (volatiles.disable_duration > 0) {
         volatiles.disable_duration =
             decrement(.disable, player, options, volatiles.disable_duration);
-        options.chance.durations(.disable, player, observation(volatiles.disable_duration));
+        options.chance.observe(.disable, player, observation(volatiles.disable_duration));
 
         if (volatiles.disable_duration == 0) {
             volatiles.disable_move = 0;
@@ -568,7 +568,7 @@ fn beforeMove(
             volatiles.confusion -= 1;
         }
 
-        options.chance.durations(.confusion, player, observation(volatiles.confusion));
+        options.chance.observe(.confusion, player, observation(volatiles.confusion));
 
         if (volatiles.confusion == 0) {
             volatiles.Confusion = false;
@@ -587,9 +587,9 @@ fn beforeMove(
                 volatiles.Binding = false;
                 volatiles.Invulnerable = false;
 
-                options.chance.durations(.bide, player, .None);
-                options.chance.durations(.thrashing, player, .None);
-                options.chance.durations(.binding, player, .None);
+                options.chance.observe(.bide, player, .None);
+                options.chance.observe(.thrashing, player, .None);
+                options.chance.observe(.binding, player, .None);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
                     // the opponent's defense with the user's defense and resets it after. As a
@@ -627,9 +627,9 @@ fn beforeMove(
         volatiles.Charging = false;
         volatiles.Binding = false;
 
-        options.chance.durations(.bide, player, .None);
-        options.chance.durations(.thrashing, player, .None);
-        options.chance.durations(.binding, player, .None);
+        options.chance.observe(.bide, player, .None);
+        options.chance.observe(.thrashing, player, .None);
+        options.chance.observe(.binding, player, .None);
 
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
         try log.cant(.{ ident, .Paralysis });
@@ -649,7 +649,7 @@ fn beforeMove(
         }
 
         volatiles.attacks = decrement(.bide, player, options, volatiles.attacks);
-        options.chance.durations(.bide, player, observation(volatiles.attacks));
+        options.chance.observe(.bide, player, observation(volatiles.attacks));
 
         if (volatiles.attacks != 0) {
             try log.activate(.{ ident, .Bide });
@@ -686,7 +686,7 @@ fn beforeMove(
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
         volatiles.attacks = decrement(.thrashing, player, options, volatiles.attacks);
-        options.chance.durations(.thrashing, player, observation(volatiles.attacks));
+        options.chance.observe(.thrashing, player, observation(volatiles.attacks));
 
         if (volatiles.attacks == 0) {
             const overwritten = volatiles.Confusion;
@@ -700,7 +700,7 @@ fn beforeMove(
             // can be expected to recognize this pattern and pass the information only to the
             // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
-            options.chance.durations(
+            options.chance.observe(
                 .confusion,
                 player,
                 if (overwritten) .overwritten else .started,
@@ -716,7 +716,7 @@ fn beforeMove(
 
     if (volatiles.Binding) {
         volatiles.attacks = decrement(.binding, player, options, volatiles.attacks);
-        options.chance.durations(.binding, player, observation(volatiles.attacks));
+        options.chance.observe(.binding, player, observation(volatiles.attacks));
 
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
         if (showdown or battle.last_damage != 0) {
@@ -1773,7 +1773,7 @@ pub const Effects = struct {
 
         side.active.volatiles.state = 0;
         side.active.volatiles.attacks = Rolls.attackingDuration(battle, player, options);
-        options.chance.durations(.bide, player, .started);
+        options.chance.observe(.bide, player, .started);
 
         try options.log.start(.{ battle.active(player), .Bide });
     }
@@ -1841,7 +1841,7 @@ pub const Effects = struct {
         foe.active.volatiles.Confusion = true;
 
         foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, options);
-        options.chance.durations(.confusion, player.foe(), .started);
+        options.chance.observe(.confusion, player.foe(), .started);
 
         try options.log.start(.{ battle.active(player.foe()), .Confusion });
     }
@@ -1899,7 +1899,7 @@ pub const Effects = struct {
         volatiles.disable_move =
             @intCast(try Rolls.moveSlot(battle, player, &foe.active.moves, n, options));
         volatiles.disable_duration = Rolls.disableDuration(battle, player, options);
-        options.chance.durations(.disable, player.foe(), .started);
+        options.chance.observe(.disable, player.foe(), .started);
 
         const id = foe.active.move(volatiles.disable_move).id;
         try options.log.start(.{ foe_ident, .Disable, id });
@@ -2006,7 +2006,7 @@ pub const Effects = struct {
                 if (p != player and Status.any(s.stored().status)) {
                     try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                     s.stored().status = 0;
-                    options.chance.durations(.sleep, p, .None);
+                    options.chance.observe(.sleep, p, .None);
                 } else if (showdown and s.stored().status == Status.TOX) {
                     s.stored().status = Status.init(.PSN);
                     try log.status(.{ battle.active(p), s.stored().status, .None });
@@ -2017,7 +2017,7 @@ pub const Effects = struct {
             if (Status.any(foe_stored.status)) {
                 if (Status.is(foe_stored.status, .FRZ) or Status.is(foe_stored.status, .SLP)) {
                     foe.last_selected_move = .SKIP_TURN;
-                    options.chance.durations(.sleep, player.foe(), .None);
+                    options.chance.observe(.sleep, player.foe(), .None);
                 }
                 try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                 foe_stored.status = 0;
@@ -2319,7 +2319,7 @@ pub const Effects = struct {
         foe.active.volatiles.Recharging = false;
 
         foe_stored.status = Status.slp(Rolls.sleepDuration(battle, player, options));
-        options.chance.durations(.sleep, player.foe(), .started);
+        options.chance.observe(.sleep, player.foe(), .started);
 
         const last = battle.side(player).last_selected_move;
         try options.log.status(.{ foe_ident, foe_stored.status, .From, last });
@@ -2378,7 +2378,7 @@ pub const Effects = struct {
         volatiles.Thrashing = true;
         volatiles.attacks = Rolls.attackingDuration(battle, player, options);
 
-        options.chance.durations(.thrashing, player, .started);
+        options.chance.observe(.thrashing, player, .started);
     }
 
     fn transform(battle: anytype, player: Player, options: anytype) !void {
@@ -2424,7 +2424,7 @@ pub const Effects = struct {
 
         side.active.volatiles.attacks =
             try Rolls.distribution(battle, .Binding, player, options) - 1;
-        options.chance.durations(.binding, player, .started);
+        options.chance.observe(.binding, player, .started);
     }
 
     fn boost(battle: anytype, player: Player, move: Move.Data, options: anytype) !void {
@@ -2663,13 +2663,13 @@ fn clearVolatiles(battle: anytype, who: Player, options: anytype) !void {
     if (volatiles.disable_move != 0) {
         volatiles.disable_move = 0;
         volatiles.disable_duration = 0;
-        options.chance.durations(.disable, who, .None);
+        options.chance.observe(.disable, who, .None);
         try log.end(.{ ident, .DisableSilent });
     }
     if (volatiles.Confusion) {
         // volatiles.confusion is left unchanged
         volatiles.Confusion = false;
-        options.chance.durations(.confusion, who, .None);
+        options.chance.observe(.confusion, who, .None);
         try log.end(.{ ident, .ConfusionSilent });
     }
     if (volatiles.Mist) {

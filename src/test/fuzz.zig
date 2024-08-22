@@ -80,10 +80,6 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
             1 => pkmn.gen1.MAX_LOGS,
             else => unreachable,
         };
-        var durations = switch (gen) {
-            1 => pkmn.gen1.chance.Durations{},
-            else => unreachable,
-        };
 
         var log: ?pkmn.protocol.Log(std.ArrayList(u8).Writer) = null;
         if (save) {
@@ -108,7 +104,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
                     &chance_,
                     pkmn.gen1.calc.NULL,
                 );
-                break :blk try run(&battle, &durations, &random, save, max, allocator, options);
+                break :blk try run(&battle, &random, save, max, allocator, options);
             },
             else => unreachable,
         }
@@ -118,7 +114,6 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
 
 fn run(
     battle: anytype,
-    durations: anytype,
     random: *pkmn.PSRNG,
     save: bool,
     max: usize,
@@ -133,10 +128,8 @@ fn run(
     var p1 = pkmn.PSRNG.init(random.newSeed());
     var p2 = pkmn.PSRNG.init(random.newSeed());
 
-    var result = update(battle, durations, c1, c2, &options, allocator);
-    while (result.type == .None) : (result =
-        update(battle, durations, c1, c2, &options, allocator))
-    {
+    var result = update(battle, c1, c2, &options, allocator);
+    while (result.type == .None) : (result = update(battle, c1, c2, &options, allocator)) {
         var n = battle.choices(.P1, result.p1, &choices);
         if (n == 0) break;
         c1 = choices[p1.range(u8, 0, n)];
@@ -161,7 +154,6 @@ fn run(
 
 pub fn update(
     battle: anytype,
-    durations: anytype,
     c1: pkmn.Choice,
     c2: pkmn.Choice,
     options: anytype,
@@ -171,16 +163,7 @@ pub fn update(
     const writer = std.io.null_writer;
     // const writer = std.io.getStdErr().writer();
     return switch (gen) {
-        1 => pkmn.gen1.calc.update(
-            battle,
-            durations,
-            c1,
-            c2,
-            options,
-            allocator,
-            writer,
-            transitions,
-        ),
+        1 => pkmn.gen1.calc.update(battle, c1, c2, options, allocator, writer, transitions),
         else => unreachable,
     } catch unreachable;
 }

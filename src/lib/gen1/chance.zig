@@ -225,18 +225,6 @@ pub const Durations = struct {
         return if (player == .P1) &self.p1 else &self.p2;
     }
 
-    /// TODO
-    pub fn update(self: *Durations, q: anytype, before: Actions, after: Actions) !void {
-        for (0..2) |i| {
-            const p: Player = @enumFromInt(i);
-            const pre = before.get(p);
-            const post = after.get(p);
-            const duration = self.get(p);
-
-            _ = .{ pre, post, q, duration };
-        }
-    }
-
     pub fn format(
         self: Durations,
         comptime fmt: []const u8,
@@ -310,6 +298,8 @@ pub fn Chance(comptime Rational: type) type {
         /// The actions taken by a hypothetical "chance player" that convey information about which
         /// RNG events were observed during a battle `update`.
         actions: Actions = .{},
+        /// TODO
+        durations: Durations = .{},
 
         // In many cases on both the cartridge and on Pokémon Showdown rolls are made even though
         // later checks render their result irrelevant (missing when the target is actually immune,
@@ -487,7 +477,7 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).duration = if (options.key) 1 else turns;
         }
 
-        pub fn durations(
+        pub fn observe(
             self: *Self,
             comptime field: Action.Field,
             player: Player,
@@ -813,7 +803,7 @@ const Null = struct {
         _ = .{ self, player, n };
     }
 
-    pub fn durations(
+    pub fn observe(
         self: Null,
         comptime field: Action.Field,
         player: Player,

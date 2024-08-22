@@ -177,7 +177,6 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
-    actions: Actions,
     durations: Durations,
     seed: ?u64 = null,
     cap: bool = false,
@@ -205,16 +204,12 @@ pub fn transitions(
 
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{} },
+        Chance(Rational(u128)){ .probability = .{}, .durations = options.durations },
         Calc{},
     );
 
     var b = battle;
     _ = try b.update(c1, c2, &opts);
-
-    var d = options.durations;
-    try d.update(&opts.chance.probability, options.actions, opts.chance.actions);
-
     stats.updates += 1;
 
     const p1 = b.side(.P1);
@@ -278,14 +273,11 @@ pub fn transitions(
 
                 opts.calc.overrides.actions = a;
                 opts.calc.summaries = .{};
-                opts.chance = .{ .probability = .{} };
+                opts.chance = .{ .probability = .{}, .durations = options.durations };
                 const q = &opts.chance.probability;
 
                 b = battle;
                 _ = try b.update(c1, c2, &opts);
-
-                d = options.durations;
-                try d.update(&q, options.actions, opts.chance.actions);
 
                 stats.updates += 1;
 
@@ -405,7 +397,6 @@ pub fn transitions(
 
 pub fn update(
     battle: anytype,
-    durations: *Durations,
     c1: Choice,
     c2: Choice,
     options: anytype,
@@ -413,18 +404,17 @@ pub fn update(
     writer: anytype,
     transition: bool,
 ) !Result {
-    const actions = options.chance.actions;
+    const durations = options.chance.durations;
     options.chance.reset();
 
     if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
 
     const original = battle.*;
-    const saved = durations.*;
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
     var overrides = options.chance.actions;
-    try durations.update(&options.chance.probability, actions, overrides);
+    const updated = options.chance.durations;
 
     if (@TypeOf(battle.rng) == data.PRNG) {
         // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
@@ -445,8 +435,7 @@ pub fn update(
         // (we must change the battle's RNG from a FixedRNG to a PRNG because
         // the transitions function relies on RNG for discovery of states)
         if (try transitions(unfix(original), c1, c2, allocator, writer, .{
-            .actions = actions,
-            .durations = saved,
+            .durations = durations,
             .cap = true,
         })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
     }
@@ -455,13 +444,14 @@ pub fn update(
     // same as we observed.
     var override = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{} },
+        Chance(Rational(u128)){ .probability = .{}, .durations = durations },
         Calc{ .overrides = .{ .actions = overrides } },
     );
     var copy = original;
     var overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
     try expectEqualActions(overrides, override.chance.actions);
+    try expectEqual(updated, override.chance.durations);
 
     // The actual battle excluding its RNG field should match a copy updated with
     // overridden RNG (the copy RNG may have advanced because of no-ops)
@@ -476,13 +466,14 @@ pub fn update(
 
     override = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{} },
+        Chance(Rational(u128)){ .probability = .{}, .durations = durations },
         Calc{ .overrides = .{ .actions = overrides } },
     );
     copy = original;
     overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
     try expectEqualActions(overrides, override.chance.actions);
+    try expectEqual(updated, override.chance.durations);
 
     return result;
 }
