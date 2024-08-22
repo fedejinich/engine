@@ -60,27 +60,27 @@ pub fn main() !void {
         else => unreachable,
     };
     _ = try battle.update(.{}, .{}, &options);
-    format(&stream);
+    format(gen, &stream);
 
     _ = try battle.update(move(1), move(1), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    format(&stream);
+    format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
     options.chance.reset();
 
     _ = try battle.update(move(1), move(2), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    format(&stream);
+    format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(1), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    format(&stream);
+    format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(2), &options);
     try durations.update(&battle, &options.chance.probability, options.chance.actions);
-    format(&stream);
+    format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     // const out = std.io.getStdOut().writer();
@@ -93,9 +93,12 @@ pub fn main() !void {
     // try out.print("{}\n", .{stats.?});
 }
 
-fn format(stream: *pkmn.protocol.ByteStream) void {
+fn format(gen: u8, stream: *pkmn.protocol.ByteStream) void {
     if (!pkmn.options.log) return;
-    pkmn.protocol.format(pkmn.gen1, stream.buffer[0..stream.pos], null, false); // TODO
+    pkmn.protocol.format(switch (gen) {
+        1 => pkmn.gen1,
+        else => unreachable,
+    }, stream.buffer[0..stream.pos], null, false);
     stream.reset();
 }
 

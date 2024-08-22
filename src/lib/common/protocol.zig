@@ -864,7 +864,7 @@ pub const ByteStream = struct {
 pub const Kind = enum { Move, Species, Type, Status, Item, Weather };
 
 pub fn format(
-    comptime gen: anytype,
+    gen: anytype,
     a: []const u8,
     b: ?[]const u8,
     color: bool,
