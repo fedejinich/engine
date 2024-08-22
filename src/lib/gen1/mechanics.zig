@@ -486,7 +486,18 @@ fn beforeMove(
     if (Status.is(stored.status, .SLP)) {
         const before = stored.status;
         // Even if the EXT bit is set this will still correctly modify the sleep duration
-        stored.status -= 1;
+        if (options.calc.overridden(player, .sleep)) |obs| {
+            stored.status = switch (obs) {
+                .ended => 0,
+                .continuing => if (Status.duration(stored.status) > 1)
+                    stored.status - 1
+                else
+                    stored.status,
+                else => unreachable,
+            };
+        } else {
+            stored.status -= 1;
+        }
 
         const duration = Status.duration(stored.status);
         options.chance.durations(.sleep, player, observation(duration));
@@ -527,7 +538,8 @@ fn beforeMove(
     }
 
     if (volatiles.disable_duration > 0) {
-        volatiles.disable_duration -= 1;
+        volatiles.disable_duration =
+            decrement(.disable, player, options, volatiles.disable_duration);
         options.chance.durations(.disable, player, observation(volatiles.disable_duration));
 
         if (volatiles.disable_duration == 0) {
@@ -547,7 +559,7 @@ fn beforeMove(
 
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
-        volatiles.confusion -= 1;
+        volatiles.confusion = decrement(.confusion, player, options, volatiles.confusion);
         options.chance.durations(.confusion, player, observation(volatiles.confusion));
 
         if (volatiles.confusion == 0) {
@@ -628,7 +640,7 @@ fn beforeMove(
             volatiles.state +%= battle.last_damage;
         }
 
-        volatiles.attacks -= 1;
+        volatiles.attacks = decrement(.bide, player, options, volatiles.attacks);
         options.chance.durations(.bide, player, observation(volatiles.attacks));
 
         if (volatiles.attacks != 0) {
@@ -665,7 +677,7 @@ fn beforeMove(
     if (volatiles.Thrashing) {
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
-        volatiles.attacks -= 1;
+        volatiles.attacks = decrement(.thrashing, player, options, volatiles.attacks);
         options.chance.durations(.thrashing, player, observation(volatiles.attacks));
 
         if (volatiles.attacks == 0) {
@@ -688,7 +700,7 @@ fn beforeMove(
     }
 
     if (volatiles.Binding) {
-        volatiles.attacks -= 1;
+        volatiles.attacks = decrement(.binding, player, options, volatiles.attacks);
         options.chance.durations(.binding, player, observation(volatiles.attacks));
 
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
@@ -2662,6 +2674,21 @@ fn clearVolatiles(battle: anytype, who: Player, options: anytype) !void {
         volatiles.toxic = 0;
         try log.end(.{ ident, .ToxicSilent });
     }
+}
+
+fn decrement(
+    comptime field: chance.Action.Field,
+    player: Player,
+    options: anytype,
+    n: anytype,
+) @TypeOf(n) {
+    if (options.calc.overridden(player, field)) |obs| {
+        return switch (obs) {
+            .ended => 0,
+            .continuing => if (n > 1) n - 1 else n,
+            else => unreachable,
+        };
+    } else return n - 1;
 }
 
 fn observation(n: anytype) optional.Optional(chance.Observation) {
