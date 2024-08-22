@@ -295,7 +295,7 @@ pub const Duration = struct {
     }
 };
 
-pub const Commit = enum { hit, miss };
+pub const Commit = enum { hit, miss, binding };
 
 const uN = if (options.miss) u8 else u9;
 

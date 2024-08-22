@@ -3138,8 +3138,7 @@ test "Binding effect" {
     try t.log.expected.turn(.{6});
 
     try expectEqual(Result.Default, try t.update(move(1), swtch(3)));
-    // (3/4) * (216/256)
-    try if (showdown) t.expectProbability(81, 128) else t.expectProbability(3, 4);
+    try t.expectProbability(81, 128); // (3/4) * (216/256)
 
     n = t.battle.actual.choices(.P1, .Move, &choices);
     try expectEqualSlices(Choice, p1_choices, choices[0..n]);
@@ -3182,8 +3181,7 @@ test "Binding effect" {
     try t.log.expected.turn(.{9});
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
-    // (3/4) * (216/256)
-    try if (showdown) t.expectProbability(81, 128) else t.expectProbability(3, 4);
+    try t.expectProbability(81, 128); // (3/4) * (216/256)
 
     try t.log.expected.switched(.{ P1.ident(2), t.expected.p1.get(2) });
     if (showdown) try t.log.expected.cant(.{ P2.ident(3), .Bound });

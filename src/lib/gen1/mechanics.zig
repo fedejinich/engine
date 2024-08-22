@@ -925,6 +925,19 @@ fn doMove(
             try log.immune(.{ foe_ident, .OHKO });
         } else if (immune and !invulnerable and (!showdown or move.effect != .Binding)) {
             try log.immune(.{ foe_ident, .None });
+            if (!showdown and move.effect == .Binding) {
+                // Rather obnoxiously, the cartridge sets the Binding volatile in canMove and then
+                // simply clears it later on if the move happens to miss in moveHit. However,
+                // moveHit can return true and we'll still end up in the outer miss handling block
+                // because attacking into an immune Pokemon does zero damage (considered missing)
+                assert(zero);
+                // Thus we still need to actually save the hit result (but not the crit roll). Using
+                // .miss for this commit would accomplish what we want, but is somewhat misleading
+                // as its entirely possible the move actually did hit (and the target is now
+                // trapped) so we use the .binding value instead which is effectively identical,
+                // just doesn't claim to know about the actual results of the hit roll)
+                try options.chance.commit(player, .binding);
+            }
         } else if (mist) {
             if (!foe.active.volatiles.Substitute) try log.activate(.{ foe_ident, .Mist });
             try log.fail(.{ foe_ident, .None });
