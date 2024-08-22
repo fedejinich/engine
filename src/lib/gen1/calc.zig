@@ -418,33 +418,33 @@ pub fn update(
 
     if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
 
-    var copy = battle.*;
+    const original = battle.*;
     const saved = durations.*;
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
-    const overrides = options.chance.actions;
+    var overrides = options.chance.actions;
     try durations.update(&options.chance.probability, actions, overrides);
 
     if (@TypeOf(battle.rng) == data.PRNG) {
         // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
         var buf: [helpers.MAX_DIFFS]u8 = undefined;
         var stream: protocol.ByteStream = .{ .buffer = &buf };
-        const n = try helpers.diff(&copy, battle, stream.writer());
+        const n = try helpers.diff(&original, battle, stream.writer());
 
         // Applying the diff to the battle should take us back to the original copy
         // of the battle (ignoring the RNG).
         var patched = battle.*;
-        patched.rng = copy.rng;
+        patched.rng = original.rng;
         helpers.patch(&patched, buf[0..n]);
-        try expectEqual(copy, patched);
+        try expectEqual(original, patched);
     }
 
     if (transition) {
         // Ensure we can generate all transitions from the same original state
         // (we must change the battle's RNG from a FixedRNG to a PRNG because
         // the transitions function relies on RNG for discovery of states)
-        if (try transitions(unfix(copy), c1, c2, allocator, writer, .{
+        if (try transitions(unfix(original), c1, c2, allocator, writer, .{
             .actions = actions,
             .durations = saved,
             .cap = true,
@@ -458,22 +458,43 @@ pub fn update(
         Chance(Rational(u128)){ .probability = .{} },
         Calc{ .overrides = .{ .actions = overrides } },
     );
-    const overridden = copy.update(c1, c2, &override);
+    var copy = original;
+    var overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
-    expectEqual(overrides, override.chance.actions) catch |e| switch (e) {
-        error.TestExpectedEqual => {
-            std.debug.print("expected {}, found {}\n", .{ overrides, override.chance.actions });
-            return e;
-        },
-        else => return e,
-    };
+    try expectEqualActions(overrides, override.chance.actions);
 
     // The actual battle excluding its RNG field should match a copy updated with
     // overridden RNG (the copy RNG may have advanced because of no-ops)
     copy.rng = battle.rng;
     try expectEqual(battle.*, copy);
 
+    // Demonstrate that even with the duration rolls changed, the duration
+    // fields on their own are sufficient to achieve the same outcomes
+    // NB: The actual battle bytes will differ because the durations won't match
+    overrides.p1.duration = if (overrides.p1.duration > 0) 2 else 0;
+    overrides.p2.duration = if (overrides.p2.duration > 0) 2 else 0;
+
+    override = pkmn.battle.options(
+        protocol.NULL,
+        Chance(Rational(u128)){ .probability = .{} },
+        Calc{ .overrides = .{ .actions = overrides } },
+    );
+    copy = original;
+    overridden = copy.update(c1, c2, &override);
+    try expectEqual(result, overridden);
+    try expectEqualActions(overrides, override.chance.actions);
+
     return result;
+}
+
+fn expectEqualActions(expected: Actions, actual: Actions) !void {
+    return expectEqual(expected, actual) catch |e| switch (e) {
+        error.TestExpectedEqual => {
+            std.debug.print("expected {}, found {}\n", .{ expected, actual });
+            return e;
+        },
+        else => return e,
+    };
 }
 
 fn unfix(actual: anytype) data.Battle(data.PRNG) {
