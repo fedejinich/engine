@@ -63,23 +63,23 @@ pub fn main() !void {
     format(gen, &stream);
 
     _ = try battle.update(move(1), move(1), &options);
-    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    try durations.update(&options.chance.probability, options.chance.actions);
     format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
     options.chance.reset();
 
     _ = try battle.update(move(1), move(2), &options);
-    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    try durations.update(&options.chance.probability, options.chance.actions);
     format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(1), &options);
-    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    try durations.update(&options.chance.probability, options.chance.actions);
     format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 
     _ = try battle.update(move(1), move(2), &options);
-    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    try durations.update(&options.chance.probability, options.chance.actions);
     format(gen, &stream);
     std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{ options.chance.actions, durations });
 

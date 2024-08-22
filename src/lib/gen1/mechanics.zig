@@ -666,11 +666,7 @@ fn beforeMove(
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
         volatiles.attacks -= 1;
-        options.chance.durations(
-            .thrashing,
-            player,
-            if (volatiles.attacks <= 1) .ended else .continuing,
-        );
+        options.chance.durations(.thrashing, player, observation(volatiles.attacks));
 
         if (volatiles.attacks == 0) {
             volatiles.Thrashing = false;

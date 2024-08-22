@@ -174,10 +174,7 @@ pub const Action = packed struct(u64) {
                             switch (val) {
                                 .started => "+",
                                 .continuing => "",
-                                .ended => if (std.mem.eql(u8, field.name, "thrashing"))
-                                    "~"
-                                else
-                                    "-",
+                                .ended => "-",
                                 else => unreachable,
                             },
                             field.name,
@@ -217,8 +214,8 @@ pub const Durations = struct {
     }
 
     /// TODO
-    pub fn update(self: *Durations, battle: anytype, q: anytype, actions: Actions) !void {
-        for (&battle.sides, 0..) |*s, i| {
+    pub fn update(self: *Durations, q: anytype, actions: Actions) !void {
+        for (0..2) |i| {
             const p: Player = @enumFromInt(i);
             const action = actions.get(p);
             var duration = self.get(p);
@@ -231,17 +228,10 @@ pub const Durations = struct {
                 if (@intFromEnum(action.disable) > 1) duration.disable + 1 else 0;
             duration.bide =
                 if (@intFromEnum(action.bide) > 1) duration.bide + 1 else 0;
+            duration.thrashing =
+                if (@intFromEnum(action.thrashing) > 1) duration.thrashing + 1 else 0;
             duration.binding =
                 if (@intFromEnum(action.binding) > 1) duration.binding + 1 else 0;
-
-            // NOTE: this relies on private information!
-            if (action.thrashing == .ended) {
-                duration.thrashing =
-                    if (s.active.volatiles.Thrashing) duration.thrashing + 1 else 0;
-            } else {
-                duration.thrashing =
-                    if (@intFromEnum(action.thrashing) > 1) duration.thrashing + 1 else 0;
-            }
 
             _ = q;
         }

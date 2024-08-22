@@ -212,7 +212,7 @@ pub fn transitions(
     _ = try b.update(c1, c2, &opts);
 
     var d = options.durations;
-    try d.update(&battle, &opts.chance.probability, opts.chance.actions);
+    try d.update(&opts.chance.probability, opts.chance.actions);
 
     stats.updates += 1;
 
@@ -284,7 +284,7 @@ pub fn transitions(
                 _ = try b.update(c1, c2, &opts);
 
                 d = options.durations;
-                try d.update(&b, &q, opts.chance.actions);
+                try d.update(&q, opts.chance.actions);
 
                 stats.updates += 1;
 
@@ -422,7 +422,7 @@ pub fn update(
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
     const actions = options.chance.actions;
-    try durations.update(battle, &options.chance.probability, actions);
+    try durations.update(&options.chance.probability, actions);
 
     if (@TypeOf(battle.rng) == data.PRNG) {
         // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
