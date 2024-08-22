@@ -414,31 +414,29 @@ pub fn update(
 ) !Result {
     options.chance.reset();
 
-    if (!pkmn.options.chance or !pkmn.options.calc or @TypeOf(battle.rng) != data.PRNG) {
-        return battle.update(c1, c2, options);
-    }
+    if (!pkmn.options.chance or !pkmn.options.calc) return battle.update(c1, c2, options);
 
     var copy = battle.*;
     const saved = durations.*;
-    const actions = options.chance.actions;
 
     // Perfom the actual update
     const result = battle.update(c1, c2, options);
-    try durations.update(&battle, actions, &options.chance.probability);
+    const actions = options.chance.actions;
+    try durations.update(battle, &options.chance.probability, actions);
 
-    // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
-    var buf: [helpers.MAX_DIFFS]u8 = undefined;
-    var stream: protocol.ByteStream = .{ .buffer = &buf };
-    const n = try helpers.diff(&copy, battle, stream.writer());
+    if (@TypeOf(battle.rng) == data.PRNG) {
+        // Ensure we can encode the diffs in less than MAX_DIFFS bytes.
+        var buf: [helpers.MAX_DIFFS]u8 = undefined;
+        var stream: protocol.ByteStream = .{ .buffer = &buf };
+        const n = try helpers.diff(&copy, battle, stream.writer());
 
-    // Applying the diff to the battle should take us back to the original copy
-    // of the battle (ignoring the RNG).
-    var patched = battle.*;
-    patched.rng = copy.rng;
-    helpers.patch(&patched, buf[0..n]);
-    try expectEqual(copy, patched);
-
-    if (!pkmn.options.chance or !pkmn.options.calc) return result;
+        // Applying the diff to the battle should take us back to the original copy
+        // of the battle (ignoring the RNG).
+        var patched = battle.*;
+        patched.rng = copy.rng;
+        helpers.patch(&patched, buf[0..n]);
+        try expectEqual(copy, patched);
+    }
 
     if (transition) {
         // Ensure we can generate all transitions from the same original state
@@ -459,7 +457,13 @@ pub fn update(
     );
     const overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
-    try expectEqual(override.chance.actions, actions);
+    expectEqual(actions, override.chance.actions) catch |e| switch (e) {
+        error.TestExpectedEqual => {
+            std.debug.print("expected {}, found {}\n", .{ actions, override.chance.actions });
+            return e;
+        },
+        else => return e,
+    };
 
     // The actual battle excluding its RNG field should match a copy updated with
     // overridden RNG (the copy RNG may have advanced because of no-ops)
