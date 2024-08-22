@@ -100,7 +100,6 @@ test Actions {
 }
 
 pub const Observation = enum { started, continuing, ended };
-pub const Thrashing = enum { started, continuing, ended, other };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -132,9 +131,9 @@ pub const Action = packed struct(u64) {
     disable: Optional(Observation) = .None,
     bide: Optional(Observation) = .None,
     binding: Optional(Observation) = .None,
-    thrashing: Optional(Thrashing) = .None,
+    thrashing: Optional(Observation) = .None,
 
-    _: u3 = 0, // TODO
+    _: u4 = 0, // TODO
 
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
@@ -175,18 +174,10 @@ pub const Action = packed struct(u64) {
                             switch (val) {
                                 .started => "+",
                                 .continuing => "",
-                                .ended => "-",
-                                else => unreachable,
-                            },
-                            field.name,
-                        });
-                    } else if (@TypeOf(val) == Optional(Thrashing)) {
-                        try writer.print("{s}{s}", .{
-                            switch (val) {
-                                .started => "+",
-                                .continuing => "",
-                                .ended => "-",
-                                .other => "~",
+                                .ended => if (std.mem.eql(u8, field.name, "thrashing"))
+                                    "~"
+                                else
+                                    "-",
                                 else => unreachable,
                             },
                             field.name,
@@ -244,7 +235,7 @@ pub const Durations = struct {
                 if (@intFromEnum(action.binding) > 1) duration.binding + 1 else 0;
 
             // NOTE: this relies on private information!
-            if (action.thrashing == .other) {
+            if (action.thrashing == .ended) {
                 duration.thrashing =
                     if (s.active.volatiles.Thrashing) duration.thrashing + 1 else 0;
             } else {
@@ -515,12 +506,6 @@ pub fn Chance(comptime Rational: type) type {
             if (!enabled) return;
 
             @field(self.actions.get(player), @tagName(f)) = observation;
-        }
-
-        pub fn thrashing(self: *Self, player: Player, observation: Optional(Thrashing)) void {
-            if (!enabled) return;
-
-            self.actions.get(player).thrashing = observation;
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -830,10 +815,6 @@ const Null = struct {
 
     pub fn duration(self: Null, player: Player, turns: u4) void {
         _ = .{ self, player, turns };
-    }
-
-    pub fn thrashing(self: Null, player: Player, observation: Optional(Thrashing)) void {
-        _ = .{ self, player, observation };
     }
 
     pub fn psywave(self: Null, player: Player, power: u8, max: u8) Error!void {

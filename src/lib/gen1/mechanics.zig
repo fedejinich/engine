@@ -568,7 +568,7 @@ fn beforeMove(
                 volatiles.Invulnerable = false;
 
                 options.chance.durations(.bide, player, .None);
-                options.chance.thrashing(player, .None);
+                options.chance.durations(.thrashing, player, .None);
                 options.chance.durations(.binding, player, .None);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
@@ -608,7 +608,7 @@ fn beforeMove(
         volatiles.Binding = false;
 
         options.chance.durations(.bide, player, .None);
-        options.chance.thrashing(player, .None);
+        options.chance.durations(.thrashing, player, .None);
         options.chance.durations(.binding, player, .None);
 
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
@@ -666,7 +666,11 @@ fn beforeMove(
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
         volatiles.attacks -= 1;
-        options.chance.thrashing(player, if (volatiles.attacks <= 1) .other else .continuing);
+        options.chance.durations(
+            .thrashing,
+            player,
+            if (volatiles.attacks <= 1) .ended else .continuing,
+        );
 
         if (volatiles.attacks == 0) {
             volatiles.Thrashing = false;
@@ -2338,7 +2342,7 @@ pub const Effects = struct {
         volatiles.Thrashing = true;
         volatiles.attacks = Rolls.attackingDuration(battle, player, options);
 
-        options.chance.thrashing(player, .started);
+        options.chance.durations(.thrashing, player, .started);
     }
 
     fn transform(battle: anytype, player: Player, options: anytype) !void {
