@@ -454,11 +454,12 @@ pub fn update(
     // same as we observed.
     var override = pkmn.battle.options(
         protocol.NULL,
-        chance.NULL,
+        Chance(Rational(u128)){ .probability = .{} },
         Calc{ .overrides = .{ .actions = actions } },
     );
     const overridden = copy.update(c1, c2, &override);
     try expectEqual(result, overridden);
+    try expectEqual(override.chance.actions, actions);
 
     // The actual battle excluding its RNG field should match a copy updated with
     // overridden RNG (the copy RNG may have advanced because of no-ops)
