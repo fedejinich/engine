@@ -487,11 +487,10 @@ fn beforeMove(
         const before = stored.status;
         // Even if the EXT bit is set this will still correctly modify the sleep duration
         if (options.calc.overridden(player, .sleep)) |obs| switch (obs) {
-            .ended => stored.status = 0,
+            .started, .ended => stored.status = 0,
             .continuing => if (Status.duration(stored.status) > 1) {
                 stored.status -= 1;
             },
-            .started => {},
             else => unreachable,
         } else {
             stored.status -= 1;
@@ -558,10 +557,11 @@ fn beforeMove(
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
         if (options.calc.overridden(player, .confusion)) |obs| switch (obs) {
-            .ended => volatiles.confusion = 0,
+            .started => volatiles.confusion -= 1,
             .continuing => if (volatiles.confusion > 1) {
                 volatiles.confusion -= 1;
             },
+            .ended => volatiles.confusion = 0,
             .overwritten => {},
             else => unreachable,
         } else {
@@ -2711,7 +2711,7 @@ fn decrement(
     n: anytype,
 ) @TypeOf(n) {
     return if (options.calc.overridden(player, field)) |obs| switch (obs) {
-        .ended => 0,
+        .started, .ended => 0,
         .continuing => if (n > 1) n - 1 else n,
         else => unreachable,
     } else n - 1;
