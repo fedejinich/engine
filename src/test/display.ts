@@ -1,3 +1,4 @@
+import {execFileSync} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -9,6 +10,7 @@ import * as mustache from 'mustache';
 import {Battle, Choice, Data, ParsedLine, Pokemon, Result, Side} from '../pkg';
 
 const ROOT = path.resolve(__dirname, '..', '..');
+const ZIG = path.dirname(JSON.parse(execFileSync('zig', ['env'], {encoding: 'utf8'})).lib_dir);
 const template = (s: 'pkmn' | 'showdown') =>
   path.join(ROOT, 'src', 'test', 'display', `${s}.html.tmpl`);
 
@@ -89,7 +91,10 @@ export function render(
   buf.push(displayFrame(gen, true, partial, last));
 
   if (error) {
-    const err = error.replaceAll(ROOT + path.sep, '');
+    const err = error
+      .replaceAll(ROOT + path.sep, '')
+      .replaceAll(ZIG, '$ZIG')
+      .split('\n').slice(0, -3).join('\n');
     buf.push(`<pre class="error"><code>${escapeHTML(err)}</pre></code>`);
   }
 
