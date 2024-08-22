@@ -24,13 +24,12 @@ pub fn main() !void {
 
     const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
-    const PAR = pkmn.gen1.Status.init(.PAR);
     var battle = switch (gen) {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
             // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .status = PAR, .moves = &.{.Gust} }},
-            &.{.{ .species = .Koffing, .moves = &.{.StunSpore} }},
+            &.{.{ .species = .Dratini, .moves = &.{.Teleport} }},
+            &.{.{ .species = .Koffing, .moves = &.{ .ConfuseRay, .Teleport } }},
 
             // ONE DAMAGE
             // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -44,24 +43,50 @@ pub fn main() !void {
     };
 
     var options = switch (gen) {
-        1 => pkmn.gen1.NULL,
+        1 => blk: {
+            var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
+            break :blk pkmn.battle.options(
+                pkmn.protocol.NULL,
+                &chance,
+                pkmn.gen1.calc.NULL,
+            );
+        },
         else => unreachable,
     };
-    const durations = switch (gen) {
+    var durations = switch (gen) {
         1 => pkmn.gen1.chance.Durations{},
         else => unreachable,
     };
     _ = try battle.update(.{}, .{}, &options);
-    // try durations.update(&battle, &options.chance.probability, options.chance.actions);
 
-    const out = std.io.getStdOut().writer();
+    _ = try battle.update(move(1), move(1), &options);
+    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
+    options.chance.reset();
+
+    _ = try battle.update(move(1), move(2), &options);
+    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
+    options.chance.reset();
+
+    _ = try battle.update(move(1), move(1), &options);
+    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
+    options.chance.reset();
+
+    _ = try battle.update(move(1), move(2), &options);
+    try durations.update(&battle, &options.chance.probability, options.chance.actions);
+    std.debug.print("{} {} {}\n", .{ battle.turn, options.chance.actions, durations });
+    options.chance.reset();
+
+    // const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
-    const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
-        .durations = durations,
-        .cap = true,
-        .seed = seed,
-    });
-    try out.print("{}\n", .{stats.?});
+    // const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
+    //     .durations = durations,
+    //     .cap = true,
+    //     .seed = seed,
+    // });
+    // try out.print("{}\n", .{stats.?});
 }
 
 fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {

@@ -99,7 +99,8 @@ test Actions {
     try expect(!c.matches(a));
 }
 
-pub const Observation = enum { continuing, ended, other };
+pub const Observation = enum { started, continuing, ended };
+pub const Thrashing = enum { started, continuing, ended, other };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -131,9 +132,9 @@ pub const Action = packed struct(u64) {
     disable: Optional(Observation) = .None,
     bide: Optional(Observation) = .None,
     binding: Optional(Observation) = .None,
-    thrashing: Optional(Observation) = .None,
+    thrashing: Optional(Thrashing) = .None,
 
-    _: u4 = 0, // TODO
+    _: u3 = 0, // TODO
 
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
@@ -171,7 +172,23 @@ pub const Action = packed struct(u64) {
                         });
                     } else if (@TypeOf(val) == Optional(Observation)) {
                         try writer.print("{s}{s}", .{
-                            if (val == .other) "~" else if (val == .continuing) "+" else "-",
+                            switch (val) {
+                                .started => "+",
+                                .continuing => "",
+                                .ended => "-",
+                                else => unreachable,
+                            },
+                            field.name,
+                        });
+                    } else if (@TypeOf(val) == Optional(Thrashing)) {
+                        try writer.print("{s}{s}", .{
+                            switch (val) {
+                                .started => "+",
+                                .continuing => "",
+                                .ended => "-",
+                                .other => "~",
+                                else => unreachable,
+                            },
                             field.name,
                         });
                     } else {
@@ -218,13 +235,13 @@ pub const Durations = struct {
             // TODO sleeps
 
             duration.confusion =
-                if (@intFromEnum(action.confusion) > 0) duration.confusion + 1 else 0;
+                if (@intFromEnum(action.confusion) > 1) duration.confusion + 1 else 0;
             duration.disable =
-                if (@intFromEnum(action.disable) > 0) duration.disable + 1 else 0;
+                if (@intFromEnum(action.disable) > 1) duration.disable + 1 else 0;
             duration.bide =
-                if (@intFromEnum(action.bide) > 0) duration.bide + 1 else 0;
+                if (@intFromEnum(action.bide) > 1) duration.bide + 1 else 0;
             duration.binding =
-                if (@intFromEnum(action.binding) > 0) duration.binding + 1 else 0;
+                if (@intFromEnum(action.binding) > 1) duration.binding + 1 else 0;
 
             // NOTE: this relies on private information!
             if (action.thrashing == .other) {
@@ -232,7 +249,7 @@ pub const Durations = struct {
                     if (s.active.volatiles.Thrashing) duration.thrashing + 1 else 0;
             } else {
                 duration.thrashing =
-                    if (@intFromEnum(action.thrashing) > 0) duration.thrashing + 1 else 0;
+                    if (@intFromEnum(action.thrashing) > 1) duration.thrashing + 1 else 0;
             }
 
             _ = q;
@@ -489,13 +506,21 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).duration = if (options.key) 1 else turns;
         }
 
-        pub fn durations(self: *Self, comptime f: Action.Field, player: Player, turns: ?u4) void {
+        pub fn durations(
+            self: *Self,
+            comptime f: Action.Field,
+            player: Player,
+            observation: Optional(Observation),
+        ) void {
             if (!enabled) return;
 
-            @field(self.actions.get(player), @tagName(f)) = if (turns) |n| switch (f) {
-                .thrashing => if (n <= 1) .other else .continuing,
-                else => if (n == 0) .ended else .continuing,
-            } else .None;
+            @field(self.actions.get(player), @tagName(f)) = observation;
+        }
+
+        pub fn thrashing(self: *Self, player: Player, observation: Optional(Thrashing)) void {
+            if (!enabled) return;
+
+            self.actions.get(player).thrashing = observation;
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -794,12 +819,21 @@ const Null = struct {
         _ = .{ self, player, n };
     }
 
+    pub fn durations(
+        self: Null,
+        comptime f: Action.Field,
+        player: Player,
+        observation: Optional(Observation),
+    ) void {
+        _ = .{ self, f, player, observation };
+    }
+
     pub fn duration(self: Null, player: Player, turns: u4) void {
         _ = .{ self, player, turns };
     }
 
-    pub fn durations(self: Null, comptime f: Action.Field, player: Player, turns: ?u4) void {
-        _ = .{ self, f, player, turns };
+    pub fn thrashing(self: Null, player: Player, observation: Optional(Thrashing)) void {
+        _ = .{ self, player, observation };
     }
 
     pub fn psywave(self: Null, player: Player, power: u8, max: u8) Error!void {
