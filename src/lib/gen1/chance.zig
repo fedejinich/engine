@@ -489,13 +489,13 @@ pub fn Chance(comptime Rational: type) type {
 
         pub fn durations(
             self: *Self,
-            comptime f: Action.Field,
+            comptime field: Action.Field,
             player: Player,
             observation: Optional(Observation),
         ) void {
             if (!enabled) return;
 
-            @field(self.actions.get(player), @tagName(f)) = observation;
+            @field(self.actions.get(player), @tagName(field)) = observation;
         }
 
         pub fn psywave(self: *Self, player: Player, power: u8, max: u8) Error!void {
@@ -796,11 +796,11 @@ const Null = struct {
 
     pub fn durations(
         self: Null,
-        comptime f: Action.Field,
+        comptime field: Action.Field,
         player: Player,
         observation: Optional(Observation),
     ) void {
-        _ = .{ self, f, player, observation };
+        _ = .{ self, field, player, observation };
     }
 
     pub fn duration(self: Null, player: Player, turns: u4) void {
