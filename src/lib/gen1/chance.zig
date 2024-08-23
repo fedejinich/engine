@@ -340,6 +340,9 @@ pub fn Chance(comptime Rational: type) type {
             glitch: bool = false,
         } = .{},
 
+        // TODO
+        duration_roll: [2]Action.Field = .{._} ** 2,
+
         /// Possible error returned by operations tracking chance probability.
         pub const Error = Rational.Error;
 
@@ -506,10 +509,12 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).multi_hit = n;
         }
 
-        pub fn duration(self: *Self, player: Player, turns: u4) void {
+        pub fn duration(self: *Self, comptime field: Action.Field, player: Player, turns: u4) void {
             if (!enabled) return;
 
-            self.actions.get(player).duration = if (options.key) 1 else turns;
+            assert(turns > 0 or field == ._);
+            self.duration_roll[@intFromEnum(player)] = field;
+            self.actions.get(player).duration = if (options.key and turns > 0) 1 else turns;
         }
 
         pub fn switched(self: *Self, player: Player, slot: u8) void {
@@ -565,6 +570,12 @@ pub fn Chance(comptime Rational: type) type {
                         self.actions.get(player.foe()).duration > 0
                     else
                         a.duration > 0));
+
+                    const clear = observation == .None and
+                        (val == .started or (field == .confusion and val == .overwritten)) and
+                        self.duration_roll[@intFromEnum(player)] == field;
+                    if (clear) self.duration(._, player, 0);
+
                     @field(a, @tagName(field)) =
                         @enumFromInt(@intFromEnum(observation));
 
@@ -782,13 +793,15 @@ test "Chance.multiHit" {
 test "Chance.duration" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-    chance.duration(.P1, 2);
+    chance.duration(.sleep, .P1, 2);
     try expectValue(2, chance.actions.p1.duration);
+    try expectValue(.sleep, chance.duration_roll[0]);
 
     chance.reset();
 
-    chance.duration(.P2, 4);
+    chance.duration(.confusion, .P2, 4);
     try expectValue(4, chance.actions.p2.duration);
+    try expectValue(.confusion, chance.duration_roll[1]);
 }
 
 test "Chance.psywave" {
@@ -891,8 +904,8 @@ const Null = struct {
         _ = .{ self, field, player, observation };
     }
 
-    pub fn duration(self: Null, player: Player, turns: u4) void {
-        _ = .{ self, player, turns };
+    pub fn duration(self: Null, comptime field: Action.Field, player: Player, turns: u4) void {
+        _ = .{ self, field, player, turns };
     }
 
     pub fn psywave(self: Null, player: Player, power: u8, max: u8) Error!void {
