@@ -99,8 +99,22 @@ test Actions {
     try expect(!c.matches(a));
 }
 
+/// Observation made about a duration - whether the duration has started, been continued, or ended.
 pub const Observation = enum { started, continuing, ended };
-pub const Xbservation = enum { started, continuing, ended, overwritten, other };
+/// An extension of Observation to account for "hidden" confusion" and Rest
+pub const Xbservation = enum {
+    started,
+    continuing,
+    ended,
+    /// An indicator that an existing confusion duration has been overwritten by a new confusion
+    /// duration due to a Thrashing move ending. This is not immediately observable to an opponent,
+    /// to compute probabilities from an opponent's point of view based solely on public information
+    /// extra work must be done to correct for the information leak
+    overwritten,
+    // An internal marker that never gets saved - used to indicate that a sleep observation is
+    // actually self-inflicted due to Rest and should not actually be tracked
+    other,
+};
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -513,6 +527,7 @@ pub fn Chance(comptime Rational: type) type {
                     assert(val == .started or val == .continuing);
                     assert(a.duration > 0);
                     a.confusion = observation;
+                    self.durations.get(player).confusion = 1;
                 },
                 .other => {
                     assert(field == .sleep);
