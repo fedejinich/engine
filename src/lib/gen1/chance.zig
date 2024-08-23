@@ -100,7 +100,7 @@ test Actions {
 }
 
 pub const Observation = enum { started, continuing, ended };
-pub const Confusion = enum { started, continuing, ended, overwritten };
+pub const Xbservation = enum { started, continuing, ended, overwritten, other };
 
 /// Information about the RNG that was observed during a Generation I battle `update` for a
 /// single player.
@@ -128,7 +128,7 @@ pub const Action = packed struct(u64) {
 
     // TODO
     sleep: Optional(Observation) = .None,
-    confusion: Optional(Confusion) = .None,
+    confusion: Optional(Xbservation) = .None,
     disable: Optional(Observation) = .None,
     bide: Optional(Observation) = .None,
     binding: Optional(Observation) = .None,
@@ -180,7 +180,7 @@ pub const Action = packed struct(u64) {
                             },
                             field.name,
                         });
-                    } else if (@TypeOf(val) == Optional(Confusion)) {
+                    } else if (@TypeOf(val) == Optional(Xbservation)) {
                         try writer.print("{s}{s}", .{
                             switch (val) {
                                 .started => "+",
@@ -477,33 +477,72 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).duration = if (options.key) 1 else turns;
         }
 
+        pub fn switched(self: *Self, player: Player, slot: u8) void {
+            if (!enabled) return;
+
+            assert(slot >= 1 and slot <= 6);
+
+            var d = self.durations.get(player);
+
+            const out = d.sleeps[0];
+            d.sleeps[0] = d.sleeps[slot - 1];
+            d.sleeps[slot - 1] = out;
+
+            d.confusion = 0;
+            d.disable = 0;
+            d.bide = 0;
+            d.thrashing = 0;
+            d.binding = 0;
+
+            self.durations.get(player.foe()).binding = 0;
+        }
+
         pub fn observe(
             self: *Self,
             comptime field: Action.Field,
             player: Player,
-            observation: Optional(Confusion),
+            observation: Optional(Xbservation),
         ) void {
             if (!enabled) return;
 
-            const val = @field(self.actions.get(player), @tagName(field));
-            if (observation == .overwritten) {
-                assert(field == .confusion);
-                assert(val == .started or val == .continuing);
-                assert(self.actions.get(player).duration > 0);
-                self.actions.get(player).confusion = observation;
-            } else {
-                assert(observation == .None or val == .None or
-                    (val == .started and observation != .started) or
-                    (val == .ended and observation == .started));
-                assert(observation != .started or (if (field == .confusion)
-                    self.actions.get(player).duration > 0 or
+            var a = self.actions.get(player);
+            const val = @field(a, @tagName(field));
+            switch (observation) {
+                .overwritten => {
+                    assert(field == .confusion);
+                    assert(val == .started or val == .continuing);
+                    assert(a.duration > 0);
+                    a.confusion = observation;
+                },
+                .other => {
+                    assert(field == .sleep);
+                    a.sleep = .None;
+                    self.durations.get(player).sleeps[0] = 0;
+                },
+                else => {
+                    assert(observation == .None or val == .None or
+                        (val == .started and observation != .started) or
+                        (val == .ended and observation == .started));
+                    assert(observation != .started or (if (field == .confusion)
+                        a.duration > 0 or self.actions.get(player.foe()).duration > 0
+                    else if (field == .sleep or field == .disable)
                         self.actions.get(player.foe()).duration > 0
-                else if (field == .sleep or field == .disable)
-                    self.actions.get(player.foe()).duration > 0
-                else
-                    self.actions.get(player).duration > 0));
-                @field(self.actions.get(player), @tagName(field)) =
-                    @enumFromInt(@intFromEnum(observation));
+                    else
+                        a.duration > 0));
+                    @field(a, @tagName(field)) =
+                        @enumFromInt(@intFromEnum(observation));
+
+                    const d = if (field == .sleep)
+                        &self.durations.get(player).sleeps[0]
+                    else
+                        &@field(self.durations.get(player), @tagName(field));
+                    switch (observation) {
+                        .None, .ended => d.* = 0,
+                        .started => d.* = 1,
+                        .continuing => d.* += 1,
+                        else => unreachable,
+                    }
+                },
             }
         }
 
@@ -763,8 +802,8 @@ const Null = struct {
         _ = .{self};
     }
 
-    pub fn switched(self: Null, player: Player, in: u8, out: u8) void {
-        _ = .{ self, player, in, out };
+    pub fn switched(self: Null, player: Player, slot: u8) void {
+        _ = .{ self, player, slot };
     }
 
     pub fn speedTie(self: Null, p1: bool) Error!void {
@@ -807,7 +846,7 @@ const Null = struct {
         self: Null,
         comptime field: Action.Field,
         player: Player,
-        observation: Optional(Confusion),
+        observation: Optional(Xbservation),
     ) void {
         _ = .{ self, field, player, observation };
     }

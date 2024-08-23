@@ -255,6 +255,7 @@ fn switchIn(battle: anytype, player: Player, slot: u8, initial: bool, options: a
     active.moves = incoming.moves;
 
     statusModify(incoming.status, &active.stats);
+    options.chance.switched(player, slot);
 
     foe.active.volatiles.Binding = false;
 
@@ -497,7 +498,11 @@ fn beforeMove(
         }
 
         const duration = Status.duration(stored.status);
-        options.chance.observe(.sleep, player, observation(duration));
+        options.chance.observe(
+            .sleep,
+            player,
+            if (Status.is(stored.status, .EXT)) .other else observation(duration),
+        );
 
         if (duration == 0) {
             try log.curestatus(.{ ident, before, .Message });
@@ -2717,7 +2722,7 @@ fn decrement(
     } else n - 1;
 }
 
-fn observation(n: anytype) optional.Optional(chance.Confusion) {
+fn observation(n: anytype) optional.Optional(chance.Xbservation) {
     return if (n == 0) .ended else .continuing;
 }
 
