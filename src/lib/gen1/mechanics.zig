@@ -1795,7 +1795,7 @@ pub const Effects = struct {
         assert(!side.active.volatiles.Thrashing and !side.active.volatiles.Rage);
 
         side.active.volatiles.state = 0;
-        side.active.volatiles.attacks = Rolls.attackingDuration(battle, .Bide, player, options);
+        side.active.volatiles.attacks = Rolls.attackingDuration(battle, player, options);
         options.chance.observe(.bide, player, .started);
 
         try options.log.start(.{ battle.active(player), .Bide });
@@ -2399,7 +2399,7 @@ pub const Effects = struct {
         assert(!volatiles.Bide);
 
         volatiles.Thrashing = true;
-        volatiles.attacks = Rolls.attackingDuration(battle, .Thrashing, player, options);
+        volatiles.attacks = Rolls.attackingDuration(battle, player, options);
 
         options.chance.observe(.thrashing, player, .started);
     }
@@ -2955,7 +2955,7 @@ pub const Rolls = struct {
         };
 
         assert(duration >= 1 and duration <= 7);
-        options.chance.duration(.sleep, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -2970,7 +2970,7 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 7) + 1);
 
         assert(duration >= 1 and duration <= 8);
-        options.chance.duration(.disable, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -2985,16 +2985,11 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 3) + 2);
 
         assert(duration >= 2 and duration <= 5);
-        options.chance.duration(.confusion, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
-    fn attackingDuration(
-        battle: anytype,
-        comptime effect: Move.Effect,
-        player: Player,
-        options: anytype,
-    ) u3 {
+    fn attackingDuration(battle: anytype, player: Player, options: anytype) u3 {
         const duration: u3 = if (options.calc.overridden(player, .duration)) |val|
             @intCast(val)
         else if (@hasDecl(@TypeOf(battle.rng), "attackingDuration"))
@@ -3005,7 +3000,7 @@ pub const Rolls = struct {
             @intCast((battle.rng.next() & 1) + 2);
 
         assert(duration >= 2 and duration <= 3);
-        options.chance.duration(if (effect == .Bide) .bide else .thrashing, player, duration);
+        options.chance.duration(player, duration);
         return duration;
     }
 
@@ -3031,7 +3026,7 @@ pub const Rolls = struct {
 
         assert(n >= 2 and n <= 5);
         if (effect == .Binding) {
-            options.chance.duration(.binding, player, n);
+            options.chance.duration(player, n);
         } else {
             try options.chance.multiHit(player, n);
         }
