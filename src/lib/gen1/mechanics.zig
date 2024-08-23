@@ -1466,7 +1466,10 @@ fn moveHit(
 
     if (!miss) return true;
     if (!showdown or !foe.active.volatiles.Invulnerable) battle.last_damage = 0;
+
     side.active.volatiles.Binding = false;
+    options.chance.observe(.binding, player, .None);
+
     return false;
 }
 
