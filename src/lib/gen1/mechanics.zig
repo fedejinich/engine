@@ -914,11 +914,12 @@ fn doMove(
         }
     }
 
+    var missed: bool = undefined;
     const zero = battle.last_damage == 0;
-    miss = if (showdown or skip)
-        miss
-    else
-        (!try moveHit(battle, player, move, &immune, &mist, options) or zero);
+    if (!showdown and !skip) {
+        missed = !try moveHit(battle, player, move, &immune, &mist, options);
+        miss = missed or zero;
+    }
 
     assert(showdown or miss or battle.last_damage > 0 or skip);
     assert((!showdown and miss) or !(ohko and immune));
@@ -962,7 +963,7 @@ fn doMove(
             if (!foe.active.volatiles.Substitute) try log.activate(.{ foe_ident, .Mist });
             try log.fail(.{ foe_ident, .None });
         } else {
-            if (!showdown and !zero) try options.chance.commit(player, .miss);
+            if (!showdown) try options.chance.commit(player, if (zero and !missed) .hit else .miss);
             try log.lastmiss(.{});
             try log.miss(.{battle.active(player)});
         }
