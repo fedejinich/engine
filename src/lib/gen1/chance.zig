@@ -337,6 +337,7 @@ pub fn Chance(comptime Rational: type) type {
             damage_roll: u8 = 0,
             hit: bool = false,
             hit_probablity: uN = 0,
+            glitch: bool = false,
         } = .{},
 
         /// Possible error returned by operations tracking chance probability.
@@ -375,13 +376,19 @@ pub fn Chance(comptime Rational: type) type {
             // we can't rely on the presence or absence of a damage roll to determine whether a
             // "critical hit" was spurious or not as moves that do 1 or less damage don't rol for
             // damage but can still crit (instead, whether or not a roll is deemed to be a no-op is
-            // passed to the critical hit helper)
-            if (kind != .hit) return assert(!self.pending.crit or self.pending.crit_probablity > 0);
+            // passed to the critical hit helper).
+            //
+            // There is a special edge case with the division-by-zero freeze where we need to commit
+            // the status of critical hit roll the occured before the move missed to avoid missing
+            // out on the possibility that the alternative branch encountered an error
+            if (kind != .hit and !self.pending.glitch) {
+                return assert(!self.pending.crit or self.pending.crit_probablity > 0);
+            }
 
             if (self.pending.crit_probablity != 0) {
                 try self.probability.update(self.pending.crit_probablity, 256);
                 action.critical_hit = if (self.pending.crit) .true else .false;
-            }
+            } else assert(!self.pending.glitch);
 
             if (self.pending.damage_roll > 0) {
                 try self.probability.update(1, 39);
@@ -389,9 +396,17 @@ pub fn Chance(comptime Rational: type) type {
             }
         }
 
+        pub fn glitch(self: *Self) void {
+            if (!enabled) return;
+
+            assert(!showdown);
+            self.pending.glitch = true;
+        }
+
         pub fn clearPending(self: *Self) void {
             if (!enabled) return;
 
+            assert(!showdown);
             self.pending = .{};
         }
 
@@ -817,6 +832,10 @@ const Null = struct {
 
     pub fn commit(self: Null, player: Player, kind: Commit) Error!void {
         _ = .{ self, player, kind };
+    }
+
+    pub fn glitch(self: Null) void {
+        _ = .{self};
     }
 
     pub fn clearPending(self: Null) void {

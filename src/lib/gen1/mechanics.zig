@@ -355,7 +355,7 @@ fn doTurn(
         if (try checkFaint(battle, player, false, options)) |r| return r;
     } else if (foe_choice.type == .Pass) return null;
 
-    options.chance.clearPending();
+    if (!showdown) options.chance.clearPending();
 
     residual = true;
     replace = battle.side(foe_player).stored().hp == 0;
@@ -602,7 +602,9 @@ fn beforeMove(
                     const def = foe.active.stats.def;
                     foe.active.stats.def = active.stats.def;
                     defer foe.active.stats.def = def;
-                    if (!calcDamage(battle, player, player.foe(), null, false)) return .err;
+                    if (!calcDamage(battle, player, player.foe(), null, false, options)) {
+                        return .err;
+                    }
                 }
                 // Pokémon Showdown incorrectly changes the "target" of the confusion self-hit based
                 // on the targeting behavior of the confused Pokémon's selected move which results
@@ -900,7 +902,7 @@ fn doMove(
                 // This can overflow after adjustDamage, but will still be sufficient to OHKO
                 battle.last_damage = if (ohko) 65535 else 0;
                 if (showdown) break :blk; // skip adjustDamage / randomizeDamage
-            } else if (!calcDamage(battle, player, player.foe(), move, crit)) {
+            } else if (!calcDamage(battle, player, player.foe(), move, crit, options)) {
                 if (!showdown) try options.chance.commit(player, .err);
                 return @as(?Result, Result.Error);
             }
@@ -1101,6 +1103,7 @@ fn calcDamage(
     target_player: Player,
     m: ?Move.Data,
     crit: bool,
+    options: anytype,
 ) bool {
     // Confusion (indicated when m == null) just needs a 40 BP physical move
     const cfz = m == null;
@@ -1112,28 +1115,8 @@ fn calcDamage(
 
     const special = move.type.special();
 
-    // zig fmt: off
-    var atk: u32 =
-        if (crit)
-            if (special) side.stored().stats.spc
-            else side.stored().stats.atk
-        else
-            if (special) side.active.stats.spc
-            else side.active.stats.atk;
-    var def: u32 =
-        if (crit)
-            if (special) target.stored().stats.spc
-            else target.stored().stats.def
-        else
-            // GLITCH: not capped to MAX_STAT_VALUE, can be 999 * 2 = 1998
-            if (special)
-                target.active.stats.spc *
-                    @as(u2, if (target.active.volatiles.LightScreen) 2 else 1)
-            // Pokémon Showdown doesn't apply the opponent's Reflect to confusion's self-hit
-            else
-                target.active.stats.def *
-                    @as(u2, if ((!showdown or !cfz) and target.active.volatiles.Reflect) 2 else 1);
-    // zig fmt: on
+    var atk = attack(side, crit, special);
+    var def = defense(target, crit, special, cfz);
 
     // Pokémon Showdown erroneously skips this for confusion's self-hit damage, but thankfully we
     // will not overflow because the hit is only 40 BP and unboosted (the highest legal unboosted
@@ -1158,9 +1141,39 @@ fn calcDamage(
     d = @min(997, d);
     d += 2;
 
+    // Whether or not a critical hit occurred can change whether a division-by-zero freeze is
+    // encountered so we need to make sure that in the event of a miss we commit the status of the
+    // crit roll. The alternative to doing this extra work is to *always* commit the crit roll but
+    // that results in counter intuitive probabilities in the common case
+    if (pkmn.options.chance and !showdown) {
+        atk = attack(side, !crit, special);
+        def = defense(target, !crit, special, false);
+        if ((atk > 255 or def > 255) and (def / 4) & 255 == 0) options.chance.glitch();
+    }
+
     battle.last_damage = @intCast(d);
 
     return true;
+}
+
+fn attack(side: *Side, crit: bool, special: bool) u32 {
+    return if (crit)
+        if (special) side.stored().stats.spc else side.stored().stats.atk
+    else if (special) side.active.stats.spc else side.active.stats.atk;
+}
+
+fn defense(target: *Side, crit: bool, special: bool, cfz: bool) u32 {
+    return if (crit)
+        if (special) target.stored().stats.spc else target.stored().stats.def
+    else
+    // GLITCH: not capped to MAX_STAT_VALUE, can be 999 * 2 = 1998
+    if (special)
+        target.active.stats.spc *
+            @as(u2, if (target.active.volatiles.LightScreen) 2 else 1)
+    else
+        // Pokémon Showdown doesn't apply the opponent's Reflect to confusion's self-hit
+        target.active.stats.def *
+            @as(u2, if ((!showdown or !cfz) and target.active.volatiles.Reflect) 2 else 1);
 }
 
 fn adjustDamage(battle: anytype, player: Player) u16 {
