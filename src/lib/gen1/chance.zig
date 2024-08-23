@@ -297,7 +297,7 @@ pub const Duration = struct {
     }
 };
 
-pub const Commit = enum { hit, miss, binding };
+pub const Commit = enum { hit, miss, binding, err };
 
 const uN = if (options.miss) u8 else u9;
 
@@ -357,6 +357,12 @@ pub fn Chance(comptime Rational: type) type {
             assert(!showdown);
 
             var action = self.actions.get(player);
+
+            if (kind == .err and self.pending.crit_probablity != 0) {
+                try self.probability.update(self.pending.crit_probablity, 256);
+                action.critical_hit = if (self.pending.crit) .true else .false;
+                return;
+            }
 
             // Always commit the hit result if we make it here (commit won't be called at all if the
             // target is immune/behind a sub/etc)

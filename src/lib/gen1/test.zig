@@ -8238,7 +8238,7 @@ test "Division by 0" {
         const result = if (showdown) Result.Win else Result.Error;
         try expectEqual(result, try t.update(move(2), move(1)));
         // (255/256) * (241/256) * (1/39)
-        try if (showdown) t.expectProbability(20485, 851968) else t.expectProbability(1, 1);
+        try if (showdown) t.expectProbability(20485, 851968) else t.expectProbability(241, 256);
         try t.verify();
     }
     // Defense/Special stat is 512 or 513 + Reflect/Light Screen.
@@ -8312,7 +8312,7 @@ test "Division by 0" {
         const result = if (showdown) Result.Default else Result.Error;
         try expectEqual(result, try t.update(move(2), move(1)));
         //  (255/256) * (228/256) * (1/39)
-        try if (showdown) t.expectProbability(4845, 212992) else t.expectProbability(1, 1);
+        try if (showdown) t.expectProbability(4845, 212992) else t.expectProbability(57, 64);
         try t.verify();
     }
     // Defense/Special stat >= 514 + Reflect/Light Screen.
@@ -9054,7 +9054,7 @@ test "Stat down modifier overflow glitch" {
         const result = if (showdown) Result.Win else Result.Error;
         try expectEqual(result, try t.update(move(2), move(2)));
         // (255/256) * (236/256) * (1/39)
-        try if (showdown) t.expectProbability(5015, 212992) else t.expectProbability(1, 1);
+        try if (showdown) t.expectProbability(5015, 212992) else t.expectProbability(59, 64);
         try t.verify();
     }
     // 343 -> 1029

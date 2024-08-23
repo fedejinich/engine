@@ -901,6 +901,7 @@ fn doMove(
                 battle.last_damage = if (ohko) 65535 else 0;
                 if (showdown) break :blk; // skip adjustDamage / randomizeDamage
             } else if (!calcDamage(battle, player, player.foe(), move, crit)) {
+                if (!showdown) try options.chance.commit(player, .err);
                 return @as(?Result, Result.Error);
             }
             if (battle.last_damage == 0) {
