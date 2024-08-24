@@ -137,19 +137,25 @@ pub const Action = packed struct(u64) {
     /// or Rolls.{sleepDuration,disableDuration,confusionDuration,attackingDuration} otherwise.
     duration: u4 = 0,
 
-    // TODO
+    /// TODO
     sleep: Optional(Observation) = .None,
+    /// TODO
     confusion: Optional(Confusion) = .None,
+    /// TODO
     disable: Optional(Observation) = .None,
+    /// TODO
     bide: Optional(Observation) = .None,
+    /// TODO
     binding: Optional(Observation) = .None,
+    /// TODO
     thrashing: Optional(Observation) = .None,
-
-    _: u3 = 0, // TODO
 
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
-    move_slot: u4 = 0,
+    move_slot: u3 = 0,
+
+    /// TODO
+    pp: u4 = 0,
     /// If not 0, the value (2-5) to return for Rolls.distribution for multi hit.
     multi_hit: u4 = 0,
 
@@ -654,6 +660,15 @@ pub fn Chance(comptime Rational: type) type {
             try self.probability.update(1, Move.METRONOME.len);
             self.actions.get(player).metronome = move;
         }
+
+        pub fn incrementPP(self: *Self, player: Player, n: u4) bool {
+            if (!enabled) return true;
+
+            var a = self.actions.get(player);
+            if (n > 1 and a.pp == n) return false;
+            if (a.metronome != .None) a.pp += n;
+            return true;
+        }
     };
 }
 
@@ -992,5 +1007,10 @@ const Null = struct {
 
     pub fn metronome(self: Null, player: Player, move: Move) Error!void {
         _ = .{ self, player, move };
+    }
+
+    pub fn incrementPP(self: Null, player: Player, n: u4) bool {
+        _ = .{ self, player, n };
+        return true;
     }
 };

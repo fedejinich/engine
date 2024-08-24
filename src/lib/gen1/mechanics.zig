@@ -813,7 +813,7 @@ fn decrementPP(side: *Side, mslot: u4, auto: bool) void {
     assert(active.move(mslot).pp == side.stored().move(mslot).pp);
 }
 
-fn incrementPP(side: *Side, mslot: u4) void {
+fn incrementPP(side: *Side, player: Player, mslot: u4, options: anytype) void {
     var active = &side.active;
     const volatiles = &active.volatiles;
 
@@ -821,8 +821,11 @@ fn incrementPP(side: *Side, mslot: u4) void {
     // GLITCH: No check for Transform means an empty/incorrect stored slot can get incremented
     if (showdown and volatiles.Transform) return;
 
+    const n = options.calc.overridden(player, .pp) orelse 1;
+    if (volatiles.Transform and !options.chance.incrementPP(player, n)) return;
+
     assert(mslot > 0 and mslot <= 4);
-    side.stored().moves[mslot - 1].pp = @as(u6, @intCast(side.stored().moves[mslot - 1].pp)) +% 1;
+    side.stored().moves[mslot - 1].pp = @as(u6, @intCast(side.stored().moves[mslot - 1].pp)) +% n;
 }
 
 // Pokémon Showdown does hit/multi/crit/damage instead of crit/damage/hit/multi
@@ -1349,7 +1352,7 @@ fn mirrorMove(
         try options.log.fail(.{ battle.active(player), .None });
         return null;
     } else if (!showdown or foe.last_used_move != .Struggle) {
-        incrementPP(side, mslot);
+        incrementPP(side, player, mslot, options);
     }
 
     if (!try canMove(battle, player, mslot, auto, false, .MirrorMove, residual, options)) {
@@ -1370,7 +1373,7 @@ fn metronome(
     var side = battle.side(player);
 
     side.last_selected_move = try Rolls.metronome(battle, player, options);
-    incrementPP(side, mslot);
+    incrementPP(side, player, mslot, options);
 
     if (!try canMove(battle, player, mslot, auto, false, .Metronome, residual, options)) {
         return null;
