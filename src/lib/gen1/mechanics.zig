@@ -486,6 +486,7 @@ fn beforeMove(
 
     if (Status.is(stored.status, .SLP)) {
         const before = stored.status;
+        const slf = Status.is(stored.status, .EXT);
         // Even if the EXT bit is set this will still correctly modify the sleep duration
         if (options.calc.overridden(player, .sleep)) |obs| switch (obs) {
             .started, .ended => stored.status = 0,
@@ -498,7 +499,7 @@ fn beforeMove(
         }
 
         const duration = Status.duration(stored.status);
-        try options.chance.sleep(player, if (Status.is(stored.status, .EXT))
+        try options.chance.sleep(player, if (slf)
             .None
         else if (duration == 0) .ended else .continuing);
 
