@@ -290,7 +290,7 @@ pub fn swtch(slot: u4) Choice {
 
 /// Empirically determined maximum number of bytes possibly required to store the diff between two
 /// Generation I battles.
-pub const MAX_DIFFS: usize = 117;
+pub const MAX_DIFFS: usize = 120;
 
 /// The optimal size in bytes required to hold the diff between two Generation I battles.
 /// At least as large as MAX_DIFFS.
