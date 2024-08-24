@@ -101,7 +101,7 @@ test Actions {
 
 /// Observation made about a duration - whether the duration has started, been continued, or ended.
 pub const Observation = enum { started, continuing, ended };
-/// An extension of Observation to account for "hidden" confusion".
+/// An extension of Observation to account for "hidden" confusion.
 pub const Confusion = enum {
     started,
     continuing,
