@@ -498,11 +498,9 @@ fn beforeMove(
         }
 
         const duration = Status.duration(stored.status);
-        options.chance.observe(
-            .sleep,
-            player,
-            if (Status.is(stored.status, .EXT)) .other else observation(duration),
-        );
+        try options.chance.sleep(player, if (Status.is(stored.status, .EXT))
+            .None
+        else if (duration == 0) .ended else .continuing);
 
         if (duration == 0) {
             try log.curestatus(.{ ident, before, .Message });
@@ -542,7 +540,10 @@ fn beforeMove(
     if (volatiles.disable_duration > 0) {
         volatiles.disable_duration =
             decrement(.disable, player, options, volatiles.disable_duration);
-        options.chance.observe(.disable, player, observation(volatiles.disable_duration));
+        try options.chance.disable(
+            player,
+            if (volatiles.disable_duration == 0) .ended else .continuing,
+        );
 
         if (volatiles.disable_duration == 0) {
             volatiles.disable_move = 0;
@@ -573,7 +574,7 @@ fn beforeMove(
             volatiles.confusion -= 1;
         }
 
-        options.chance.observe(.confusion, player, observation(volatiles.confusion));
+        try options.chance.confusion(player, if (volatiles.confusion == 0) .ended else .continuing);
 
         if (volatiles.confusion == 0) {
             volatiles.Confusion = false;
@@ -656,7 +657,7 @@ fn beforeMove(
         }
 
         volatiles.attacks = decrement(.bide, player, options, volatiles.attacks);
-        options.chance.observe(.bide, player, observation(volatiles.attacks));
+        try options.chance.bide(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks != 0) {
             try log.activate(.{ ident, .Bide });
@@ -693,7 +694,7 @@ fn beforeMove(
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
         volatiles.attacks = decrement(.thrashing, player, options, volatiles.attacks);
-        options.chance.observe(.thrashing, player, observation(volatiles.attacks));
+        try options.chance.thrashing(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks == 0) {
             const overwritten = volatiles.Confusion;
@@ -707,11 +708,7 @@ fn beforeMove(
             // can be expected to recognize this pattern and pass the information only to the
             // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
-            options.chance.observe(
-                .confusion,
-                player,
-                if (overwritten) .overwritten else .started,
-            );
+            options.chance.observe(.confusion, player, if (overwritten) .overwritten else .started);
         }
 
         // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
@@ -723,7 +720,7 @@ fn beforeMove(
 
     if (volatiles.Binding) {
         volatiles.attacks = decrement(.binding, player, options, volatiles.attacks);
-        options.chance.observe(.binding, player, observation(volatiles.attacks));
+        try options.chance.binding(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
         if (showdown or battle.last_damage != 0) {
@@ -2738,10 +2735,6 @@ fn decrement(
         .continuing => if (n > 1) n - 1 else n,
         else => unreachable,
     } else n - 1;
-}
-
-fn observation(n: anytype) optional.Optional(chance.Xbservation) {
-    return if (n == 0) .ended else .continuing;
 }
 
 pub const Rolls = struct {
