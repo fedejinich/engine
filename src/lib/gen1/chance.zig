@@ -585,14 +585,6 @@ pub fn Chance(comptime Rational: type) type {
             var a = self.actions.get(player);
             var d = self.durations.get(player);
 
-            if (obs == .overwritten) {
-                assert(a.confusion == .started or a.confusion == .continuing);
-                assert(a.duration > 0);
-                a.confusion = obs;
-                d.confusion = 1;
-                return;
-            }
-
             assert(a.confusion == .None or a.confusion == .started);
 
             a.confusion = obs;
@@ -675,8 +667,8 @@ pub fn Chance(comptime Rational: type) type {
 fn update(n: anytype, obs: Optional(Observation)) @TypeOf(n) {
     return switch (obs) {
         .None, .ended => 0,
-        .started => 1,
         .continuing => n + 1,
+        else => unreachable,
     };
 }
 
