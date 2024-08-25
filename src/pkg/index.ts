@@ -373,7 +373,7 @@ export const Battle = new class {
    * Restore a (possibly in-progress) `Battle` in the given generation with the
    * provided options.
    */
-  restore(gen: Generation, battle: Battle, options: RestoreOptions): Battle {
+  restore(gen: Generation, battle: Data<Battle>, options: RestoreOptions): Battle {
     addon.check(!!options.showdown);
     const lookup = Lookup.get(gen);
     switch (gen.num) {
