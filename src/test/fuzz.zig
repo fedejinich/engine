@@ -95,10 +95,24 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
 
         switch (gen) {
             1 => blk: {
-                var chance_ = if (chance)
-                    pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} }
-                else
-                    pkmn.gen1.chance.NULL;
+                var chance_ = if (chance) chance: {
+                    var durations = pkmn.gen1.chance.Durations{};
+                    // Pokémon which start the battle sleeping must seen prior .started or
+                    // .continuing observations which would have set their counter >= 1
+                    if (!opt.cleric) {
+                        inline for (.{ .P1, .P2 }) |player| {
+                            for (battle.side(player).pokemon, 0..) |p, i| {
+                                if (pkmn.gen1.Status.is(p.status, .SLP)) {
+                                    durations.get(player).sleeps[i] = 1;
+                                }
+                            }
+                        }
+                    }
+                    break :chance pkmn.gen1.Chance(pkmn.Rational(u128)){
+                        .probability = .{},
+                        .durations = durations,
+                    };
+                } else pkmn.gen1.chance.NULL;
                 const options = pkmn.battle.options(
                     if (save) log.? else pkmn.protocol.NULL,
                     &chance_,

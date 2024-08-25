@@ -14,6 +14,7 @@ const Choice = common.Choice;
 const Player = common.Player;
 
 const showdown = options.showdown;
+const chance = options.chance;
 
 const PSRNG = rng.PSRNG;
 
@@ -245,6 +246,7 @@ pub const Pokemon = struct {
             .stats = stats,
             .hp = if (opt.cleric) stats.hp else rand.range(u16, 0, stats.hp + 1),
             .status = if (!opt.cleric and rand.chance(u8, 1, 6 + 1))
+                // NB: This will only assign sleep as 2 or 4 when rolled
                 0 | (@as(u8, 1) << rand.range(u3, 1, 6 + 1))
             else
                 0,
