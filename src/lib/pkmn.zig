@@ -81,8 +81,6 @@ pub const gen1 = struct {
     pub const Calc = @import("gen1/calc.zig").Calc;
     /// Namespace for types associated with supported Generation I Pokémon damage calc features.
     pub const calc = if (options.internal) @import("gen1/calc.zig") else struct {
-        /// TODO
-        pub const Overrides = @import("gen1/calc.zig").Overrides;
         /// Information relevant to damage calculation that occured during a Generation I
         /// battle `update`.
         pub const Summaries = @import("gen1/calc.zig").Summaries;
@@ -111,7 +109,6 @@ pub const gen2 = struct {
     };
     pub const Calc = @import("gen2/calc.zig").Calc;
     pub const calc = if (options.internal) @import("gen2/calc.zig") else struct {
-        pub const Overrides = @import("gen2/calc.zig").Overrides;
         pub const Summaries = @import("gen2/calc.zig").Summaries;
         pub const Summary = @import("gen2/calc.zig").Summary;
         pub const NULL = @import("gen2/calc.zig").NULL;

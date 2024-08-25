@@ -88,21 +88,11 @@ pub const Summary = extern struct {
     }
 };
 
-/// TODO
-pub const Overrides = extern struct {
-    /// TODO
-    actions: Actions = .{},
-
-    comptime {
-        assert(@sizeOf(Overrides) == 16);
-    }
-};
-
 /// Allows for forcing the value of specific RNG events during a Generation I battle `update` via
 /// `overrides` and tracks `summaries` of information relevant to damage calculation.
 pub const Calc = struct {
     /// Overrides the normal behavior of the RNG during an `update` to force specific outcomes.
-    overrides: Overrides = .{},
+    overrides: Actions = .{},
     /// Information relevant to damage calculation.
     summaries: Summaries = .{},
 
@@ -113,9 +103,7 @@ pub const Calc = struct {
     ) ?std.meta.FieldType(Action, field) {
         if (!enabled) return null;
 
-        const overrides =
-            if (player == .P1) self.overrides.actions.p1 else self.overrides.actions.p2;
-        const val = @field(overrides, @tagName(field));
+        const val = @field(self.overrides.get(player), @tagName(field));
         return if (switch (@typeInfo(@TypeOf(val))) {
             .Enum => val != .None,
             .Int => val != 0,
@@ -272,7 +260,7 @@ pub fn transitions(
             while (p2_dmg.min < p2_dmg.max) : (p2_dmg.min += 1) {
                 a.p2.damage = @intCast(p2_dmg.min);
 
-                opts.calc.overrides.actions = a;
+                opts.calc.overrides = a;
                 opts.calc.summaries = .{};
                 opts.chance = .{ .probability = .{}, .durations = options.durations };
                 const q = &opts.chance.probability;
@@ -446,7 +434,7 @@ pub fn update(
     var override = pkmn.battle.options(
         protocol.NULL,
         Chance(Rational(u128)){ .probability = .{}, .durations = durations },
-        Calc{ .overrides = .{ .actions = overrides } },
+        Calc{ .overrides = overrides },
     );
     var copy = original;
     var overridden = copy.update(c1, c2, &override);
@@ -468,7 +456,7 @@ pub fn update(
     override = pkmn.battle.options(
         protocol.NULL,
         Chance(Rational(u128)){ .probability = .{}, .durations = durations },
-        Calc{ .overrides = .{ .actions = overrides } },
+        Calc{ .overrides = overrides },
     );
     copy = original;
     overridden = copy.update(c1, c2, &override);

@@ -65,17 +65,11 @@ pub const Summary = extern struct {
     }
 };
 
-/// TODO
-pub const Overrides = extern struct {
-    /// TODO
-    actions: Actions = .{},
-};
-
 /// Allows for forcing the value of specific RNG events during a Generation II battle `update` via
 /// `overrides` and tracks `summaries` of information relevant to damage calculation.
 pub const Calc = struct {
     /// Overrides the normal behavior of the RNG during an `update` to force specific outcomes.
-    overrides: Overrides = .{},
+    overrides: Actions = .{},
     /// Information relevant to damage calculation.
     summaries: Summaries = .{},
 
@@ -86,9 +80,7 @@ pub const Calc = struct {
     ) ?std.meta.FieldType(Action, field) {
         if (!enabled) return null;
 
-        const overrides =
-            if (player == .P1) self.overrides.actions.p1 else self.overrides.actions.p2;
-        const val = @field(overrides, @tagName(field));
+        const val = @field(self.overrides.get(player), @tagName(field));
         return if (switch (@typeInfo(@TypeOf(val))) {
             .Enum => val != .None,
             .Int => val != 0,
