@@ -594,8 +594,7 @@ fn beforeMove(
                 volatiles.Binding = false;
                 volatiles.Invulnerable = false;
 
-                options.chance.observe(.bide, player, .None);
-                options.chance.observe(.thrashing, player, .None);
+                options.chance.observe(.attacking, player, .None);
                 options.chance.observe(.binding, player, .None);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
@@ -636,8 +635,7 @@ fn beforeMove(
         volatiles.Charging = false;
         volatiles.Binding = false;
 
-        options.chance.observe(.bide, player, .None);
-        options.chance.observe(.thrashing, player, .None);
+        options.chance.observe(.attacking, player, .None);
         options.chance.observe(.binding, player, .None);
 
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
@@ -657,8 +655,8 @@ fn beforeMove(
             volatiles.state +%= battle.last_damage;
         }
 
-        volatiles.attacks = decrement(.bide, player, options, volatiles.attacks);
-        try options.chance.bide(player, if (volatiles.attacks == 0) .ended else .continuing);
+        volatiles.attacks = decrement(.attacking, player, options, volatiles.attacks);
+        try options.chance.attacking(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks != 0) {
             try log.activate(.{ ident, .Bide });
@@ -694,8 +692,8 @@ fn beforeMove(
     if (volatiles.Thrashing) {
         try log.move(.{ ident, side.last_selected_move, battle.active(player.foe()) });
 
-        volatiles.attacks = decrement(.thrashing, player, options, volatiles.attacks);
-        try options.chance.thrashing(player, if (volatiles.attacks == 0) .ended else .continuing);
+        volatiles.attacks = decrement(.attacking, player, options, volatiles.attacks);
+        try options.chance.attacking(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks == 0) {
             const overwritten = volatiles.Confusion;
@@ -1805,7 +1803,7 @@ pub const Effects = struct {
 
         side.active.volatiles.state = 0;
         side.active.volatiles.attacks = Rolls.attackingDuration(battle, player, options);
-        options.chance.observe(.bide, player, .started);
+        options.chance.observe(.attacking, player, .started);
 
         try options.log.start(.{ battle.active(player), .Bide });
     }
@@ -2410,7 +2408,7 @@ pub const Effects = struct {
         volatiles.Thrashing = true;
         volatiles.attacks = Rolls.attackingDuration(battle, player, options);
 
-        options.chance.observe(.thrashing, player, .started);
+        options.chance.observe(.attacking, player, .started);
     }
 
     fn transform(battle: anytype, player: Player, options: anytype) !void {

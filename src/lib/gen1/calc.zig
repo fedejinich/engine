@@ -646,14 +646,14 @@ pub const Rolls = struct {
         return if (action.paralyzed == .None) &BOOL_NONE else &BOOLS;
     }
 
-    const SLOT_NONE = [_]u3{0};
-    const SLOT = [_]u3{ 1, 2, 3, 4 };
+    const SLOT_NONE = [_]u4{0};
+    const SLOT = [_]u4{ 1, 2, 3, 4 };
 
     /// Returns a slice with a range of values for move slots given the `action` state
     /// and the state of the `parent` (whether the player's Pokémon's move hit).
     ///
     /// These slots may or **may not be valid** as slots may be unset / have 0 PP.
-    pub fn moveSlot(action: Action, parent: Optional(bool)) []const u3 {
+    pub fn moveSlot(action: Action, parent: Optional(bool)) []const u4 {
         if (parent == .false) return &SLOT_NONE;
         return if (action.move_slot == 0) &SLOT_NONE else &SLOT;
     }
@@ -766,9 +766,9 @@ test "Rolls.paralyzed" {
 
 test "Rolls.moveSlot" {
     const actions: Actions = .{ .p2 = .{ .move_slot = 3 } };
-    try expectEqualSlices(u3, &.{0}, Rolls.moveSlot(actions.p1, .None));
-    try expectEqualSlices(u3, &.{ 1, 2, 3, 4 }, Rolls.moveSlot(actions.p2, .None));
-    try expectEqualSlices(u3, &.{0}, Rolls.moveSlot(actions.p2, .false));
+    try expectEqualSlices(u4, &.{0}, Rolls.moveSlot(actions.p1, .None));
+    try expectEqualSlices(u4, &.{ 1, 2, 3, 4 }, Rolls.moveSlot(actions.p2, .None));
+    try expectEqualSlices(u4, &.{0}, Rolls.moveSlot(actions.p2, .false));
 }
 
 test "Rolls.multiHit" {

@@ -144,15 +144,15 @@ pub const Action = packed struct(u64) {
     /// TODO
     disable: Optional(Observation) = .None,
     /// TODO
-    bide: Optional(Observation) = .None,
+    attacking: Optional(Observation) = .None,
     /// TODO
     binding: Optional(Observation) = .None,
-    /// TODO
-    thrashing: Optional(Observation) = .None,
+
+    _: u1 = 0,
 
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
-    move_slot: u3 = 0,
+    move_slot: u4 = 0,
 
     /// TODO
     pp: u4 = 0,
@@ -244,8 +244,7 @@ pub const Duration = struct {
     sleeps: [6]u3 = .{0} ** 6,
     confusion: u3 = 0,
     disable: u4 = 0,
-    bide: u3 = 0,
-    thrashing: u3 = 0,
+    attacking: u3 = 0,
     binding: u3 = 0,
 
     pub fn format(
@@ -414,8 +413,7 @@ pub fn Chance(comptime Rational: type) type {
 
             d.confusion = 0;
             d.disable = 0;
-            d.bide = 0;
-            d.thrashing = 0;
+            d.attacking = 0;
             d.binding = 0;
 
             self.durations.get(player.foe()).binding = 0;
@@ -635,38 +633,24 @@ pub fn Chance(comptime Rational: type) type {
             }
         }
 
-        pub fn bide(self: *Self, player: Player, obs: Optional(Observation)) Error!void {
-            return self.attacking(.bide, player, obs);
-        }
-
-        pub fn thrashing(self: *Self, player: Player, obs: Optional(Observation)) Error!void {
-            return self.attacking(.thrashing, player, obs);
-        }
-
-        fn attacking(
-            self: *Self,
-            comptime field: Action.Field,
-            player: Player,
-            obs: Optional(Observation),
-        ) Error!void {
+        pub fn attacking(self: *Self, player: Player, obs: Optional(Observation)) Error!void {
             if (!enabled) return;
 
-            const f = @tagName(field);
             var a = self.actions.get(player);
-            assert(@field(a, f) == .None or @field(a, f) == .started);
-            @field(a, f) = obs;
+            assert(a.attacking == .None or a.attacking == .started);
+            a.attacking = obs;
 
             var d = self.durations.get(player);
-            const n = @field(d, f);
+            const n = d.attacking;
             if (obs == .ended) {
                 assert(n >= 2 and n <= 3);
                 if (n != 3) try self.probability.update(1, 4 - @as(u4, n));
-                @field(d, f) = 0;
+                d.attacking = 0;
             } else {
                 assert(obs == .continuing);
                 assert(n >= 1 and n < 3);
                 if (n > 1) try self.probability.update(4 - @as(u4, n) - 1, 4 - @as(u4, n));
-                @field(d, f) += 1;
+                d.attacking += 1;
             }
         }
 
@@ -985,25 +969,23 @@ test "Chance.disable" {
 test "Chance.attacking" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-    inline for (.{ .bide, .thrashing }) |f| {
-        for ([_]u8{ 1, 2, 1 }, 1..4) |d, i| {
-            if (i > 1) {
-                @field(chance.durations.p2, @tagName(f)) = @intCast(i);
-                try chance.attacking(f, .P2, .ended);
-                try expectProbability(&chance.probability, 1, d);
-                try expectValue(0, @field(chance.durations.p2, @tagName(f)));
+    for ([_]u8{ 1, 2, 1 }, 1..4) |d, i| {
+        if (i > 1) {
+            chance.durations.p2.attacking = @intCast(i);
+            try chance.attacking(.P2, .ended);
+            try expectProbability(&chance.probability, 1, d);
+            try expectValue(0, chance.durations.p2.attacking);
 
-                chance.reset();
-            }
+            chance.reset();
+        }
 
-            if (i < 3) {
-                @field(chance.durations.p2, @tagName(f)) = @intCast(i);
-                try chance.attacking(f, .P2, .continuing);
-                try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
-                try expectValue(@as(u3, @intCast(i)) + 1, @field(chance.durations.p2, @tagName(f)));
+        if (i < 3) {
+            chance.durations.p2.attacking = @intCast(i);
+            try chance.attacking(.P2, .continuing);
+            try expectProbability(&chance.probability, if (d > 1) d - 1 else d, d);
+            try expectValue(@as(u3, @intCast(i)) + 1, chance.durations.p2.attacking);
 
-                chance.reset();
-            }
+            chance.reset();
         }
     }
 }
@@ -1149,11 +1131,7 @@ const Null = struct {
         _ = .{ self, player, obs };
     }
 
-    pub fn bide(self: Null, player: Player, obs: Optional(Observation)) Error!void {
-        _ = .{ self, player, obs };
-    }
-
-    pub fn thrashing(self: Null, player: Player, obs: Optional(Observation)) Error!void {
+    pub fn attacking(self: Null, player: Player, obs: Optional(Observation)) Error!void {
         _ = .{ self, player, obs };
     }
 
