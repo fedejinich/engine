@@ -125,7 +125,7 @@ TODO
 
 ## Appendix
 
-### Simulators
+### Engines
 
 - [Pokemon Showdown!](https://github.com/smogon/pokemon-showdown): documentation
   ([new](https://gist.github.com/scheibo/c9ef943ef6e01e350940c8429c378e3b) /
@@ -140,6 +140,7 @@ TODO
   ([poke-engine](https://github.com/SirSkaro/poke-engine))
 - [Pokemon Battle Simulator](https://github.com/hiimvincent/poke-battle-sim)
 - [PokeSim](https://github.com/aed3/poke-sim)
+- [ninjax](https://github.com/ndarwin314/ninjax/tree/master)
 
 ### RNG
 
