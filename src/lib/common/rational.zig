@@ -206,7 +206,12 @@ fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
     assert(p >= 1);
     assert(q >= 1);
 
-    const T = @TypeOf(p, q);
+    // convert comptime_int to a sized integer within this function so that @ctz will work
+    const T = switch (@TypeOf(p, q)) {
+        comptime_int => std.math.IntFittingRange(@min(p, q), @max(p, q)),
+        else => |U| U,
+    };
+
     switch (@typeInfo(T)) {
         .Int => {
             var u: T = undefined;
@@ -276,6 +281,8 @@ test gcd {
             @as(u32, @intFromFloat(gcd(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))))),
         );
     }
+
+    try expectEqual(gcd(300_000, @as(u32, 2_300_000)), 100_000); // NB: @ctz requires an @intCast
 }
 
 fn doTurn(r: anytype) !void {
