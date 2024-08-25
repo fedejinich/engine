@@ -237,15 +237,16 @@ pub fn transitions(
             .indent = false,
         });
 
-        var a: Actions = .{ .p1 = .{ .metronome = p1_move }, .p2 = .{ .metronome = p2_move } };
+        var a: Actions = .{
+            .p1 = .{ .metronome = p1_move, .duration = template.p1.duration },
+            .p2 = .{ .metronome = p2_move, .duration = template.p2.duration },
+        };
 
         for (Rolls.speedTie(template.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
         for (Rolls.confused(template.p1)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(template.p2)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(template.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(template.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.duration(template.p1, p1_par)) |p1_dur| { a.p1.duration = p1_dur;
-        for (Rolls.duration(template.p2, p2_par)) |p2_dur| { a.p2.duration = p2_dur;
         for (Rolls.hit(template.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
         for (Rolls.hit(template.p2, p2_par)) |p2_hit| { a.p2.hit = p2_hit;
         for (Rolls.psywave(template.p1, p1, p1_hit)) |p1_psywave| { a.p1.psywave = p1_psywave;
@@ -365,7 +366,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
@@ -657,17 +658,6 @@ pub const Rolls = struct {
         return if (action.paralyzed == .None) &BOOL_NONE else &BOOLS;
     }
 
-    const DURATION_NONE = [_]u2{0};
-    // NB: DURATION must be at least 2 because that is the maximum of the minimums for all rolls
-    const DURATION = [_]u2{2};
-
-    /// Returns a slice with a range of values for duration given the `action` state
-    /// and the state of the `parent` (whether the player's Pokémon's move hit).
-    pub fn duration(action: Action, parent: Optional(bool)) []const u2 {
-        if (parent == .false) return &DURATION_NONE;
-        return if (action.duration == 0) &DURATION_NONE else &DURATION;
-    }
-
     const SLOT_NONE = [_]u3{0};
     const SLOT = [_]u3{ 1, 2, 3, 4 };
 
@@ -784,13 +774,6 @@ test "Rolls.paralyzed" {
     try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.paralyzed(actions.p2, .None));
     try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.paralyzed(actions.p2, .false));
     try expectEqualSlices(Optional(bool), &.{.None}, Rolls.paralyzed(actions.p2, .true));
-}
-
-test "Rolls.duration" {
-    const actions: Actions = .{ .p2 = .{ .duration = 3 } };
-    try expectEqualSlices(u2, &.{0}, Rolls.duration(actions.p1, .None));
-    try expectEqualSlices(u2, &.{2}, Rolls.duration(actions.p2, .None));
-    try expectEqualSlices(u2, &.{0}, Rolls.duration(actions.p2, .false));
 }
 
 test "Rolls.moveSlot" {
