@@ -823,7 +823,7 @@ fn incrementPP(side: *Side, player: Player, mslot: u4, options: anytype) void {
     if (showdown and volatiles.Transform) return;
 
     const n = options.calc.overridden(player, .pp) orelse 1;
-    if (volatiles.Transform and !options.chance.incrementPP(player, n)) return;
+    if (volatiles.Transform and !options.chance.pp(player, n)) return;
 
     assert(mslot > 0 and mslot <= 4);
     side.stored().moves[mslot - 1].pp = @as(u6, @intCast(side.stored().moves[mslot - 1].pp)) +% n;

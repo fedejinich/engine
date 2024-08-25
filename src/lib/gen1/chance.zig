@@ -710,7 +710,7 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).metronome = move;
         }
 
-        pub fn incrementPP(self: *Self, player: Player, n: u4) bool {
+        pub fn pp(self: *Self, player: Player, n: u4) bool {
             if (!enabled) return true;
 
             var a = self.actions.get(player);
@@ -1169,7 +1169,7 @@ const Null = struct {
         _ = .{ self, player, move };
     }
 
-    pub fn incrementPP(self: Null, player: Player, n: u4) bool {
+    pub fn pp(self: Null, player: Player, n: u4) bool {
         _ = .{ self, player, n };
         return true;
     }
