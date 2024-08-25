@@ -118,8 +118,8 @@ pub const gen2 = struct {
 
 // Internal APIs used by other pkmn libraries, not actually part of the public API.
 // NOTE: `pub usingnamespace struct { ... }` here results in a (false?) dependency loop
-pub const js = if (options.internal) @import("common/js.zig") else struct {};
+pub const js = if (options.internal) @import("common/js.zig") else {};
 pub const bindings = if (options.internal) struct {
     pub const node = @import("node.zig");
     pub const wasm = @import("wasm.zig");
-} else struct {};
+} else {};
