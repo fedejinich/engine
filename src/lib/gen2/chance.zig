@@ -422,7 +422,7 @@ pub fn Chance(comptime Rational: type) type {
         pub fn duration(self: *Self, player: Player, turns: u4) void {
             if (!enabled) return;
 
-            self.actions.get(player).duration = if (options.key) 1 else turns;
+            self.actions.get(player).duration = if (options.key) 2 else turns;
         }
     };
 }
