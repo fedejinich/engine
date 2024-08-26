@@ -11,6 +11,7 @@ const options = @import("../common/options.zig");
 const rational = @import("../common/rational.zig");
 const util = @import("../common/util.zig");
 
+const Array = @import("../common/array.zig").Array;
 const Player = @import("../common/data.zig").Player;
 const Optional = @import("../common/optional.zig").Optional;
 
@@ -222,6 +223,10 @@ pub const Durations = struct {
     /// TODO
     p2: Duration = .{},
 
+    comptime {
+        assert(@sizeOf(Durations) == 8);
+    }
+
     /// TODO
     pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Duration) {
         assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
@@ -239,13 +244,16 @@ pub const Durations = struct {
     }
 };
 
+pub const Sleeps = Array(6, u3);
 /// TODO
-pub const Duration = struct {
-    sleeps: [6]u3 = .{0} ** 6,
+pub const Duration = packed struct(u32) {
+    sleeps: Sleeps.T = 0,
     confusion: u3 = 0,
     disable: u4 = 0,
     attacking: u3 = 0,
     binding: u3 = 0,
+
+    _: u1 = 0,
 
     pub fn format(
         self: Duration,
@@ -261,22 +269,17 @@ pub const Duration = struct {
             switch (@typeInfo(@TypeOf(val))) {
                 .Int => if (val != 0) {
                     if (printed) try writer.writeAll(", ");
-                    try writer.print("{s}:{d}", .{ field.name, val });
-                    printed = true;
-                },
-                .Array => {
-                    var total: usize = 0;
-                    for (val) |v| total += v;
-                    if (total > 0) {
-                        if (printed) try writer.writeAll(", ");
+                    if (comptime std.mem.eql(u8, field.name, "sleeps")) {
                         try writer.print("{s}:[", .{field.name});
-                        for (val, 0..) |v, i| {
+                        for (0..6) |i| {
                             if (i != 0) try writer.writeByte(',');
-                            try writer.print("{d}", .{v});
+                            try writer.print("{d}", .{Sleeps.get(val, i)});
                         }
                         try writer.writeAll("]");
-                        printed = true;
+                    } else {
+                        try writer.print("{s}:{d}", .{ field.name, val });
                     }
+                    printed = true;
                 },
                 else => unreachable,
             }
@@ -407,9 +410,9 @@ pub fn Chance(comptime Rational: type) type {
 
             var d = self.durations.get(player);
 
-            const out = d.sleeps[0];
-            d.sleeps[0] = d.sleeps[slot - 1];
-            d.sleeps[slot - 1] = out;
+            const out = Sleeps.get(d.sleeps, 0);
+            d.sleeps = Sleeps.set(d.sleeps, 0, Sleeps.get(d.sleeps, slot - 1));
+            d.sleeps = Sleeps.set(d.sleeps, slot - 1, out);
 
             d.confusion = 0;
             d.disable = 0;
@@ -542,7 +545,8 @@ pub fn Chance(comptime Rational: type) type {
                 .None => {
                     @field(a, @tagName(field)) = .None;
                     if (field == .sleep) {
-                        self.durations.get(player).sleeps[0] = 0;
+                        var d = self.durations.get(player);
+                        d.sleeps = Sleeps.set(d.sleeps, 0, 0);
                     } else {
                         @field(self.durations.get(player), @tagName(field)) = 0;
                     }
@@ -556,7 +560,8 @@ pub fn Chance(comptime Rational: type) type {
                     });
                     @field(a, @tagName(field)) = .started;
                     if (field == .sleep) {
-                        self.durations.get(player).sleeps[0] = 1;
+                        var d = self.durations.get(player);
+                        d.sleeps = Sleeps.set(d.sleeps, 0, 1);
                     } else {
                         @field(self.durations.get(player), @tagName(field)) = 1;
                     }
@@ -573,19 +578,19 @@ pub fn Chance(comptime Rational: type) type {
             a.sleep = obs;
 
             var d = self.durations.get(player);
-            const n = d.sleeps[0];
+            const n = Sleeps.get(d.sleeps, 0);
 
             if (obs == .None) {
-                d.sleeps[0] = 0;
+                d.sleeps = Sleeps.set(d.sleeps, 0, 0);
             } else if (obs == .ended) {
                 assert(n >= 1 and n <= 7);
                 if (n != 7) try self.probability.update(1, 8 - @as(u4, n));
-                d.sleeps[0] = 0;
+                d.sleeps = Sleeps.set(d.sleeps, 0, 0);
             } else {
                 assert(obs == .continuing);
                 assert(n >= 1 and n < 7);
                 try self.probability.update(8 - @as(u4, n) - 1, 8 - @as(u4, n));
-                d.sleeps[0] += 1;
+                d.sleeps = Sleeps.set(d.sleeps, 0, n + 1);
             }
         }
 
@@ -902,18 +907,18 @@ test "Chance.sleep" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
     for ([_]u8{ 7, 6, 5, 4, 3, 2, 1 }, 1..8) |d, i| {
-        chance.durations.p1.sleeps[0] = @intCast(i);
+        chance.durations.p1.sleeps = Sleeps.set(chance.durations.p1.sleeps, 0, @intCast(i));
         try chance.sleep(.P1, .ended);
         try expectProbability(&chance.probability, 1, d);
-        try expectValue(0, chance.durations.p1.sleeps[0]);
+        try expectValue(0, Sleeps.get(chance.durations.p1.sleeps, 0));
 
         chance.reset();
 
         if (i < 7) {
-            chance.durations.p1.sleeps[0] = @intCast(i);
+            chance.durations.p1.sleeps = Sleeps.set(chance.durations.p1.sleeps, 0, @intCast(i));
             try chance.sleep(.P1, .continuing);
             try expectProbability(&chance.probability, d - 1, d);
-            try expectValue(@as(u3, @intCast(i)) + 1, chance.durations.p1.sleeps[0]);
+            try expectValue(@as(u3, @intCast(i)) + 1, Sleeps.get(chance.durations.p1.sleeps, 0));
 
             chance.reset();
         }

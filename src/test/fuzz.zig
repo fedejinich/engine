@@ -101,9 +101,10 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
                     // .continuing observations which would have set their counter >= 1
                     if (!opt.cleric) {
                         inline for (.{ .P1, .P2 }) |player| {
+                            var d = durations.get(player);
                             for (battle.side(player).pokemon, 0..) |p, i| {
                                 if (pkmn.gen1.Status.is(p.status, .SLP)) {
-                                    durations.get(player).sleeps[i] = 1;
+                                    d.sleeps = pkmn.Array(6, u3).set(d.sleeps, i, 1);
                                 }
                             }
                         }

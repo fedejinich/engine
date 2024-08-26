@@ -22,6 +22,11 @@ pub const Choice = @import("common/data.zig").Choice;
 /// considered terminal.
 pub const Result = @import("common/data.zig").Result;
 
+// TODO
+pub const Array = @import("common/array.zig").Array;
+// TODO
+pub const Optional = @import("common/optional.zig").Optional;
+
 /// Pokémon Showdown's RNG (backed by a Generation V & VI RNG).
 pub const PSRNG = @import("common/rng.zig").PSRNG;
 
