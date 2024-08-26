@@ -389,11 +389,11 @@ const downloadImportLib = async () => {
       const ext = process.platform === 'darwin'
         ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so';
       try {
-        const actual = path.join('build', 'lib', `${prefix}pkmn${suffix}.node.${ext}`);
+        const actual = path.join(ROOT, 'build', 'lib', `${prefix}pkmn${suffix}.node.${ext}`);
         fs.renameSync(actual, artifact);
       } catch (err) {
         // ziglang/zig#19743 changed this path
-        const actual = path.join('build', 'bin', `${prefix}pkmn${suffix}.node.${ext}`);
+        const actual = path.join(ROOT, 'build', 'bin', `${prefix}pkmn${suffix}.node.${ext}`);
         fs.renameSync(actual, artifact);
       }
     }
