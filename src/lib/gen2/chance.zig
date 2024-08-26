@@ -11,6 +11,7 @@ const rational = @import("../common/rational.zig");
 const rng = @import("../common/rng.zig");
 const util = @import("../common/util.zig");
 
+const Array = @import("../common/array.zig").Array;
 const Player = @import("../common/data.zig").Player;
 const Optional = @import("../common/optional.zig").Optional;
 
@@ -82,30 +83,34 @@ pub const Actions = extern struct {
     }
 };
 
-// TODO: ziglang/zig#19730
-test Actions {
-    const a: Actions = .{ .p1 = .{ .hit = .true, .critical_hit = .false, .damage = 245 } };
-    const b: Actions = .{ .p1 = .{ .hit = .false, .critical_hit = .true, .damage = 246 } };
-    const c: Actions = .{ .p1 = .{ .hit = .true } };
+// test Actions {
+//     const a: Actions = .{ .p1 = .{ .hit = .true, .critical_hit = .false, .damage = 245 } };
+//     const b: Actions = .{ .p1 = .{ .hit = .false, .critical_hit = .true, .damage = 246 } };
+//     const c: Actions = .{ .p1 = .{ .hit = .true } };
 
-    try expect(a.eql(a));
-    try expect(!a.eql(b));
-    try expect(!b.eql(a));
-    try expect(!a.eql(c));
-    try expect(!c.eql(a));
+//     try expect(a.eql(a));
+//     try expect(!a.eql(b));
+//     try expect(!b.eql(a));
+//     try expect(!a.eql(c));
+//     try expect(!c.eql(a));
 
-    try expect(a.matches(a));
-    try expect(a.matches(b));
-    try expect(b.matches(a));
-    try expect(!a.matches(c));
-    try expect(!c.matches(a));
-}
+//     try expect(a.matches(a));
+//     try expect(a.matches(b));
+//     try expect(b.matches(a));
+//     try expect(!a.matches(c));
+//     try expect(!c.matches(a));
+// }
+
+/// Observation made about a duration - whether the duration has started, been continued, or ended.
+pub const Observation = enum { started, continuing, ended };
 
 /// Information about the RNG that was observed during a Generation II battle `update` for a
 /// single player.
 pub const Action = packed struct(u128) {
-    /// If not 0, the roll to be returned Rolls.damage.
-    damage: u8 = 0,
+    /// TODO
+    damages: Array(5, u6).T = 0,
+    // TODO
+    critical_hits: Array(5, Optional(bool)).T = 0,
 
     /// If not None, the Player to be returned by Rolls.speedTie.
     speed_tie: Optional(Player) = .None,
@@ -113,58 +118,66 @@ pub const Action = packed struct(u128) {
     quick_claw: Optional(bool) = .None,
     /// If not None, the value to return for Rolls.hit.
     hit: Optional(bool) = .None,
-    /// If not None, the value to be returned by Rolls.criticalHit.
-    critical_hit: Optional(bool) = .None,
-
     /// If not None, the value to return for Rolls.confused.
     confused: Optional(bool) = .None,
+
     /// If not None, the value to return for Rolls.attract.
     attract: Optional(bool) = .None,
     /// If not None, the value to return for Rolls.paralyzed.
     paralyzed: Optional(bool) = .None,
     /// If not None, the value to return for Rolls.defrost.
     defrost: Optional(bool) = .None,
-
     /// If not None, the value to be returned for Rolls.secondaryChance.
     secondary_chance: Optional(bool) = .None,
+
     /// If not None, the value to be returned for Rolls.item (Focus Band / King's Rock).
     item: Optional(bool) = .None,
     /// If not None, the value to be returned for Rolls.protect.
     protect: Optional(bool) = .None,
     /// If not None, the value to return for Rolls.triAttack.
     tri_attack: Optional(TriAttack) = .None,
+    /// If not 0, the value to return for Rolls.tripleKick.
+    triple_kick: u2 = 0,
 
     /// If not 0, (present - 1) * 40 should be returned as the base power for Rolls.present.
     present: u3 = 0,
     /// If not 0, magnitude + 3 should be returned as the number for Rolls.magnitude.
     magnitude: u3 = 0,
-    /// If not 0, the value to return for Rolls.tripleKick.
-    triple_kick: u2 = 0,
-
-    /// If not 0,  the amount of PP to deduct for Rolls.spite.
+    /// If not 0, the amount of PP to deduct for Rolls.spite.
     spite: u3 = 0,
-    /// If not None, the value to return for Rolls.conversion2.
-    conversion_2: Optional(Type) = .None,
-
     /// If not 0, the move slot (1-4) to return in Rolls.moveSlot. If present as an override,
     /// invalid values (eg. due to empty move slots or 0 PP) will be ignored.
-    move_slot: u4 = 0,
+    move_slot: u3 = 0,
     /// If not 0, the party slot (1-6) to return in Rolls.forceSwitch. If present as an override,
     /// invalid values (eg. due to empty party slots or fainted members) will be ignored.
-    force_switch: u4 = 0,
-
+    force_switch: u3 = 0,
     /// If not 0, the value (2-5) to return for Rolls.distribution for multi hit.
-    multi_hit: u4 = 0,
+    multi_hit: u3 = 0,
+
+    _: u9 = 0,
+
     /// If not 0, the value to by one of the Rolls.*Duration rolls.
     duration: u4 = 0,
+    sleep: Optional(Observation) = .None,
+    /// TODO
+    confusion: Optional(Observation) = .None,
+    /// TODO
+    disable: Optional(Observation) = .None,
+    /// TODO
+    attacking: Optional(Observation) = .None,
+    /// TODO
+    binding: Optional(Observation) = .None,
+    /// TODO
+    encore: Optional(Observation) = .None,
+
+    /// If not None, the value to return for Rolls.conversion2.
+    conversion_2: Optional(Type) = .None,
 
     /// If not 0, psywave should be returned as the damage roll for Rolls.psywave.
     psywave: u8 = 0,
 
     /// If not None, the Move to return for Rolls.metronome.
     metronome: Move = .None,
-
-    _: u48 = 0, // TODO
 
     pub const Field = std.meta.FieldEnum(Action);
 
@@ -255,20 +268,20 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).hit = if (ok) .true else .false;
         }
 
-        pub fn criticalHit(self: *Self, player: Player, crit: bool, rate: u8) Error!void {
-            if (!enabled) return;
+        // pub fn criticalHit(self: *Self, player: Player, crit: bool, rate: u8) Error!void {
+        //     if (!enabled) return;
 
-            const n = if (crit) rate else @as(u8, @intCast(256 - @as(u9, rate)));
-            try self.probability.update(n, 256);
-            self.actions.get(player).critical_hit = if (crit) .true else .false;
-        }
+        //     const n = if (crit) rate else @as(u8, @intCast(256 - @as(u9, rate)));
+        //     try self.probability.update(n, 256);
+        //     self.actions.get(player).critical_hit = if (crit) .true else .false;
+        // }
 
-        pub fn damage(self: *Self, player: Player, roll: u8) Error!void {
-            if (!enabled) return;
+        // pub fn damage(self: *Self, player: Player, roll: u8) Error!void {
+        //     if (!enabled) return;
 
-            try self.probability.update(1, 39);
-            self.actions.get(player).damage = roll;
-        }
+        //     try self.probability.update(1, 39);
+        //     self.actions.get(player).damage = roll;
+        // }
 
         pub fn confused(self: *Self, player: Player, cfz: bool) Error!void {
             if (!enabled) return;
@@ -471,27 +484,27 @@ test "Chance.hit" {
     try expectProbability(&chance.probability, 27, 256);
 }
 
-test "Chance.criticalHit" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
+// test "Chance.criticalHit" {
+//     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-    try chance.criticalHit(.P1, true, 17);
-    try expectValue(Optional(bool).true, chance.actions.p1.critical_hit);
-    try expectProbability(&chance.probability, 17, 256);
+//     try chance.criticalHit(.P1, true, 17);
+//     try expectValue(Optional(bool).true, chance.actions.p1.critical_hit);
+//     try expectProbability(&chance.probability, 17, 256);
 
-    chance.reset();
+//     chance.reset();
 
-    try chance.criticalHit(.P2, false, 5);
-    try expectProbability(&chance.probability, 251, 256);
-    try expectValue(Optional(bool).false, chance.actions.p2.critical_hit);
-}
+//     try chance.criticalHit(.P2, false, 5);
+//     try expectProbability(&chance.probability, 251, 256);
+//     try expectValue(Optional(bool).false, chance.actions.p2.critical_hit);
+// }
 
-test "Chance.damage" {
-    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
+// test "Chance.damage" {
+//     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-    try chance.damage(.P1, 217);
-    try expectValue(217, chance.actions.p1.damage);
-    try expectProbability(&chance.probability, 1, 39);
-}
+//     try chance.damage(.P1, 217);
+//     try expectValue(217, chance.actions.p1.damage);
+//     try expectProbability(&chance.probability, 1, 39);
+// }
 
 test "Chance.confused" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };

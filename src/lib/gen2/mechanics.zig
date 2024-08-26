@@ -2885,21 +2885,25 @@ pub const Rolls = struct {
     }
 
     fn criticalHit(battle: anytype, player: Player, rate: u8, options: anytype) !bool {
-        const crit = if (options.calc.overridden(player, .critical_hit)) |val|
-            val == .true
-        else if (showdown)
+        _ = .{ player, options };
+        const crit = //if (options.calc.overridden(player, .critical_hit)) |val|
+            //     val == .true
+            // else
+            if (showdown)
             battle.rng.chance(u8, rate, 256)
         else
             battle.rng.next() < rate;
 
-        try options.chance.criticalHit(player, crit, rate);
+        // try options.chance.criticalHit(player, crit, rate);
         return crit;
     }
 
     fn damage(battle: anytype, player: Player, options: anytype) !u8 {
-        const roll = if (options.calc.overridden(player, .damage)) |val|
-            val
-        else roll: {
+        _ = .{ player, options };
+        const roll = //if (options.calc.overridden(player, .damage)) |val|
+            //     val
+            // else
+            roll: {
             if (showdown) break :roll battle.rng.range(u8, 217, 256);
             while (true) {
                 const r = std.math.rotr(u8, battle.rng.next(), 1);
@@ -2908,7 +2912,7 @@ pub const Rolls = struct {
         };
 
         assert(roll >= 217 and roll <= 255);
-        try options.chance.damage(player, roll);
+        // try options.chance.damage(player, roll);
         return roll;
     }
 
