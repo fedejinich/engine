@@ -5,6 +5,8 @@ const pkmn = @import("../pkmn.zig");
 const common = @import("../common/data.zig");
 const util = @import("../common/util.zig");
 
+const Optional = @import("../common/optional.zig").Optional;
+
 const chance = @import("chance.zig");
 
 const assert = std.debug.assert;
@@ -17,6 +19,8 @@ const PointerType = util.PointerType;
 
 const Actions = chance.Actions;
 const Action = chance.Action;
+const Criticals = chance.Criticals;
+const Damages = chance.Damages;
 
 /// Information relevant to damage calculation that occured during a Generation II battle `update`.
 pub const Summaries = extern struct {
@@ -76,11 +80,20 @@ pub const Calc = struct {
     pub fn overridden(
         self: Calc,
         player: Player,
+        hit: u3,
         comptime field: Action.Field,
-    ) ?std.meta.FieldType(Action, field) {
+    ) ReturnType(field) {
         if (!enabled) return null;
 
-        const val = @field(self.overrides.get(player), @tagName(field));
+        const val = switch (field) {
+            .damages => Damages.get(self.overrides.get(player).damages, hit),
+            .critical_hits => Criticals.get(self.overrides.get(player).critical_hits, hit),
+            else => val: {
+                assert(hit == 0);
+                break :val @field(self.overrides.get(player), @tagName(field));
+            },
+        };
+
         return if (switch (@typeInfo(@TypeOf(val))) {
             .Enum => val != .None,
             .Int => val != 0,
@@ -115,9 +128,10 @@ const Null = struct {
     pub fn overridden(
         self: Null,
         player: Player,
+        hit: u3,
         comptime field: Action.Field,
-    ) ?std.meta.FieldType(Action, field) {
-        _ = .{ self, player };
+    ) ReturnType(field) {
+        _ = .{ self, player, hit };
         return null;
     }
 
@@ -133,3 +147,11 @@ const Null = struct {
         _ = .{ self, player };
     }
 };
+
+fn ReturnType(comptime field: Action.Field) type {
+    return ?(switch (field) {
+        .damages => u6,
+        .critical_hits => Optional(bool),
+        else => std.meta.FieldType(Action, field),
+    });
+}

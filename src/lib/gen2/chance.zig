@@ -83,34 +83,37 @@ pub const Actions = extern struct {
     }
 };
 
-// test Actions {
-//     const a: Actions = .{ .p1 = .{ .hit = .true, .critical_hit = .false, .damage = 245 } };
-//     const b: Actions = .{ .p1 = .{ .hit = .false, .critical_hit = .true, .damage = 246 } };
-//     const c: Actions = .{ .p1 = .{ .hit = .true } };
+test Actions {
+    const a: Actions = .{ .p1 = .{ .hit = .true, .confused = .false, .damages = 245 } };
+    const b: Actions = .{ .p1 = .{ .hit = .false, .confused = .true, .damages = 246 } };
+    const c: Actions = .{ .p1 = .{ .hit = .true } };
 
-//     try expect(a.eql(a));
-//     try expect(!a.eql(b));
-//     try expect(!b.eql(a));
-//     try expect(!a.eql(c));
-//     try expect(!c.eql(a));
+    try expect(a.eql(a));
+    try expect(!a.eql(b));
+    try expect(!b.eql(a));
+    try expect(!a.eql(c));
+    try expect(!c.eql(a));
 
-//     try expect(a.matches(a));
-//     try expect(a.matches(b));
-//     try expect(b.matches(a));
-//     try expect(!a.matches(c));
-//     try expect(!c.matches(a));
-// }
+    try expect(a.matches(a));
+    try expect(a.matches(b));
+    try expect(b.matches(a));
+    try expect(!a.matches(c));
+    try expect(!c.matches(a));
+}
 
 /// Observation made about a duration - whether the duration has started, been continued, or ended.
 pub const Observation = enum { started, continuing, ended };
+
+pub const Damages = Array(5, u6);
+pub const Criticals = Array(5, Optional(bool));
 
 /// Information about the RNG that was observed during a Generation II battle `update` for a
 /// single player.
 pub const Action = packed struct(u128) {
     /// TODO
-    damages: Array(5, u6).T = 0,
+    damages: Damages.T = 0,
     // TODO
-    critical_hits: Array(5, Optional(bool)).T = 0,
+    critical_hits: Criticals.T = 0,
 
     /// If not None, the Player to be returned by Rolls.speedTie.
     speed_tie: Optional(Player) = .None,
@@ -268,20 +271,22 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).hit = if (ok) .true else .false;
         }
 
-        // pub fn criticalHit(self: *Self, player: Player, crit: bool, rate: u8) Error!void {
-        //     if (!enabled) return;
+        pub fn criticalHit(self: *Self, player: Player, i: u3, crit: bool, rate: u8) Error!void {
+            if (!enabled) return;
 
-        //     const n = if (crit) rate else @as(u8, @intCast(256 - @as(u9, rate)));
-        //     try self.probability.update(n, 256);
-        //     self.actions.get(player).critical_hit = if (crit) .true else .false;
-        // }
+            const n = if (crit) rate else @as(u8, @intCast(256 - @as(u9, rate)));
+            try self.probability.update(n, 256);
+            var a = self.actions.get(player);
+            a.critical_hits = Criticals.set(a.critical_hits, i, if (crit) .true else .false);
+        }
 
-        // pub fn damage(self: *Self, player: Player, roll: u8) Error!void {
-        //     if (!enabled) return;
+        pub fn damage(self: *Self, player: Player, i: u3, roll: u8) Error!void {
+            if (!enabled) return;
 
-        //     try self.probability.update(1, 39);
-        //     self.actions.get(player).damage = roll;
-        // }
+            try self.probability.update(1, 39);
+            var a = self.actions.get(player);
+            a.damages = Damages.set(a.damages, i, @intCast(roll - 216));
+        }
 
         pub fn confused(self: *Self, player: Player, cfz: bool) Error!void {
             if (!enabled) return;
@@ -484,27 +489,27 @@ test "Chance.hit" {
     try expectProbability(&chance.probability, 27, 256);
 }
 
-// test "Chance.criticalHit" {
-//     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
+test "Chance.criticalHit" {
+    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-//     try chance.criticalHit(.P1, true, 17);
-//     try expectValue(Optional(bool).true, chance.actions.p1.critical_hit);
-//     try expectProbability(&chance.probability, 17, 256);
+    try chance.criticalHit(.P1, 0, true, 17);
+    try expectValue(Optional(bool).true, Criticals.get(chance.actions.p1.critical_hits, 0));
+    try expectProbability(&chance.probability, 17, 256);
 
-//     chance.reset();
+    chance.reset();
 
-//     try chance.criticalHit(.P2, false, 5);
-//     try expectProbability(&chance.probability, 251, 256);
-//     try expectValue(Optional(bool).false, chance.actions.p2.critical_hit);
-// }
+    try chance.criticalHit(.P2, 1, false, 5);
+    try expectProbability(&chance.probability, 251, 256);
+    try expectValue(Optional(bool).false, Criticals.get(chance.actions.p2.critical_hits, 1));
+}
 
-// test "Chance.damage" {
-//     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
+test "Chance.damage" {
+    var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
-//     try chance.damage(.P1, 217);
-//     try expectValue(217, chance.actions.p1.damage);
-//     try expectProbability(&chance.probability, 1, 39);
-// }
+    try chance.damage(.P1, 0, 219);
+    try expectValue(3, Damages.get(chance.actions.p1.damages, 0));
+    try expectProbability(&chance.probability, 1, 39);
+}
 
 test "Chance.confused" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
@@ -813,12 +818,12 @@ const Null = struct {
         _ = .{ self, player, ok, accuracy };
     }
 
-    pub fn criticalHit(self: Null, player: Player, crit: bool, rate: u8) Error!void {
-        _ = .{ self, player, crit, rate };
+    pub fn criticalHit(self: Null, player: Player, i: u3, crit: bool, rate: u8) Error!void {
+        _ = .{ self, player, i, crit, rate };
     }
 
-    pub fn damage(self: Null, player: Player, roll: u8) Error!void {
-        _ = .{ self, player, roll };
+    pub fn damage(self: Null, player: Player, i: u3, roll: u8) Error!void {
+        _ = .{ self, player, i, roll };
     }
 
     pub fn confused(self: Null, player: Player, ok: bool) Error!void {
