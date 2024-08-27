@@ -213,41 +213,66 @@ fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
     };
 
     switch (@typeInfo(T)) {
-        .Int => {
-            var u: T = undefined;
-            var v: T = undefined;
-            if (p < q) {
-                u = q;
-                v = p;
-            } else {
-                u = p;
-                v = q;
-            }
-            assert(v <= u);
-            u %= v;
-            if (u == 0) return v;
+        .Int => |info| {
+            // If we can fit into an i64 we can use an even faster algorithm
+            // https://en.algorithmica.org/hpc/algorithms/gcd/
+            if (info.bits <= if (info.signedness == .unsigned) 63 else 64) {
+                var u: i64 = p;
+                var v: i64 = q;
 
-            const zu = @ctz(u);
-            const zv = @ctz(v);
-            const shift = @min(zu, zv);
-            u >>= @intCast(zu);
-            v >>= @intCast(zv);
+                var uz: u64 = @intCast(@ctz(u));
+                const vz: u64 = @intCast(@ctz(v));
+                const shift = @min(uz, vz);
+                v >>= @intCast(vz);
 
-            while (true) {
-                const diff = u -% v;
-                if (u > v) {
-                    u = v;
-                    v = diff;
-                } else {
-                    v -= u;
+                while (true) {
+                    u >>= @intCast(uz);
+                    const diff = v - u;
+                    if (diff == 0) break;
+                    uz = @intCast(@ctz(diff));
+                    v = @min(u, v);
+                    u = @intCast(@abs(diff));
                 }
-                if (diff != 0) v >>= @intCast(@ctz(diff));
-                if (v == 0) break;
-            }
 
-            const result = u << @intCast(shift);
-            assert(result > 0);
-            return result;
+                const result: T = @intCast(v << @intCast(shift));
+                assert(result > 0);
+                return result;
+            } else {
+                var u: T = undefined;
+                var v: T = undefined;
+                if (p < q) {
+                    u = q;
+                    v = p;
+                } else {
+                    u = p;
+                    v = q;
+                }
+                assert(v <= u);
+                u %= v;
+                if (u == 0) return v;
+
+                const zu = @ctz(u);
+                const zv = @ctz(v);
+                const shift = @min(zu, zv);
+                u >>= @intCast(zu);
+                v >>= @intCast(zv);
+
+                while (true) {
+                    const diff = u -% v;
+                    if (u > v) {
+                        u = v;
+                        v = diff;
+                    } else {
+                        v -= u;
+                    }
+                    if (diff != 0) v >>= @intCast(@ctz(diff));
+                    if (v == 0) break;
+                }
+
+                const result = u << @intCast(shift);
+                assert(result > 0);
+                return result;
+            }
         },
         else => {
             var a = p;
@@ -276,10 +301,13 @@ test gcd {
         const b = random.int(u32);
         if (a == 0 or b == 0) continue;
 
-        try expectEqual(
-            gcd(a, b),
-            @as(u32, @intFromFloat(gcd(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))))),
-        );
+        const x: u32 =
+            @intFromFloat(gcd(@as(f64, @floatFromInt(a)), @as(f64, @floatFromInt(b))));
+        const y: u32 = gcd(a, b);
+        const z: u32 = @intCast(gcd(@as(u128, @intCast(a)), @as(u128, @intCast(b))));
+
+        try expectEqual(x, y);
+        try expectEqual(x, z);
     }
 
     try expectEqual(gcd(300_000, @as(u32, 2_300_000)), 100_000); // NB: @ctz requires an @intCast
