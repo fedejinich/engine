@@ -201,7 +201,6 @@ pub fn Rational(comptime T: type) type {
     };
 }
 
-// https://lemire.me/blog/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
 fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
     assert(p >= 1);
     assert(q >= 1);
@@ -214,38 +213,25 @@ fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
 
     switch (@typeInfo(T)) {
         .Int => {
-            var u: T = undefined;
-            var v: T = undefined;
-            if (p < q) {
-                u = q;
-                v = p;
-            } else {
-                u = p;
-                v = q;
-            }
-            assert(v <= u);
-            u %= v;
-            if (u == 0) return v;
+            // std.math.gcd but without some checks because we have a stricter range
+            var x: T = @intCast(p);
+            var y: T = @intCast(q);
 
-            const zu = @ctz(u);
-            const zv = @ctz(v);
-            const shift = @min(zu, zv);
-            u >>= @intCast(zu);
-            v >>= @intCast(zv);
+            const xz = @ctz(x);
+            const yz = @ctz(y);
+            const shift = @min(xz, yz);
+            x >>= @intCast(xz);
+            y >>= @intCast(yz);
 
-            while (true) {
-                const diff = u -% v;
-                if (u > v) {
-                    u = v;
-                    v = diff;
-                } else {
-                    v -= u;
-                }
-                if (diff != 0) v >>= @intCast(@ctz(diff));
-                if (v == 0) break;
+            var diff = y -% x;
+            while (diff != 0) : (diff = y -% x) {
+                const zeros = @ctz(diff);
+                if (x > y) diff = -%diff;
+                y = @min(x, y);
+                x = diff >> @intCast(zeros);
             }
 
-            const result = u << @intCast(shift);
+            const result = y << @intCast(shift);
             assert(result > 0);
             return result;
         },
