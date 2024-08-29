@@ -6,6 +6,13 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectError = std.testing.expectError;
 
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+const Float = if (@hasField(std.builtin.Type, "float")) .float else .Float;
+const ComptimeInt =
+    if (@hasField(std.builtin.Type, "comptime_int")) .comptime_int else .ComptimeInt;
+const ComptimeFloat =
+    if (@hasField(std.builtin.Type, "comptime_float")) .comptime_float else .ComptimeFloat;
+
 /// Specialization of a rational number used by the engine to compute probabilties.
 /// For performance reasons the rational is only reduced lazily and thus `reduce` must be
 /// invoked explicitly before reading.
@@ -22,15 +29,15 @@ pub fn Rational(comptime T: type) type {
         // start reducing when we get sufficiently close to the limit of the mantissa (in our domain
         // we expect updates to involve numbers < 2**10, so we should be safe not reducing before we
         // are 2**10 away from "overflowing" the mantissa)
-        const REDUCE = if (@typeInfo(T) == .Float)
+        const REDUCE = if (@typeInfo(T) == Float)
             std.math.pow(T, 2, std.math.floatMantissaBits(T) - 10)
         else
             0;
 
         /// Possible error returned by operations on the Rational.
         pub const Error = switch (@typeInfo(T)) {
-            .Int => error{Overflow},
-            .Float => error{},
+            Int => error{Overflow},
+            Float => error{},
             else => unreachable,
         };
 
@@ -50,12 +57,12 @@ pub fn Rational(comptime T: type) type {
             // If our parameters are not fully reduced they may prematurely
             // cause overflow/loss of precision after the multiplication below
             assert(switch (@typeInfo(@TypeOf(p, q))) {
-                .ComptimeInt, .ComptimeFloat => comptime gcd(p, q),
+                ComptimeInt, ComptimeFloat => comptime gcd(p, q),
                 else => 1,
             } == 1);
 
             switch (@typeInfo(T)) {
-                .Int => {
+                Int => {
                     // Greedily attempt to multiply and if it fails, reduce and try again
                     r.multiplication(p, q) catch |err| switch (err) {
                         error.Overflow => {
@@ -65,16 +72,16 @@ pub fn Rational(comptime T: type) type {
                         else => unreachable,
                     };
                 },
-                .Float => {
+                Float => {
                     // Reduce in situations where we're likely to start losing precision
                     if (r.q > REDUCE or r.p > REDUCE) r.reduce();
 
                     r.p *= switch (@typeInfo(@TypeOf(p))) {
-                        .Float, .ComptimeFloat => p,
+                        Float, ComptimeFloat => p,
                         else => @floatFromInt(p),
                     };
                     r.q *= switch (@typeInfo(@TypeOf(q))) {
-                        .Float, .ComptimeFloat => q,
+                        Float, ComptimeFloat => q,
                         else => @floatFromInt(q),
                     };
 
@@ -89,7 +96,7 @@ pub fn Rational(comptime T: type) type {
         /// Add two rationals using the identity (a/b) + (c/d) = (ad+bc)/(bd).
         pub fn add(r: *Self, s: *Self) Error!void {
             switch (@typeInfo(T)) {
-                .Int => {
+                Int => {
                     if (r.q == s.q) {
                         r.p = std.math.add(T, r.p, s.p) catch |err| switch (err) {
                             error.Overflow => val: {
@@ -110,7 +117,7 @@ pub fn Rational(comptime T: type) type {
                         };
                     }
                 },
-                .Float => {
+                Float => {
                     if (r.q == s.q) {
                         if (r.p > REDUCE) r.reduce();
                         if (s.p > REDUCE) s.reduce();
@@ -135,7 +142,7 @@ pub fn Rational(comptime T: type) type {
         /// Multiplies two rationals.
         pub fn mul(r: *Self, s: *Self) Error!void {
             switch (@typeInfo(T)) {
-                .Int => {
+                Int => {
                     r.multiplication(s.p, s.q) catch |err| switch (err) {
                         error.Overflow => {
                             r.reduce();
@@ -145,7 +152,7 @@ pub fn Rational(comptime T: type) type {
                         else => unreachable,
                     };
                 },
-                .Float => {
+                Float => {
                     if (r.q > REDUCE or r.p > REDUCE) r.reduce();
                     if (s.q > REDUCE or s.p > REDUCE) s.reduce();
 
@@ -212,7 +219,7 @@ fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
     };
 
     switch (@typeInfo(T)) {
-        .Int => {
+        Int => {
             // std.math.gcd but without some checks because we have a stricter range
             var x: T = @intCast(p);
             var y: T = @intCast(q);

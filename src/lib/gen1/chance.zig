@@ -20,8 +20,15 @@ const data = @import("data.zig");
 const enabled = options.chance;
 const showdown = options.showdown;
 
+const PointerType = util.PointerType;
+const isPointerTo = util.isPointerTo;
+
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
+
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
+const Struct = if (@hasField(std.builtin.Type, "struct")) .@"struct" else .Struct;
 
 /// Actions taken by a hypothetical "chance player" that convey information about which RNG events
 /// were observed during a Generation I battle `update`. This can additionally be provided as input
@@ -38,8 +45,8 @@ pub const Actions = extern struct {
     }
 
     /// Returns the `Action` for the given `player`.
-    pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Action) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Actions);
+    pub fn get(self: anytype, player: Player) PointerType(@TypeOf(self), Action) {
+        assert(isPointerTo(self, Actions));
         return if (player == .P1) &self.p1 else &self.p2;
     }
 
@@ -52,15 +59,15 @@ pub const Actions = extern struct {
     /// same shape if they have the same fields set (though those fields need not necessarily be
     /// set to the same value).
     pub fn matches(a: Actions, b: Actions) bool {
-        inline for (@typeInfo(Actions).Struct.fields) |player| {
-            inline for (@typeInfo(Action).Struct.fields) |field| {
+        inline for (@field(@typeInfo(Actions), @tagName(Struct)).fields) |player| {
+            inline for (@field(@typeInfo(Action), @tagName(Struct)).fields) |field| {
                 const a_val = @field(@field(a, player.name), field.name);
                 const b_val = @field(@field(b, player.name), field.name);
 
                 switch (@typeInfo(@TypeOf(a_val))) {
-                    .Enum => if ((@intFromEnum(a_val) > 0) != (@intFromEnum(b_val) > 0))
+                    Enum => if ((@intFromEnum(a_val) > 0) != (@intFromEnum(b_val) > 0))
                         return false,
-                    .Int => if ((a_val > 0) != (b_val > 0)) return false,
+                    Int => if ((a_val > 0) != (b_val > 0)) return false,
                     else => unreachable,
                 }
             }
@@ -176,10 +183,10 @@ pub const Action = packed struct(u64) {
     pub fn fmt(self: Action, writer: anytype, shape: bool) !void {
         try writer.writeByte('(');
         var printed = false;
-        inline for (@typeInfo(Action).Struct.fields) |field| {
+        inline for (@field(@typeInfo(Action), @tagName(Struct)).fields) |field| {
             const val = @field(self, field.name);
             switch (@typeInfo(@TypeOf(val))) {
-                .Enum => if (val != .None) {
+                Enum => if (val != .None) {
                     if (printed) try writer.writeAll(", ");
                     if (shape) {
                         try writer.print("{s}:?", .{field.name});
@@ -200,7 +207,7 @@ pub const Action = packed struct(u64) {
                     }
                     printed = true;
                 },
-                .Int => if (val != 0) {
+                Int => if (val != 0) {
                     if (printed) try writer.writeAll(", ");
                     if (shape) {
                         try writer.print("{s}:?", .{field.name});
@@ -228,8 +235,8 @@ pub const Durations = struct {
     }
 
     /// TODO
-    pub fn get(self: anytype, player: Player) util.PointerType(@TypeOf(self), Duration) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Durations);
+    pub fn get(self: anytype, player: Player) PointerType(@TypeOf(self), Duration) {
+        assert(isPointerTo(self, Durations));
         return if (player == .P1) &self.p1 else &self.p2;
     }
 
@@ -265,10 +272,10 @@ pub const Duration = packed struct(u32) {
         _ = .{ fmt, opts };
         try writer.writeByte('(');
         var printed = false;
-        inline for (@typeInfo(Duration).Struct.fields) |field| {
+        inline for (@field(@typeInfo(Duration), @tagName(Struct)).fields) |field| {
             const val = @field(self, field.name);
             switch (@typeInfo(@TypeOf(val))) {
-                .Int => if (val != 0) {
+                Int => if (val != 0) {
                     if (printed) try writer.writeAll(", ");
                     if (comptime std.mem.eql(u8, field.name, "sleeps")) {
                         try writer.print("{s}:[", .{field.name});

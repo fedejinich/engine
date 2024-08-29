@@ -6,6 +6,8 @@ const assert = std.debug.assert;
 
 const ERROR: u8 = 0b1100;
 
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
+
 export const PKMN_OPTIONS: extern struct {
     showdown: bool,
     log: bool,
@@ -24,7 +26,7 @@ export const PKMN_MAX_LOGS = pkmn.MAX_LOGS;
 export const PKMN_LOGS_SIZE = pkmn.LOGS_SIZE;
 
 export fn pkmn_choice_init(choice: u8, data: u8) u8 {
-    assert(choice <= @typeInfo(pkmn.Choice.Type).Enum.fields.len);
+    assert(choice <= @field(@typeInfo(pkmn.Choice.Type), @tagName(Enum)).fields.len);
     assert(data <= 6);
     return @bitCast(pkmn.Choice{ .type = @enumFromInt(choice), .data = @intCast(data) });
 }
@@ -176,8 +178,9 @@ export fn pkmn_gen1_battle_choices(
     out: [*]u8,
     len: usize,
 ) u8 {
-    assert(player <= @typeInfo(pkmn.Player).Enum.fields.len);
-    assert(request <= @typeInfo(pkmn.Choice.Type).Enum.fields.len);
+    assert(player <= @field(@typeInfo(pkmn.Player), @tagName(Enum)).fields.len);
+    assert(request <= @field(@typeInfo(pkmn.Choice.Type), @tagName(Enum)).fields.len);
+
     assert(!pkmn.options.showdown or len > 0);
     return battle.choices(@enumFromInt(player), @enumFromInt(request), @ptrCast(out[0..len]));
 }

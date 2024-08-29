@@ -45,6 +45,7 @@ const Player = data.Player;
 const Result = data.Result;
 
 const PointerType = util.PointerType;
+const isPointerTo = util.isPointerTo;
 
 const showdown = pkmn.options.showdown;
 
@@ -63,12 +64,12 @@ pub fn Battle(comptime RNG: anytype) type {
         _: [padding]u8 = .{0} ** padding,
 
         pub fn side(self: anytype, player: Player) PointerType(@TypeOf(self), Side) {
-            assert(@typeInfo(@TypeOf(self)).Pointer.child == Self);
+            assert(isPointerTo(self, Self));
             return &self.sides[@intFromEnum(player)];
         }
 
         pub fn foe(self: anytype, player: Player) PointerType(@TypeOf(self), Side) {
-            assert(@typeInfo(@TypeOf(self)).Pointer.child == Self);
+            assert(isPointerTo(self, Self));
             return &self.sides[@intFromEnum(player.foe())];
         }
 
@@ -134,7 +135,7 @@ pub const Side = extern struct {
     }
 
     pub fn get(self: anytype, slot: u8) PointerType(@TypeOf(self), Pokemon) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Side);
+        assert(isPointerTo(self, Side));
         assert(slot > 0 and slot <= 6);
         const id = self.pokemon[slot - 1].position;
         assert(id > 0 and id <= 6);
@@ -142,7 +143,7 @@ pub const Side = extern struct {
     }
 
     pub fn stored(self: anytype) PointerType(@TypeOf(self), Pokemon) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Side);
+        assert(isPointerTo(self, Side));
         return self.get(1);
     }
 
@@ -176,7 +177,7 @@ pub const ActivePokemon = extern struct {
     }
 
     pub fn move(self: anytype, mslot: u8) PointerType(@TypeOf(self), MoveSlot) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Pokemon);
+        assert(isPointerTo(self, Pokemon));
         assert(mslot > 0 and mslot <= 4);
         assert(self.moves[mslot - 1].id != .None);
         return &self.moves[mslot - 1];
@@ -201,7 +202,7 @@ pub const Pokemon = extern struct {
     }
 
     pub fn move(self: anytype, mslot: u8) PointerType(@TypeOf(self), MoveSlot) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Pokemon);
+        assert(isPointerTo(self, Pokemon));
         assert(mslot > 0 and mslot <= 4);
         assert(self.moves[mslot - 1].id != .None);
         return &self.moves[mslot - 1];

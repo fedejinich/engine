@@ -30,6 +30,7 @@ const Optional = optional.Optional;
 const Rational = rational.Rational;
 
 const PointerType = util.PointerType;
+const isPointerTo = util.isPointerTo;
 
 const Actions = chance.Actions;
 const Action = chance.Action;
@@ -38,6 +39,9 @@ const Durations = chance.Durations;
 
 const tty = true; // DEBUG
 const summary = false; // DEBUG
+
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 
 /// Information relevant to damage calculation that occured during a Generation I battle `update`.
 pub const Summaries = extern struct {
@@ -52,7 +56,7 @@ pub const Summaries = extern struct {
 
     /// Returns the `Summary` for the given `player`.
     pub fn get(self: anytype, player: Player) PointerType(@TypeOf(self), Summary) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Summaries);
+        assert(isPointerTo(self, Summaries));
         return if (player == .P1) &self.p1 else &self.p2;
     }
 };
@@ -105,8 +109,8 @@ pub const Calc = struct {
 
         const val = @field(self.overrides.get(player), @tagName(field));
         return if (switch (@typeInfo(@TypeOf(val))) {
-            .Enum => val != .None,
-            .Int => val != 0,
+            Enum => val != .None,
+            Int => val != 0,
             else => unreachable,
         }) val else null;
     }

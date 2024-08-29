@@ -16,11 +16,15 @@ const enabled = pkmn.options.calc;
 const Player = common.Player;
 
 const PointerType = util.PointerType;
+const isPointerTo = util.isPointerTo;
 
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Criticals = chance.Criticals;
 const Damages = chance.Damages;
+
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 
 /// Information relevant to damage calculation that occured during a Generation II battle `update`.
 pub const Summaries = extern struct {
@@ -35,7 +39,7 @@ pub const Summaries = extern struct {
 
     /// Returns the `Summary` for the given `player`.
     pub fn get(self: anytype, player: Player) PointerType(@TypeOf(self), Summary) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Summaries);
+        assert(isPointerTo(self, Summaries));
         return if (player == .P1) &self.p1 else &self.p2;
     }
 };
@@ -95,8 +99,8 @@ pub const Calc = struct {
         };
 
         return if (switch (@typeInfo(@TypeOf(val))) {
-            .Enum => val != .None,
-            .Int => val != 0,
+            Enum => val != .None,
+            Int => val != 0,
             else => unreachable,
         }) val else null;
     }

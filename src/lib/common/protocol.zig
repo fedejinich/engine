@@ -19,6 +19,8 @@ const Endian = std.builtin.Endian;
 const big = if (@hasField(Endian, "big")) Endian.big else Endian.Big;
 const little = if (@hasField(Endian, "little")) Endian.little else Endian.Little;
 
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+
 pub const ArgType = enum(u8) {
     None,
 
@@ -843,7 +845,7 @@ pub const ByteStream = struct {
 
         pub fn writeInt(self: Writer, comptime T: type, v: T, end: std.builtin.Endian) Error!void {
             // TODO: rework this to write directly to the buffer?
-            var bytes: [@divExact(@typeInfo(T).Int.bits, 8)]u8 = undefined;
+            var bytes: [@divExact(@field(@typeInfo(T), @tagName(Int)).bits, 8)]u8 = undefined;
             std.mem.writeInt(std.math.ByteAlignedInt(@TypeOf(v)), &bytes, v, end);
             return self.writeAll(&bytes);
         }

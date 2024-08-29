@@ -47,6 +47,7 @@ const Player = data.Player;
 const Result = data.Result;
 
 const PointerType = util.PointerType;
+const isPointerTo = util.isPointerTo;
 
 const showdown = pkmn.options.showdown;
 
@@ -71,13 +72,13 @@ pub fn Battle(comptime RNG: anytype) type {
 
         /// Returns the `Side` for the given `player`.
         pub fn side(self: anytype, player: Player) PointerType(@TypeOf(self), Side) {
-            assert(@typeInfo(@TypeOf(self)).Pointer.child == Self);
+            assert(isPointerTo(self, Self));
             return &self.sides[@intFromEnum(player)];
         }
 
         /// Returns the `Side` of the opponent for the given `player`
         pub fn foe(self: anytype, player: Player) PointerType(@TypeOf(self), Side) {
-            assert(@typeInfo(@TypeOf(self)).Pointer.child == Self);
+            assert(isPointerTo(self, Self));
             return &self.sides[@intFromEnum(player.foe())];
         }
 
@@ -91,7 +92,7 @@ pub fn Battle(comptime RNG: anytype) type {
             self: anytype,
             player: Player,
         ) PointerType(@TypeOf(self), MoveDetails) {
-            assert(@typeInfo(@TypeOf(self)).Pointer.child == Self);
+            assert(isPointerTo(self, Self));
             return &self.last_moves[@intFromEnum(player)];
         }
 
@@ -142,7 +143,7 @@ pub const Side = extern struct {
 
     /// Returns the stored `Pokemon` corresponding to the one-indexed party `slot`.
     pub fn get(self: anytype, slot: u8) PointerType(@TypeOf(self), Pokemon) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Side);
+        assert(isPointerTo(self, Side));
         assert(slot > 0 and slot <= 6);
         const id = self.order[slot - 1];
         assert(id > 0 and id <= 6);
@@ -151,7 +152,7 @@ pub const Side = extern struct {
 
     /// Returns the stored `Pokemon` corresponding to the `active` Pokémon (slot 1).
     pub fn stored(self: anytype) PointerType(@TypeOf(self), Pokemon) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Side);
+        assert(isPointerTo(self, Side));
         return self.get(1);
     }
 };
@@ -177,7 +178,7 @@ pub const ActivePokemon = extern struct {
 
     /// Returns the active Pokémon's current move slot located at the one-indexed `mslot`.
     pub fn move(self: anytype, mslot: u8) PointerType(@TypeOf(self), MoveSlot) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == ActivePokemon);
+        assert(isPointerTo(self, ActivePokemon));
         assert(mslot > 0 and mslot <= 4);
         assert(self.moves[mslot - 1].id != .None);
         return &self.moves[mslot - 1];
@@ -207,7 +208,7 @@ pub const Pokemon = extern struct {
 
     /// Returns the Pokémon's original move slot located at the one-indexed `mslot`.
     pub fn move(self: anytype, mslot: u8) PointerType(@TypeOf(self), MoveSlot) {
-        assert(@typeInfo(@TypeOf(self)).Pointer.child == Pokemon);
+        assert(isPointerTo(self, Pokemon));
         assert(mslot > 0 and mslot <= 4);
         assert(self.moves[mslot - 1].id != .None);
         return &self.moves[mslot - 1];

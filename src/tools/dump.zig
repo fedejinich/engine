@@ -4,6 +4,9 @@ const pkmn = @import("pkmn");
 
 const protocol = pkmn.protocol;
 
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
+const Struct = if (@hasField(std.builtin.Type, "struct")) .@"struct" else .Struct;
+
 pub const pkmn_options = pkmn.Options{ .internal = true };
 
 const Tool = enum {
@@ -38,10 +41,10 @@ pub fn main() !void {
 
     switch (tool) {
         .markdown => {
-            inline for (@typeInfo(protocol).Struct.decls) |decl| {
+            inline for (@field(@typeInfo(protocol), @tagName(Struct)).decls) |decl| {
                 if (@TypeOf(@field(protocol, decl.name)) == type) {
                     switch (@typeInfo(@field(protocol, decl.name))) {
-                        .Enum => |e| {
+                        Enum => |e| {
                             try w.print(
                                 "## {s}\n\n<details><summary>Reason</summary>\n",
                                 .{decl.name},
@@ -60,11 +63,11 @@ pub fn main() !void {
         .protocol => {
             var outer = false;
             try w.writeAll("{\n");
-            inline for (@typeInfo(protocol).Struct.decls) |decl| {
+            inline for (@field(@typeInfo(protocol), @tagName(Struct)).decls) |decl| {
                 if (@TypeOf(@field(protocol, decl.name)) == type) {
                     if (comptime std.mem.eql(u8, decl.name, "Kind")) continue;
                     switch (@typeInfo(@field(protocol, decl.name))) {
-                        .Enum => |e| {
+                        Enum => |e| {
                             if (outer) try w.writeAll(",\n");
                             try w.print("  \"{s}\": [\n", .{decl.name});
                             var inner = false;
@@ -148,7 +151,7 @@ pub fn main() !void {
 fn print(w: anytype, name: []const u8, comptime T: type, comptime bits: bool) !void {
     try w.print("      \"{s}\": {{\n", .{name});
     var inner = false;
-    inline for (@typeInfo(T).Struct.fields) |field| {
+    inline for (@field(@typeInfo(T), @tagName(Struct)).fields) |field| {
         if (field.name[0] != '_') {
             if (inner) try w.writeAll(",\n");
             const offset = @bitOffsetOf(T, field.name);

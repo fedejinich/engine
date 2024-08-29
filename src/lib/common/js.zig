@@ -2,6 +2,8 @@ const std = @import("std");
 
 const assert = std.debug.assert;
 
+const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
+
 const c = @cImport({
     @cDefine("NAPI_VERSION", "8");
     @cInclude("node_api.h");
@@ -35,7 +37,7 @@ pub const Number = struct {
         const T = @TypeOf(value);
         var result: c.napi_value = undefined;
         assert(c.napi_ok == switch (@typeInfo(T)) {
-            .Int => |info| switch (info.bits) {
+            Int => |info| switch (info.bits) {
                 0...32 => switch (info.signedness) {
                     .signed => c.napi_create_int32(env, @as(i32, value), &result),
                     .unsigned => c.napi_create_uint32(env, @as(u32, value), &result),
@@ -50,7 +52,7 @@ pub const Number = struct {
 
     pub fn get(env: c.napi_env, value: c.napi_value, comptime T: type) T {
         switch (@typeInfo(T)) {
-            .Int => |info| switch (info.bits) {
+            Int => |info| switch (info.bits) {
                 0...32 => switch (info.signedness) {
                     .signed => {
                         var result: i32 = undefined;
