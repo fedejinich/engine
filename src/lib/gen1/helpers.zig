@@ -314,8 +314,8 @@ pub fn diff(
 
     var i: usize = 0;
     while (i < size) : (i += 2) {
-        const val = std.mem.bytesAsValue(u16, std.mem.asBytes(a)[i .. i + 2]).*;
-        if (val != std.mem.bytesAsValue(u16, std.mem.asBytes(b)[i .. i + 2]).*) {
+        const val = bytesAsValue(u16, std.mem.asBytes(a)[i .. i + 2]).*;
+        if (val != bytesAsValue(u16, std.mem.asBytes(b)[i .. i + 2]).*) {
             try w.writeByte(@intCast(i / 2));
             try w.writeInt(u16, val, endian);
         }
@@ -329,7 +329,37 @@ pub fn patch(battle: *data.Battle(data.PRNG), buf: []u8) void {
     var i: usize = 0;
     while (i < buf.len) : (i += 3) {
         const off = @as(u16, @intCast(buf[i])) * 2;
-        const val = std.mem.readInt(u16, @ptrCast(buf[i + 1 .. i + 3]), endian);
-        std.mem.writeInt(u16, @ptrCast(std.mem.asBytes(battle)[off .. off + 2]), val, endian);
+        const val = std.mem.readInt(u16, @as(*const [2]u8, @ptrCast(buf[i + 1 .. i + 3])), endian);
+        const bytes: *[2]u8 = @ptrCast(std.mem.asBytes(battle)[off .. off + 2]);
+        std.mem.writeInt(u16, bytes, val, endian);
     }
+}
+
+// NOTE: std.mem.bytesAsValue backported from ziglang/zig#18061
+fn bytesAsValue(comptime T: type, bytes: anytype) BytesAsValueReturnType(T, @TypeOf(bytes)) {
+    return @as(BytesAsValueReturnType(T, @TypeOf(bytes)), @ptrCast(bytes));
+}
+
+fn BytesAsValueReturnType(comptime T: type, comptime B: type) type {
+    return CopyPtrAttrs(B, .One, T);
+}
+
+fn CopyPtrAttrs(
+    comptime source: type,
+    comptime size: std.builtin.Type.Pointer.Size,
+    comptime child: type,
+) type {
+    const info = @typeInfo(source).Pointer;
+    return @Type(.{
+        .Pointer = .{
+            .size = size,
+            .is_const = info.is_const,
+            .is_volatile = info.is_volatile,
+            .is_allowzero = info.is_allowzero,
+            .alignment = info.alignment,
+            .address_space = info.address_space,
+            .child = child,
+            .sentinel = null,
+        },
+    });
 }

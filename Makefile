@@ -36,7 +36,10 @@ generate:
 
 .PHONY: zig-lint
 zig-lint:
-	ziglint --exclude examples/zig/example.zig,src/lib/gen1/calc.zig
+	ziglint --exclude src/lib/gen1/calc.zig,\
+	examples/zig/example.zig,\
+	examples/zig/legacy/example.zig,\
+	examples/zig/master/example.zig
 
 .PHONY: js-lint
 js-lint: node_modules
@@ -100,7 +103,7 @@ js-example: examples/js/node_modules
 
 .PHONY: zig-example
 zig-example:
-	cd examples/zig; zig build --summary all run -- 1234
+	cd examples/zig/$(shell zig run src/tools/version.zig); zig build --summary all run -- 1234
 
 .PHONY: example
 example: c-example js-example zig-example
@@ -124,7 +127,7 @@ benchmark:
 clean-example:
 	$(MAKE) clean -C examples/c
 	rm -rf examples/js/.parcel* examples/js/{build,dist}
-	rm -rf examples/zig/.zig-* examples/zig/zig-*
+	rm -rf examples/zig/*/.zig-* examples/zig/*/zig-*
 
 .PHONY: clean
 clean: clean-example

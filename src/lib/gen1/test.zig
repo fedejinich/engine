@@ -219,7 +219,7 @@ test "switching (reset)" {
 
     try expectEqual(data.Volatiles{}, p2.volatiles);
     try expectEqual(data.Boosts{}, p2.boosts);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
     try expectEqual(Status.init(.PAR), t.actual.p2.get(2).status);
 
     try expectEqual(Move.Splash, t.actual.p1.last_used_move);
@@ -249,10 +249,10 @@ test "switching (brn/par)" {
 
     try expectEqual(Result.Default, try t.update(swtch(2), swtch(2)));
 
-    try expectEqual(98, t.actual.p1.active.stats.atk);
-    try expectEqual(196, t.actual.p1.stored().stats.atk);
-    try expectEqual(46, t.actual.p2.active.stats.spe);
-    try expectEqual(184, t.actual.p2.stored().stats.spe);
+    try expectEqual(@as(u16, 98), t.actual.p1.active.stats.atk);
+    try expectEqual(@as(u16, 196), t.actual.p1.stored().stats.atk);
+    try expectEqual(@as(u16, 46), t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 184), t.actual.p2.stored().stats.spe);
 
     try t.verify();
 }
@@ -620,24 +620,24 @@ test "PP deduction" {
     defer t.deinit();
     try t.start();
 
-    try expectEqual(32, t.actual.p1.active.move(1).pp);
-    try expectEqual(32, t.actual.p1.stored().move(1).pp);
-    try expectEqual(32, t.actual.p2.active.move(1).pp);
-    try expectEqual(32, t.actual.p2.stored().move(1).pp);
+    try expectEqual(@as(u8, 32), t.actual.p1.active.move(1).pp);
+    try expectEqual(@as(u8, 32), t.actual.p1.stored().move(1).pp);
+    try expectEqual(@as(u8, 32), t.actual.p2.active.move(1).pp);
+    try expectEqual(@as(u8, 32), t.actual.p2.stored().move(1).pp);
 
     try expectEqual(Result.Default, try t.battle.actual.update(move(1), move(1), &NULL));
 
-    try expectEqual(31, t.actual.p1.active.move(1).pp);
-    try expectEqual(31, t.actual.p1.stored().move(1).pp);
-    try expectEqual(31, t.actual.p2.active.move(1).pp);
-    try expectEqual(31, t.actual.p2.stored().move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p1.active.move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p1.stored().move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p2.active.move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p2.stored().move(1).pp);
 
     try expectEqual(Result.Default, try t.battle.actual.update(move(1), move(1), &NULL));
 
-    try expectEqual(30, t.actual.p1.active.move(1).pp);
-    try expectEqual(30, t.actual.p1.stored().move(1).pp);
-    try expectEqual(30, t.actual.p2.active.move(1).pp);
-    try expectEqual(30, t.actual.p2.stored().move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p1.active.move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p1.stored().move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p2.active.move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p2.stored().move(1).pp);
 }
 
 test "accuracy (normal)" {
@@ -874,7 +874,7 @@ test "fainting (double)" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(2, t.actual.p1.active.boosts.spe);
+        try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.spe);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
         try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -1413,7 +1413,7 @@ test "Poison effect" {
 
         // Substitute blocks poison
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
-        try expectEqual(0, t.actual.p1.get(1).status);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).status);
         try if (showdown) t.expectProbability(27, 32) else t.expectProbability(1, 1);
 
         try t.log.expected.switched(.{ P2.ident(2), t.expected.p2.get(2) });
@@ -1479,11 +1479,11 @@ test "Poison effect" {
             }},
         );
         try expectEqual(Result.Default, try battle.update(.{}, .{}, &NULL));
-        try expectEqual(31, battle.side(.P2).active.stats.hp);
+        try expectEqual(@as(u16, 31), battle.side(.P2).active.stats.hp);
 
         try expectEqual(Result.Default, try battle.update(move(1), move(1), &NULL));
         for (0..29) |_| try expectEqual(Result.Default, try battle.update(move(2), move(2), &NULL));
-        try expectEqual(30, battle.side(.P2).active.volatiles.toxic);
+        try expectEqual(@as(u5, 30), battle.side(.P2).active.volatiles.toxic);
 
         try expectEqual(Result.Win, try battle.update(move(2), move(2), &NULL));
         try expect(battle.rng.exhausted());
@@ -1530,8 +1530,8 @@ test "PoisonChance effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(2)));
     // (255/256) ** 2 * (199/256) * (206/256) * (1/39) ** 2 * (204/256)
     try t.expectProbability(7552632075, 23227183136768);
-    try expectEqual(0, t.actual.p1.get(1).status);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p1.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .Substitute });
@@ -1545,7 +1545,7 @@ test "PoisonChance effect" {
     try expectEqual(Result.Default, try t.update(move(2), move(1)));
     // (255/256) * (206/256) * (1/39)
     try t.expectProbability(8755, 425984);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Scratch, P1.ident(1) });
     t.expected.p1.get(1).hp -= 46;
@@ -1619,8 +1619,8 @@ test "BurnChance effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(2)));
     // (216/256) * (255/256) * (201/256) * (206/256) * (1/39) ** 2 * (230/256)
     try t.expectProbability(1821346425, 5806795784192);
-    try expectEqual(0, t.actual.p1.get(1).status);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p1.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .Substitute });
@@ -1634,7 +1634,7 @@ test "BurnChance effect" {
     try expectEqual(Result.Default, try t.update(move(2), move(1)));
     // (216/256) * (206/256) * (1/39)
     try t.expectProbability(927, 53248);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Tackle, P1.ident(1) });
     t.expected.p1.get(1).hp -= 45;
@@ -1950,8 +1950,8 @@ test "Paralyze effect" {
 
     // Paralysis lowers speed
     try expectEqual(Status.init(.PAR), t.actual.p2.stored().status);
-    try expectEqual(79, t.actual.p2.active.stats.spe);
-    try expectEqual(318, t.actual.p2.stored().stats.spe);
+    try expectEqual(@as(u16, 79), t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 318), t.actual.p2.stored().stats.spe);
 
     try t.verify();
 }
@@ -2000,8 +2000,8 @@ test "ParalyzeChance effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(2)));
     // (255/256) ** 2 * (191/256) * (208/256) * (1/39) ** 2
     try t.expectProbability(1379975, 3489660928);
-    try expectEqual(0, t.actual.p1.get(1).status);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p1.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P1.ident(1), Move.ThunderShock, P2.ident(1) });
     t.expected.p2.get(1).hp -= 71;
@@ -2019,7 +2019,7 @@ test "ParalyzeChance effect" {
     try t.expectProbability(12219678625, 114349209288704);
 
     try expectEqual(t.expected.p1.get(1).status, t.actual.p1.get(1).status);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .Substitute });
@@ -2033,7 +2033,7 @@ test "ParalyzeChance effect" {
     try expectEqual(Result.Default, try t.update(move(2), move(3)));
     // (3/4) * (255/256) * (191/256) * (1/39)
     try t.expectProbability(48705, 3407872);
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P2.ident(1), Move.BodySlam, P1.ident(1) });
     t.expected.p1.get(1).hp -= 110;
@@ -2089,7 +2089,7 @@ test "Sleep effect" {
     // Can wake up immediately but still lose their turn
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(255, 1792); // (255/256) * (1/7)
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Spore, P2.ident(1) });
     t.expected.p2.get(1).status = Status.slp(2);
@@ -2138,7 +2138,7 @@ test "Sleep effect" {
     // Eventually wakes up
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(29161, 7667712); // (241/256) * (1/39) * (242/256) * (1/6)
-    try expectEqual(0, t.actual.p2.get(1).status);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
 
     try t.verify();
 }
@@ -2480,8 +2480,8 @@ test "StatDown effect" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(3267, 4096); // (216/256) * (242/256)
-    try expectEqual(-1, t.actual.p1.active.boosts.spe);
-    try expectEqual(-2, t.actual.p2.active.boosts.def);
+    try expectEqual(@as(i4, -1), t.actual.p1.active.boosts.spe);
+    try expectEqual(@as(i4, -2), t.actual.p2.active.boosts.def);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Tackle, P1.ident(1) });
     t.expected.p1.get(1).hp -= 22;
@@ -2503,7 +2503,7 @@ test "StatDown effect" {
     // Type immunity shouldn't matter
     try expectEqual(Result.Default, try t.update(move(1), swtch(2)));
     try t.expectProbability(27, 32); // (216/256)
-    try expectEqual(-2, t.actual.p2.active.boosts.def);
+    try expectEqual(@as(i4, -2), t.actual.p2.active.boosts.def);
 
     try t.verify();
 }
@@ -2548,7 +2548,7 @@ test "StatDownChance effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     // (255/256) ** 2 * (196/256) * (199/256) * (1/39) ** 2 * (85/256) * (171/256)
     try t.expectProbability(1024004921625, 11892317766025216);
-    try expectEqual(-1, t.actual.p1.active.boosts.spe);
+    try expectEqual(@as(i4, -1), t.actual.p1.active.boosts.spe);
 
     try t.log.expected.move(.{ P2.ident(1), Move.BubbleBeam, P1.ident(1) });
     t.expected.p1.get(1).hp -= 57;
@@ -2564,7 +2564,7 @@ test "StatDownChance effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     // (255/256) ** 2 * (196/256) * (199/256) * (1/39) ** 2 * (85/256) * (171/256)
     try t.expectProbability(1024004921625, 11892317766025216);
-    try expectEqual(-1, t.actual.p2.active.boosts.spc);
+    try expectEqual(@as(i4, -1), t.actual.p2.active.boosts.spc);
 
     try t.log.expected.move(.{ P2.ident(1), Move.BubbleBeam, P1.ident(1) });
     t.expected.p1.get(1).hp -= 39;
@@ -2628,8 +2628,8 @@ test "StatUp effect" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(1, 1);
-    try expectEqual(2, t.actual.p1.active.boosts.atk);
-    try expectEqual(1, t.actual.p2.active.boosts.def);
+    try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 1), t.actual.p2.active.boosts.def);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Cut, P2.ident(1) });
     t.expected.p2.get(1).hp -= 49;
@@ -2794,7 +2794,7 @@ test "Charge effect" {
     try expectEqual(Result.Default, try t.update(move(2), move(3)));
     try t.expectProbability(35, 128); // (140/256) * (1/2)
     try expectEqual(pp - 1, t.actual.p1.active.move(2).pp);
-    try expectEqual(2, t.actual.p1.active.volatiles.disable_move);
+    try expectEqual(@as(u4, 2), t.actual.p1.active.volatiles.disable_move);
 
     n = t.battle.actual.choices(.P1, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -3351,7 +3351,7 @@ test "Struggle effect" {
     // Struggle only becomes an option if the user has no PP left
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(1, 1);
-    try expectEqual(0, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).move(1).pp);
     const n = t.battle.actual.choices(.P2, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{move(0)}, choices[0..n]);
 
@@ -3456,7 +3456,7 @@ test "Thrashing effect" {
         try t.expectProbability(2319225, 109051904); // (255/256) ** 2 * (214/256) * (1/39)
         try expectEqual(pp - 1, t.actual.p1.active.move(1).pp);
         try expect(t.actual.p1.active.volatiles.Confusion);
-        try expectEqual(5, t.actual.p1.active.volatiles.confusion);
+        try expectEqual(@as(u3, 5), t.actual.p1.active.volatiles.confusion);
 
         var n = t.battle.actual.choices(.P1, .Move, &choices);
         try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -3477,7 +3477,7 @@ test "Thrashing effect" {
         try t.expectProbability(1, 131072); // (1/256) * (1/256)
         try expectEqual(pp - 1, t.actual.p1.active.move(1).pp);
         try expect(t.actual.p1.active.volatiles.Confusion);
-        try expectEqual(4, t.actual.p1.active.volatiles.confusion);
+        try expectEqual(@as(u3, 4), t.actual.p1.active.volatiles.confusion);
 
         n = t.battle.actual.choices(.P1, .Move, &choices);
         try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -3500,7 +3500,7 @@ test "Thrashing effect" {
         try t.expectProbability(535740975, 5806795784192);
         try expectEqual(pp - 1, t.actual.p1.active.move(1).pp);
         try expect(t.actual.p1.active.volatiles.Confusion);
-        try expectEqual(5, t.actual.p1.active.volatiles.confusion);
+        try expectEqual(@as(u3, 5), t.actual.p1.active.volatiles.confusion);
 
         n = t.battle.actual.choices(.P1, .Move, &choices);
         try expectEqualSlices(Choice, &[_]Choice{ swtch(2), move(1), move(2) }, choices[0..n]);
@@ -3586,7 +3586,7 @@ test "Thrashing effect" {
         try expectEqual(Result.Default, try t.update(forced, move(1)));
         try t.expectProbability(1, 2);
         try expect(t.actual.p1.active.volatiles.Confusion);
-        try expectEqual(5, t.actual.p1.active.volatiles.confusion);
+        try expectEqual(@as(u3, 5), t.actual.p1.active.volatiles.confusion);
 
         try t.verify();
     }
@@ -3776,7 +3776,7 @@ test "Disable effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     // (140/256) * (255/256) * (1/4) * (1/8) * (224/256) * (1/39)
     try t.expectProbability(20825, 54525952);
-    try expectEqual(0, t.actual.p2.active.volatiles.disable_move);
+    try expectEqual(@as(u4, 0), t.actual.p2.active.volatiles.disable_move);
 
     var n = t.battle.actual.choices(.P2, .Move, &choices);
     try expectEqualSlices(
@@ -3817,7 +3817,7 @@ test "Disable effect" {
     // Can be disabled for many turns
     try expectEqual(Result.Default, try t.update(move(1), move(4)));
     try t.expectProbability(245, 2048); // (140/256) * (1/4) * (7/8)
-    try expectEqual(4, t.actual.p2.active.volatiles.disable_duration);
+    try expectEqual(@as(u4, 4), t.actual.p2.active.volatiles.disable_duration);
 
     n = t.battle.actual.choices(.P2, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{ swtch(2), move(1), move(2), move(3) }, choices[0..n]);
@@ -3834,7 +3834,7 @@ test "Disable effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     // (140/256) * (255/256) * (6/7) * (224/256) * (1/39)
     try t.expectProbability(8925, 851968);
-    try expectEqual(3, t.actual.p2.active.volatiles.disable_duration);
+    try expectEqual(@as(u4, 3), t.actual.p2.active.volatiles.disable_duration);
 
     n = t.battle.actual.choices(.P2, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{ swtch(2), move(1), move(2), move(3) }, choices[0..n]);
@@ -3852,7 +3852,7 @@ test "Disable effect" {
     // Haze clears disable
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     try t.expectProbability(45475, 2555904); //  (255/256) * (214/256) * (1/39) * (5/6)
-    try expectEqual(0, t.actual.p2.active.volatiles.disable_move);
+    try expectEqual(@as(u4, 0), t.actual.p2.active.volatiles.disable_move);
 
     n = t.battle.actual.choices(.P2, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{ swtch(2), move(1), move(3), move(4) }, choices[0..n]);
@@ -3913,7 +3913,7 @@ test "Mist effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(50575, 6815744); // (255/256) * (224/256) * (1/39) * (85/256)
     try expect(t.actual.p1.active.volatiles.Mist);
-    try expectEqual(-1, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, -1), t.actual.p1.active.boosts.atk);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1) });
     t.expected.p2.get(1).hp -= 31;
@@ -3930,7 +3930,7 @@ test "Mist effect" {
     } else {
         try t.expectProbability(9095, 425984); // (255/256) * (214/256) * (1/39)
     }
-    try expectEqual(-1, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, -1), t.actual.p1.active.boosts.atk);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1) });
     t.expected.p2.get(1).hp -= 31;
@@ -3955,7 +3955,7 @@ test "Mist effect" {
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     try t.expectProbability(2319225, 109051904); // (255/256) ** 2 * (214/256) * (1/39)
     try expect(!t.actual.p1.active.volatiles.Mist);
-    try expectEqual(-1, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, -1), t.actual.p1.active.boosts.atk);
 
     try t.verify();
 }
@@ -4335,8 +4335,8 @@ test "Rest effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(255, 256);
     try expectEqual(t.expected.p2.get(1).status, t.actual.p2.get(1).status);
-    try expectEqual(49, t.actual.p2.active.stats.spe);
-    try expectEqual(198, t.actual.p2.get(1).stats.spe);
+    try expectEqual(@as(u16, 49), t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 198), t.actual.p2.get(1).stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Tackle, P2.ident(1) });
     t.expected.p2.get(1).hp -= 77;
@@ -4380,9 +4380,9 @@ test "Rest effect" {
     // Fails at full HP / Last two turns but stat penalty still remains after waking
     try expectEqual(Result.Default, try t.update(move(3), forced));
     try t.expectProbability(1, 1);
-    try expectEqual(0, t.actual.p2.get(1).status);
-    try expectEqual(49, t.actual.p2.active.stats.spe);
-    try expectEqual(198, t.actual.p2.get(1).stats.spe);
+    try expectEqual(@as(u8, 0), t.actual.p2.get(1).status);
+    try expectEqual(@as(u16, 49), t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 198), t.actual.p2.get(1).stats.spe);
 
     try t.verify();
 }
@@ -4529,7 +4529,7 @@ test "DreamEater effect" {
 
         try expectEqual(Result.Default, try t.update(move(3), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(81, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 81), t.actual.p2.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(2), Move.Rest, P2.ident(2) });
         t.expected.p2.get(2).hp += 80;
@@ -4549,7 +4549,7 @@ test "DreamEater effect" {
         try expectEqual(Result.Default, try t.update(move(1), move(2)));
         // (255/256) * (223/256) * (1/39)
         try if (showdown) t.expectProbability(1, 1) else t.expectProbability(18955, 851968);
-        try expectEqual(if (showdown) 81 else 0, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, if (showdown) 81 else 0), t.actual.p2.active.volatiles.substitute);
 
         try t.verify();
     }
@@ -4779,7 +4779,7 @@ test "Rage effect" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     // (255/256) ** 2 * (216/256) * (244/256) * (1/39) ** 2
     try t.expectProbability(11899575, 22682796032);
-    try expectEqual(1, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 1), t.actual.p1.active.boosts.atk);
 
     var n = t.battle.actual.choices(.P1, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -4796,7 +4796,7 @@ test "Rage effect" {
 
     try expectEqual(Result.Default, try t.update(forced, move(2)));
     try t.expectProbability(66555, 6815744); // (255/256) * (116/256) * (216/256) * (1/39)
-    try expectEqual(2, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.atk);
 
     n = t.battle.actual.choices(.P1, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -4812,7 +4812,7 @@ test "Rage effect" {
 
     try expectEqual(Result.Default, try t.update(forced, move(2)));
     try t.expectProbability(80325, 13631488); // (255/256) *  (140/256) * (216/256) * (1/39) * (1/2)
-    try expectEqual(3, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 3), t.actual.p1.active.boosts.atk);
 
     n = t.battle.actual.choices(.P1, .Move, &choices);
     try expectEqualSlices(Choice, &[_]Choice{forced}, choices[0..n]);
@@ -4827,7 +4827,7 @@ test "Rage effect" {
 
     try expectEqual(Result{ .p1 = .Pass, .p2 = .Switch }, try t.update(forced, move(3)));
     try t.expectProbability(7, 2048); // (7/8) * (1/256)
-    try expectEqual(4, t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 4), t.actual.p1.active.boosts.atk);
 
     try t.log.expected.switched(.{ P2.ident(2), t.expected.p2.get(2) });
     try t.log.expected.turn(.{5});
@@ -4843,7 +4843,7 @@ test "Rage effect" {
 
     try expectEqual(Result{ .p1 = .Switch, .p2 = .Pass }, try t.update(forced, move(1)));
     try t.expectProbability(8755, 425984); // (255/256) * (206/256) * (1/39)
-    try expectEqual(31, t.actual.p1.active.move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p1.active.move(1).pp);
 
     try t.verify();
 }
@@ -5089,8 +5089,8 @@ test "Haze effect" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(6183, 8192); // (216/256) * (229/256)
-    try expectEqual(278, t.actual.p1.active.stats.spe);
-    try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u16, 278), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Agility, P1.ident(1) });
     try t.log.expected.boost(.{ P1.ident(1), .Speed, 2 });
@@ -5107,9 +5107,9 @@ test "Haze effect" {
 
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     try t.expectProbability(191, 256);
-    try expectEqual(2, t.actual.p1.active.boosts.spe);
-    try expectEqual(139, t.actual.p1.active.stats.spe);
-    try expectEqual(2, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.spe);
+    try expectEqual(@as(u16, 139), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u5, 2), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P2.ident(1), Move.DoubleTeam, P2.ident(1) });
     try t.log.expected.boost(.{ P2.ident(1), .Evasion, 1 });
@@ -5125,9 +5125,9 @@ test "Haze effect" {
 
     try expectEqual(Result.Default, try t.update(move(3), move(3)));
     try t.expectProbability(63, 128); // (3/4) * (168/256)
-    try expectEqual(1, t.actual.p2.active.boosts.evasion);
+    try expectEqual(@as(i4, 1), t.actual.p2.active.boosts.evasion);
     try expect(t.actual.p2.active.volatiles.Confusion);
-    try expectEqual(3, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 3), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.activate(.{ P2.ident(1), .Confusion });
     try t.log.expected.move(.{ P2.ident(1), Move.Splash, P2.ident(1) });
@@ -5153,11 +5153,11 @@ test "Haze effect" {
     try expectEqual(Result.Default, try t.update(move(4), move(4)));
     try t.expectProbability(3, 1304); // (1/2) * (3/4) * (1/163)
     try expect(!t.actual.p1.active.volatiles.LeechSeed);
-    try expectEqual(0, t.actual.p1.active.boosts.spe);
-    try expectEqual(278, t.actual.p1.active.stats.spe);
-    try expectEqual(if (showdown) 0 else 4, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(i4, 0), t.actual.p1.active.boosts.spe);
+    try expectEqual(@as(u16, 278), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u5, if (showdown) 0 else 4), t.actual.p2.active.volatiles.toxic);
     try expect(!t.actual.p2.active.volatiles.Confusion);
-    try expectEqual(0, t.actual.p2.active.boosts.evasion);
+    try expectEqual(@as(i4, 0), t.actual.p2.active.boosts.evasion);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Metronome, P1.ident(1) });
     try t.log.expected.move(.{ P1.ident(1), Move.Ember, P2.ident(1), Move.Metronome });
@@ -5175,7 +5175,7 @@ test "Haze effect" {
     try expectEqual(Result.Default, try t.update(move(4), move(4)));
     // (3/4) * (1/163) * (255/256) * (211/256) * (1/39) * (26/256)
     try t.expectProbability(53805, 5469372416);
-    try expectEqual(if (showdown) 0 else 4, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, if (showdown) 0 else 4), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Agility, P1.ident(1) });
     try t.log.expected.boost(.{ P1.ident(1), .Speed, 2 });
@@ -5188,8 +5188,8 @@ test "Haze effect" {
     const result = Result.Default;
     try expectEqual(result, try t.update(move(2), move(4)));
     try t.expectProbability(3, 4);
-    try expectEqual(2, t.actual.p1.active.boosts.spe);
-    try expectEqual(556, t.actual.p1.active.stats.spe);
+    try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.spe);
+    try expectEqual(@as(u16, 556), t.actual.p1.active.stats.spe);
 
     try t.verify();
 }
@@ -5310,7 +5310,7 @@ test "Bide effect" {
 
         try expectEqual(Result{ .p1 = .Pass, .p2 = .Switch }, try t.update(forced, move(2)));
         try t.expectProbability(255, 512); // (255/256) * (1/2)
-        try expectEqual(14, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 14), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -5569,8 +5569,8 @@ test "MirrorMove effect" {
     try t.expectProbability(1, 1);
     try expectEqual(Move.MirrorMove, t.actual.p1.last_used_move);
     try expectEqual(Move.MirrorMove, t.actual.p2.last_used_move);
-    try expectEqual(31, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(31, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1) });
     t.expected.p2.get(1).hp -= 43;
@@ -5587,8 +5587,8 @@ test "MirrorMove effect" {
     try t.expectProbability(157020925, 362924736512);
     try expectEqual(Move.Peck, t.actual.p1.last_used_move);
     try expectEqual(Move.Peck, t.actual.p2.last_used_move);
-    try expectEqual(31, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(30, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 31), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.MirrorMove, P1.ident(1) });
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1), Move.MirrorMove });
@@ -5604,8 +5604,8 @@ test "MirrorMove effect" {
     try t.expectProbability(1847305, 4253024256);
     try expectEqual(Move.Peck, t.actual.p1.last_used_move);
     try expectEqual(Move.Swift, t.actual.p2.last_used_move);
-    try expectEqual(30, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(30, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 30), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.MirrorMove, P1.ident(1) });
     try t.log.expected.move(.{ P1.ident(1), Move.Swift, P2.ident(1), Move.MirrorMove });
@@ -5622,8 +5622,8 @@ test "MirrorMove effect" {
 
     try expectEqual(Move.Swift, t.actual.p1.last_used_move);
     try expectEqual(Move.Swift, t.actual.p2.last_used_move);
-    try expectEqual(29, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(29, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 29), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 29), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Fly, ID{} });
     try t.log.expected.laststill(.{});
@@ -5639,8 +5639,8 @@ test "MirrorMove effect" {
     try t.expectProbability(211, 9984); // (211/256) * (1/39)
     try expectEqual(Move.Swift, t.actual.p1.last_used_move);
     try expectEqual(Move.Swift, t.actual.p2.last_used_move);
-    try expectEqual(29, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(28, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 29), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 28), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Fly, P2.ident(1) });
     try t.log.expected.lastmiss(.{});
@@ -5655,8 +5655,8 @@ test "MirrorMove effect" {
     try t.expectProbability(7, 128); // (14/256)
     try expectEqual(Move.Fly, t.actual.p1.last_used_move);
     try expectEqual(Move.MirrorMove, t.actual.p2.last_used_move);
-    try expectEqual(29, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(28, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 29), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 28), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Peck, P2.ident(1) });
     try t.log.expected.lastmiss(.{});
@@ -5668,8 +5668,8 @@ test "MirrorMove effect" {
 
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(7, 128); // (14/256)
-    try expectEqual(29, t.actual.p1.get(1).move(1).pp);
-    try expectEqual(27, t.actual.p2.get(1).move(1).pp);
+    try expectEqual(@as(u8, 29), t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 27), t.actual.p2.get(1).move(1).pp);
 
     try t.log.expected.switched(.{ P2.ident(2), t.expected.p2.get(2) });
     try t.log.expected.move(.{ P1.ident(1), Move.MirrorMove, P1.ident(1) });
@@ -5681,7 +5681,7 @@ test "MirrorMove effect" {
     try t.expectProbability(1, 1);
     try expectEqual(Move.MirrorMove, t.actual.p1.last_used_move);
     try expectEqual(Move.None, t.actual.p2.last_used_move);
-    try expectEqual(28, t.actual.p1.get(1).move(1).pp);
+    try expectEqual(@as(u8, 28), t.actual.p1.get(1).move(1).pp);
 
     try t.verify();
 }
@@ -5819,8 +5819,8 @@ test "Transform effect" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(1, 1);
-    try expectEqual(2, t.actual.p1.active.boosts.atk);
-    try expectEqual(2, t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(i4, 2), t.actual.p1.active.boosts.atk);
+    try expectEqual(@as(i4, 2), t.actual.p2.active.boosts.spe);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Fly, ID{} });
     try t.log.expected.laststill(.{});
@@ -5838,7 +5838,7 @@ test "Transform effect" {
 
     try expectEqual(Species.Articuno, t.actual.p1.active.species);
     try expectEqual(t.actual.p2.active.types, t.actual.p1.active.types);
-    try expectEqual(50, t.actual.p1.get(1).level);
+    try expectEqual(@as(u8, 50), t.actual.p1.get(1).level);
 
     inline for (@typeInfo(@TypeOf(t.actual.p1.get(1).stats)).Struct.fields) |field| {
         if (!std.mem.eql(u8, field.name, "hp")) {
@@ -6007,7 +6007,7 @@ test "Substitute effect" {
     // Takes 1/4 of maximum HP to make a Substitute with that HP + 1, protects against stat down
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try if (showdown) t.expectProbability(89, 128) else t.expectProbability(1, 1); // (178/256)
-    try expectEqual(104, t.actual.p1.active.volatiles.substitute);
+    try expectEqual(@as(u8, 104), t.actual.p1.active.volatiles.substitute);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Substitute, P1.ident(1) });
     try t.log.expected.fail(.{ P1.ident(1), .Substitute });
@@ -6018,7 +6018,7 @@ test "Substitute effect" {
     // Can't make a Substitute if you already have one, absorbs damage
     try expectEqual(Result.Default, try t.update(move(1), move(2)));
     try t.expectProbability(4335, 212992); // (255/256) * (204/256) * (1/39)
-    try expectEqual(62, t.actual.p1.active.volatiles.substitute);
+    try expectEqual(@as(u8, 62), t.actual.p1.active.volatiles.substitute);
 
     try t.log.expected.switched(.{ P1.ident(2), t.expected.p1.get(2) });
     try t.log.expected.move(.{ P2.ident(1), Move.Flash, P1.ident(2) });
@@ -6039,7 +6039,7 @@ test "Substitute effect" {
     // Can get "free" Substitutes if 3 or less max HP
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(89, 128); // (178/256)
-    try expectEqual(1, t.actual.p1.active.volatiles.substitute);
+    try expectEqual(@as(u8, 1), t.actual.p1.active.volatiles.substitute);
 
     try t.verify();
 }
@@ -6299,7 +6299,7 @@ test "Disable + Bide bug" {
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(573, 1024); // (191/256) * (3/4)
     try expect(t.actual.p2.active.volatiles.Bide);
-    try expectEqual(3, t.actual.p2.active.volatiles.attacks);
+    try expectEqual(@as(u3, 3), t.actual.p2.active.volatiles.attacks);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Disable, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .Disable, Move.Bide });
@@ -6308,9 +6308,9 @@ test "Disable + Bide bug" {
 
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(245, 1024); // (140/256) * (1/2) * (7/8)
-    try expectEqual(4, t.actual.p2.active.volatiles.disable_duration);
+    try expectEqual(@as(u4, 4), t.actual.p2.active.volatiles.disable_duration);
     try expect(t.actual.p2.active.volatiles.Bide);
-    try expectEqual(3, t.actual.p2.active.volatiles.attacks);
+    try expectEqual(@as(u3, 3), t.actual.p2.active.volatiles.attacks);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
     try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -6320,9 +6320,9 @@ test "Disable + Bide bug" {
     // Bide should not execute when Disabled
     try expectEqual(Result.Default, try t.update(move(3), forced));
     try t.expectProbability(6, 7);
-    try expectEqual(3, t.actual.p2.active.volatiles.disable_duration);
+    try expectEqual(@as(u4, 3), t.actual.p2.active.volatiles.disable_duration);
     try expect(t.actual.p2.active.volatiles.Bide);
-    try expectEqual(3, t.actual.p2.active.volatiles.attacks);
+    try expectEqual(@as(u3, 3), t.actual.p2.active.volatiles.attacks);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
     try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -6332,9 +6332,9 @@ test "Disable + Bide bug" {
     // Disabled should trump paralysis
     try expectEqual(Result.Default, try t.update(move(3), forced));
     try t.expectProbability(5, 6);
-    try expectEqual(2, t.actual.p2.active.volatiles.disable_duration);
+    try expectEqual(@as(u4, 2), t.actual.p2.active.volatiles.disable_duration);
     try expect(t.actual.p2.active.volatiles.Bide);
-    try expectEqual(3, t.actual.p2.active.volatiles.attacks);
+    try expectEqual(@as(u3, 3), t.actual.p2.active.volatiles.attacks);
 
     try t.verify();
 }
@@ -6436,7 +6436,7 @@ test "Bide + Substitute bug" {
 
     try expectEqual(Result.Default, try t.update(move(2), move(1)));
     try t.expectProbability(1, 1);
-    try expectEqual(71, t.actual.p1.active.volatiles.substitute);
+    try expectEqual(@as(u8, 71), t.actual.p1.active.volatiles.substitute);
 
     try t.log.expected.move(.{ P1.ident(1), Move.SonicBoom, P2.ident(1) });
     t.expected.p2.get(1).hp -= 20;
@@ -6447,7 +6447,7 @@ test "Bide + Substitute bug" {
     try expectEqual(Result.Default, try t.update(move(1), forced));
 
     try t.expectProbability(229, 256);
-    try expectEqual(71, t.actual.p1.active.volatiles.substitute);
+    try expectEqual(@as(u8, 71), t.actual.p1.active.volatiles.substitute);
 
     try t.log.expected.move(.{ P1.ident(1), Move.SonicBoom, P2.ident(1) });
     t.expected.p2.get(1).hp -= 20;
@@ -6741,8 +6741,8 @@ test "Infinite Metronome" {
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 705911761); // (1/163) ** 4
 
-        try expectEqual(16, t.actual.p1.active.move(1).pp);
-        try expectEqual(16, t.actual.p1.active.move(1).pp);
+        try expectEqual(@as(u8, 16), t.actual.p1.active.move(1).pp);
+        try expectEqual(@as(u8, 16), t.actual.p1.active.move(1).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.SkullBash, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -6755,8 +6755,8 @@ test "Infinite Metronome" {
         try expectEqual(Result.Default, try t.update(forced, forced));
         try t.expectProbability(7, 128);
 
-        try expectEqual(15, t.actual.p1.active.move(1).pp);
-        try expectEqual(15, t.actual.p1.active.move(1).pp);
+        try expectEqual(@as(u8, 15), t.actual.p1.active.move(1).pp);
+        try expectEqual(@as(u8, 15), t.actual.p1.active.move(1).pp);
 
         try t.verify();
     }
@@ -6895,22 +6895,22 @@ test "Mimic infinite PP bug" {
         try expectEqual(Result.Default, try battle.update(.{}, .{}, &NULL));
 
         try expectEqual(Result.Default, try battle.update(move(1), move(1), &NULL));
-        try expectEqual(15, battle.side(.P2).active.move(1).pp);
-        try expectEqual(15, battle.side(.P2).get(1).move(1).pp);
-        try expectEqual(8, battle.side(.P2).active.move(2).pp);
-        try expectEqual(8, battle.side(.P2).get(1).move(2).pp);
+        try expectEqual(@as(u8, 15), battle.side(.P2).active.move(1).pp);
+        try expectEqual(@as(u8, 15), battle.side(.P2).get(1).move(1).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).active.move(2).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(1).move(2).pp);
 
         // BUG: can't implement Pokémon Showdown's negative PP so need to stop iterating early
         for (1..16) |_| try expectEqual(Result.Default, try battle.update(move(1), move(1), &NULL));
-        try expectEqual(0, battle.side(.P2).active.move(1).pp);
-        try expectEqual(0, battle.side(.P2).get(1).move(1).pp);
-        try expectEqual(8, battle.side(.P2).active.move(2).pp);
-        try expectEqual(8, battle.side(.P2).get(1).move(2).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).active.move(1).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).get(1).move(1).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).active.move(2).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(1).move(2).pp);
 
         try expectEqual(Result.Default, try battle.update(move(1), swtch(2), &NULL));
 
-        try expectEqual(0, battle.side(.P2).get(2).move(1).pp);
-        try expectEqual(8, battle.side(.P2).get(2).move(2).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).get(2).move(1).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(2).move(2).pp);
 
         try expect(battle.rng.exhausted());
     }
@@ -6930,23 +6930,23 @@ test "Mimic infinite PP bug" {
         try expectEqual(Result.Default, try battle.update(.{}, .{}, &NULL));
 
         try expectEqual(Result.Default, try battle.update(move(1), move(2), &NULL));
-        try expectEqual(8, battle.side(.P2).active.move(1).pp);
-        try expectEqual(8, battle.side(.P2).get(1).move(1).pp);
-        try expectEqual(15, battle.side(.P2).active.move(2).pp);
-        try expectEqual(15, battle.side(.P2).get(1).move(2).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).active.move(1).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(1).move(1).pp);
+        try expectEqual(@as(u8, 15), battle.side(.P2).active.move(2).pp);
+        try expectEqual(@as(u8, 15), battle.side(.P2).get(1).move(2).pp);
 
         // BUG: can't implement Pokémon Showdown's negative PP so need to stop iterating early
         for (1..16) |_| try expectEqual(Result.Default, try battle.update(move(1), move(2), &NULL));
         // BUG: Pokémon Showdown decrements the wrong slot here
-        try expectEqual(8, battle.side(.P2).active.move(1).pp);
-        try expectEqual(8, battle.side(.P2).get(1).move(1).pp);
-        try expectEqual(0, battle.side(.P2).active.move(2).pp);
-        try expectEqual(0, battle.side(.P2).get(1).move(2).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).active.move(1).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).active.move(2).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).get(1).move(2).pp);
 
         try expectEqual(Result.Default, try battle.update(move(1), swtch(2), &NULL));
 
-        try expectEqual(8, battle.side(.P2).get(2).move(1).pp);
-        try expectEqual(0, battle.side(.P2).get(2).move(2).pp);
+        try expectEqual(@as(u8, 8), battle.side(.P2).get(2).move(1).pp);
+        try expectEqual(@as(u8, 0), battle.side(.P2).get(2).move(2).pp);
 
         try expect(battle.rng.exhausted());
     }
@@ -7314,7 +7314,7 @@ test "Min/max stat recalculation bug" {
     defer t.deinit();
     try t.start();
 
-    try expectEqual(88, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 88), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.StringShot, P2.ident(1) });
     try t.log.expected.boost(.{ P2.ident(1), .Speed, -1 });
@@ -7324,8 +7324,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(121, 128); // (242/256)
-    try expectEqual(-1, t.actual.p2.active.boosts.spe);
-    try expectEqual(58, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -1), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 58), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.ThunderWave, P2.ident(1) });
     t.expected.p2.get(1).status = Status.init(.PAR);
@@ -7339,8 +7339,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     try t.expectProbability(765, 1024); // (255/256) * (3/4)
-    try expectEqual(-1, t.actual.p2.active.boosts.spe);
-    try expectEqual(14, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -1), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 14), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.StringShot, P2.ident(1) });
     try t.log.expected.boost(.{ P2.ident(1), .Speed, -1 });
@@ -7350,8 +7350,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), forced));
     try t.expectProbability(121, 128); // (242/256)
-    try expectEqual(-2, t.actual.p2.active.boosts.spe);
-    try expectEqual(44, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -2), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 44), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.StringShot, P2.ident(1) });
     try t.log.expected.boost(.{ P2.ident(1), .Speed, -1 });
@@ -7361,8 +7361,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), forced));
     try t.expectProbability(121, 128); // (242/256)
-    try expectEqual(-3, t.actual.p2.active.boosts.spe);
-    try expectEqual(35, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -3), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 35), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.StringShot, P2.ident(1) });
     try t.log.expected.boost(.{ P2.ident(1), .Speed, -1 });
@@ -7372,8 +7372,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(121, 128); // (242/256)
-    try expectEqual(-4, t.actual.p2.active.boosts.spe);
-    try expectEqual(29, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -4), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 29), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Lick, P2.ident(1) });
     t.expected.p2.get(1).hp -= 22;
@@ -7390,8 +7390,8 @@ test "Min/max stat recalculation bug" {
     try expectEqual(Result.Default, try t.update(move(3), move(2)));
     // (255/256) * (191/256) * (1/39) * (77/256) * (3/4)
     try t.expectProbability(3750285, 872415232);
-    try expectEqual(-4, t.actual.p2.active.boosts.spe);
-    try expectEqual(7, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -4), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 7), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
     try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -7420,8 +7420,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(2), move(1)));
     try t.expectProbability(765, 1024); // (255/256) * (3/4)
-    try expectEqual(-4, t.actual.p2.active.boosts.spe);
-    try expectEqual(1, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -4), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 1), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.StringShot, P2.ident(1) });
     if (showdown) {
@@ -7435,8 +7435,8 @@ test "Min/max stat recalculation bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(363, 512); // (242/256) * (3/4)
-    try expectEqual(-4, t.actual.p2.active.boosts.spe);
-    try expectEqual(1, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(i4, -4), t.actual.p2.active.boosts.spe);
+    try expectEqual(@as(u16, 1), t.actual.p2.active.stats.spe);
 
     try t.verify();
 }
@@ -7869,7 +7869,7 @@ test "Toxic counter glitches" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(2)));
     try t.expectProbability(27, 32); // (216/256)
-    try expectEqual(0, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 0), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
     try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -7878,7 +7878,7 @@ test "Toxic counter glitches" {
 
     try expectEqual(Result.Default, try t.update(move(3), forced));
     try t.expectProbability(1, 1);
-    try expectEqual(0, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 0), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.LeechSeed, P2.ident(1) });
     try t.log.expected.start(.{ P2.ident(1), .LeechSeed });
@@ -7890,7 +7890,7 @@ test "Toxic counter glitches" {
 
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(229, 256);
-    try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.FireBlast, P2.ident(1) });
     t.expected.p2.get(1).hp -= 96;
@@ -7907,7 +7907,7 @@ test "Toxic counter glitches" {
 
     try expectEqual(Result.Default, try t.update(move(4), move(1)));
     try t.expectProbability(18711, 3407872); // (216/256) * (216/256) * (1/39) * (77/256)
-    try expectEqual(3, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 3), t.actual.p2.active.volatiles.toxic);
 
     try t.verify();
 }
@@ -7943,7 +7943,7 @@ test "Poison/Burn animation with 0 HP" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(27, 32); // (216/256)
-        try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+        try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
         try t.log.expected.move(.{ P1.ident(1), Move.LeechSeed, P2.ident(1) });
         try t.log.expected.start(.{ P2.ident(1), .LeechSeed });
@@ -7991,7 +7991,7 @@ test "Poison/Burn animation with 0 HP" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(27, 32); // (216/256)
-        try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+        try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
         try t.log.expected.move(.{ P1.ident(1), Move.LeechSeed, P2.ident(1) });
         try t.log.expected.start(.{ P2.ident(1), .LeechSeed });
@@ -8036,7 +8036,7 @@ test "Poison/Burn animation with 0 HP" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(27, 32); // (216/256)
-        try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+        try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
         try t.log.expected.move(.{ P1.ident(1), Move.LeechSeed, P2.ident(1) });
         try t.log.expected.start(.{ P2.ident(1), .LeechSeed });
@@ -8224,8 +8224,8 @@ test "Division by 0" {
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 256);
 
-        try expectEqual(576, t.actual.p1.active.stats.atk);
-        try expectEqual(3, t.actual.p2.active.stats.def);
+        try expectEqual(@as(u16, 576), t.actual.p1.active.stats.atk);
+        try expectEqual(@as(u16, 3), t.actual.p2.active.stats.def);
 
         try t.log.expected.move(.{ P1.ident(2), Move.LeechLife, P2.ident(1) });
         if (showdown) {
@@ -8268,7 +8268,7 @@ test "Division by 0" {
         );
         defer t.deinit();
 
-        try expectEqual(256, t.actual.p1.get(1).stats.def);
+        try expectEqual(@as(u16, 256), t.actual.p1.get(1).stats.def);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Withdraw, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .Defense, 1 });
@@ -8289,7 +8289,7 @@ test "Division by 0" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(4845, 212992); // (255/256) * (228/256) * (1/39)
-        try expectEqual(512, t.actual.p1.active.stats.def);
+        try expectEqual(@as(u16, 512), t.actual.p1.active.stats.def);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Reflect, P1.ident(1) });
         try t.log.expected.start(.{ P1.ident(1), .Reflect });
@@ -8342,7 +8342,7 @@ test "Division by 0" {
         );
         defer t.deinit();
 
-        try expectEqual(257, t.actual.p1.get(1).stats.def);
+        try expectEqual(@as(u16, 257), t.actual.p1.get(1).stats.def);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Withdraw, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .Defense, 1 });
@@ -8363,7 +8363,7 @@ test "Division by 0" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(4845, 212992); // (255/256) * (228/256) * (1/39)
-        try expectEqual(514, t.actual.p1.active.stats.def);
+        try expectEqual(@as(u16, 514), t.actual.p1.active.stats.def);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Reflect, P1.ident(1) });
         try t.log.expected.start(.{ P1.ident(1), .Reflect });
@@ -8552,7 +8552,7 @@ test "Hyper Beam + Sleep move glitch" {
     try t.expectProbability(496701, 27262976); // (216/256) * (229/256) * (241/256) * (1/39)
     try expectEqual(t.expected.p2.get(1).status, t.actual.p2.get(1).status);
     try expect(t.actual.p2.active.volatiles.Toxic);
-    try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Hypnosis, P2.ident(1) });
     t.expected.p2.get(1).status = Status.slp(2);
@@ -8565,7 +8565,7 @@ test "Hyper Beam + Sleep move glitch" {
     try expectEqual(Result.Default, try t.update(move(2), forced));
     try t.expectProbability(6, 7);
     try expectEqual(t.expected.p2.get(1).status, t.actual.p2.get(1).status);
-    try expectEqual(1, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 1), t.actual.p2.active.volatiles.toxic);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Splash, P1.ident(1) });
     try t.log.expected.activate(.{ P1.ident(1), .Splash });
@@ -8595,7 +8595,7 @@ test "Hyper Beam + Sleep move glitch" {
     try t.expectProbability(511785, 2147483648);
     try expectEqual(t.expected.p2.get(1).status, t.actual.p2.get(1).status);
     try expect(t.actual.p2.active.volatiles.Toxic);
-    try expectEqual(2, t.actual.p2.active.volatiles.toxic);
+    try expectEqual(@as(u5, 2), t.actual.p2.active.volatiles.toxic);
 
     try t.verify();
 }
@@ -8631,7 +8631,7 @@ test "Hyper Beam automatic selection glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        try expectEqual(0, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8653,7 +8653,7 @@ test "Hyper Beam automatic selection glitch" {
         } else {
             try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
         }
-        try expectEqual(if (showdown) 0 else 63, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -8687,7 +8687,7 @@ test "Hyper Beam automatic selection glitch" {
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         // (1/163) * (40/256) * (231/256) * (229/256) * (1/39)
         try t.expectProbability(88165, 4443865088);
-        try expectEqual(0, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8709,7 +8709,7 @@ test "Hyper Beam automatic selection glitch" {
         } else {
             try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
         }
-        try expectEqual(if (showdown) 0 else 63, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -8841,8 +8841,8 @@ test "Stat modification errors" {
         defer t.deinit();
         try t.start();
 
-        try expectEqual(12, t.actual.p1.active.stats.spe);
-        try expectEqual(84, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 12), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 84), t.actual.p2.active.stats.spe);
 
         try t.log.expected.move(.{ P2.ident(1), Move.SandAttack, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .Accuracy, -1 });
@@ -8852,8 +8852,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(16065, 32768); // (255/256) * (126/256)
-        try expectEqual(12, t.actual.p1.active.stats.spe);
-        try expectEqual(21, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 12), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 21), t.actual.p2.active.stats.spe);
 
         try t.log.expected.move(.{ P2.ident(1), Move.SandAttack, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .Accuracy, -1 });
@@ -8864,8 +8864,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
         try t.expectProbability(765, 1024); // (3/4) * (255/256)
-        try expectEqual(12, t.actual.p1.active.stats.spe);
-        try expectEqual(5, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 12), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 5), t.actual.p2.active.stats.spe);
 
         try t.log.expected.move(.{ P1.ident(1), Move.Growth, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .SpecialAttack, 1 });
@@ -8876,8 +8876,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
         try t.expectProbability(765, 1024); // (3/4) * (255/256)
-        try expectEqual(12, t.actual.p1.active.stats.spe);
-        try expectEqual(1, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 12), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 1), t.actual.p2.active.stats.spe);
 
         try t.verify();
     }
@@ -8905,8 +8905,8 @@ test "Stat modification errors" {
         defer t.deinit();
         try t.start();
 
-        try expectEqual(144, t.actual.p1.pokemon[1].stats.spe);
-        try expectEqual(8, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 144), t.actual.p1.pokemon[1].stats.spe);
+        try expectEqual(@as(u16, 8), t.actual.p2.active.stats.spe);
 
         try t.log.expected.switched(.{ P1.ident(2), t.expected.p1.get(2) });
         try t.log.expected.move(.{ P2.ident(1), Move.ThunderWave, P1.ident(2) });
@@ -8915,8 +8915,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(swtch(2), move(1)));
         try t.expectProbability(255, 256);
-        try expectEqual(36, t.actual.p1.active.stats.spe);
-        try expectEqual(8, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 36), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 8), t.actual.p2.active.stats.spe);
 
         try t.log.expected.move(.{ P1.ident(2), Move.Withdraw, P1.ident(2) });
         try t.log.expected.boost(.{ P1.ident(2), .Defense, 1 });
@@ -8926,8 +8926,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(2)));
         try t.expectProbability(765, 1024); // (3/4) * (255/256)
-        try expectEqual(9, t.actual.p1.active.stats.spe);
-        try expectEqual(8, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 9), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 8), t.actual.p2.active.stats.spe);
 
         try t.log.expected.cant(.{ P1.ident(2), .Paralysis });
         try t.log.expected.move(.{ P2.ident(1), Move.TailWhip, P1.ident(2) });
@@ -8936,8 +8936,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(2)));
         try t.expectProbability(255, 1024); // (1/4) * (255/256)
-        try expectEqual(2, t.actual.p1.active.stats.spe);
-        try expectEqual(8, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 2), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 8), t.actual.p2.active.stats.spe);
 
         try t.log.expected.move(.{ P2.ident(1), Move.StringShot, P1.ident(2) });
         try t.log.expected.boost(.{ P1.ident(2), .Speed, -1 });
@@ -8946,8 +8946,8 @@ test "Stat modification errors" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(3)));
         try t.expectProbability(121, 512); // (242/256) * (1/4)
-        try expectEqual(23, t.actual.p1.active.stats.spe);
-        try expectEqual(8, t.actual.p2.active.stats.spe);
+        try expectEqual(@as(u16, 23), t.actual.p1.active.stats.spe);
+        try expectEqual(@as(u16, 8), t.actual.p2.active.stats.spe);
 
         try t.verify();
     }
@@ -8978,7 +8978,7 @@ test "Stat down modifier overflow glitch" {
         defer t.deinit();
         try t.start();
 
-        try expectEqual(342, t.actual.p2.active.stats.spc);
+        try expectEqual(@as(u16, 342), t.actual.p2.active.stats.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         try t.log.expected.boost(.{ P2.ident(1), .SpecialAttack, 2 });
@@ -8989,8 +8989,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(684, t.actual.p2.active.stats.spc);
-        try expectEqual(2, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 684), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 2), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         try t.log.expected.boost(.{ P2.ident(1), .SpecialAttack, 2 });
@@ -9001,8 +9001,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
 
-        try expectEqual(999, t.actual.p2.active.stats.spc);
-        try expectEqual(4, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 999), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 4), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         if (showdown) {
@@ -9020,8 +9020,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(999, t.actual.p2.active.stats.spc);
-        try expectEqual(5, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 999), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 5), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Recover, P2.ident(1) });
         try t.log.expected.fail(.{ P2.ident(1), .None });
@@ -9035,8 +9035,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
         try t.expectProbability(426275, 54525952); // (255/256) * (85/256) * (236/256) * (1/39)
-        try expectEqual(1026, t.actual.p2.active.stats.spc);
-        try expectEqual(4, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 1026), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 4), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Recover, P2.ident(1) });
         t.expected.p2.get(1).hp += 2;
@@ -9074,7 +9074,7 @@ test "Stat down modifier overflow glitch" {
         defer t.deinit();
         try t.start();
 
-        try expectEqual(343, t.actual.p2.active.stats.spc);
+        try expectEqual(@as(u16, 343), t.actual.p2.active.stats.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         try t.log.expected.boost(.{ P2.ident(1), .SpecialAttack, 2 });
@@ -9085,8 +9085,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(686, t.actual.p2.active.stats.spc);
-        try expectEqual(2, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 686), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 2), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         try t.log.expected.boost(.{ P2.ident(1), .SpecialAttack, 2 });
@@ -9097,8 +9097,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(1, 1);
-        try expectEqual(999, t.actual.p2.active.stats.spc);
-        try expectEqual(4, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 999), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 4), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Amnesia, P2.ident(1) });
         if (showdown) {
@@ -9115,8 +9115,8 @@ test "Stat down modifier overflow glitch" {
         try t.log.expected.turn(.{4});
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
-        try expectEqual(999, t.actual.p2.active.stats.spc);
-        try expectEqual(5, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 999), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 5), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Recover, P2.ident(1) });
         try t.log.expected.fail(.{ P2.ident(1), .None });
@@ -9130,8 +9130,8 @@ test "Stat down modifier overflow glitch" {
 
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
         try t.expectProbability(426275, 54525952); // (255/256) *  (85/256) * (236/256) * (1/39)
-        try expectEqual(1029, t.actual.p2.active.stats.spc);
-        try expectEqual(4, t.actual.p2.active.boosts.spc);
+        try expectEqual(@as(u16, 1029), t.actual.p2.active.stats.spc);
+        try expectEqual(@as(i4, 4), t.actual.p2.active.boosts.spc);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Recover, P2.ident(1) });
         t.expected.p2.get(1).hp += 2;
@@ -9183,7 +9183,7 @@ test "Struggle bypassing / Switch PP underflow" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(153, 8192); // (216/256) * (221/256) * (1/39)
-        try expectEqual(0, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
 
         const n = t.battle.actual.choices(.P1, .Move, &choices);
         try expectEqualSlices(Choice, &[_]Choice{ swtch(2), forced }, choices[0..n]);
@@ -9196,7 +9196,7 @@ test "Struggle bypassing / Switch PP underflow" {
 
         try expectEqual(Result.Default, try t.update(forced, swtch(2)));
         try t.expectProbability(153, 8192); // (216/256) * (221/256) * (1/39)
-        try expectEqual(63, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -9230,7 +9230,7 @@ test "Struggle bypassing / Switch PP underflow" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(153, 1335296); //  (1/163) * (216/256) * (221/256) * (1/39)
-        try expectEqual(0, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
 
         const n = t.battle.actual.choices(.P1, .Move, &choices);
         try expectEqualSlices(Choice, &[_]Choice{ swtch(2), forced }, choices[0..n]);
@@ -9244,7 +9244,7 @@ test "Struggle bypassing / Switch PP underflow" {
 
         try expectEqual(Result.Default, try t.update(forced, swtch(2)));
         try t.expectProbability(17, 125184); // (1/163) * (221/256) * (1/39)
-        try expectEqual(63, t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -9428,7 +9428,7 @@ test "Rage + Substitute bug" {
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     // (255/256) * (242/256) * (204/256) * (246/256) * (1/39) ** 2
     try t.expectProbability(21505935, 45365592064);
-    try expectEqual(if (showdown) 0 else 1, t.actual.p2.active.boosts.atk);
+    try expectEqual(@as(i4, if (showdown) 0 else 1), t.actual.p2.active.boosts.atk);
 
     try t.log.expected.move(.{ P2.ident(1), Move.Rage, P1.ident(1) });
     t.expected.p1.get(1).hp -= if (showdown) 28 else 42;
@@ -9442,7 +9442,7 @@ test "Rage + Substitute bug" {
     try expectEqual(Result.Default, try t.update(move(2), forced));
     // (255/256) * (242/256) * (204/256) * (10/256) * (1/39) ** 2
     try t.expectProbability(874225, 45365592064);
-    try expectEqual(if (showdown) 0 else 2, t.actual.p2.active.boosts.atk);
+    try expectEqual(@as(i4, if (showdown) 0 else 2), t.actual.p2.active.boosts.atk);
     try t.verify();
 }
 
@@ -9458,8 +9458,8 @@ test "Rage stat modification error bug" {
     defer t.deinit();
     try t.start();
 
-    try expectEqual(298, t.actual.p1.active.stats.spe);
-    try expectEqual(178, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 298), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u16, 178), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Glare, P2.ident(1) });
     t.expected.p2.get(1).status = Status.init(.PAR);
@@ -9471,8 +9471,8 @@ test "Rage stat modification error bug" {
 
     try expectEqual(Result.Default, try t.update(move(1), move(1)));
     try t.expectProbability(109443, 262144); // (191/256) ** 2 (3/4)
-    try expectEqual(74, t.actual.p1.active.stats.spe);
-    try expectEqual(44, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 74), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u16, 44), t.actual.p2.active.stats.spe);
 
     try t.log.expected.move(.{ P1.ident(1), Move.Rage, P2.ident(1) });
     t.expected.p2.get(1).hp -= 15;
@@ -9486,8 +9486,8 @@ test "Rage stat modification error bug" {
     try expectEqual(Result.Default, try t.update(move(2), move(2)));
     // (3/4) ** 2 * (255/256) ** 2 * (206/256) * (1/39)
     try t.expectProbability(20092725, 1744830464);
-    try expectEqual(74, t.actual.p1.active.stats.spe);
-    try expectEqual(if (showdown) 44 else 11, t.actual.p2.active.stats.spe);
+    try expectEqual(@as(u16, 74), t.actual.p1.active.stats.spe);
+    try expectEqual(@as(u16, if (showdown) 44 else 11), t.actual.p2.active.stats.spe);
 
     try t.verify();
 }
@@ -9618,7 +9618,7 @@ test "Substitute HP drain bug" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(15045, 16384); // (255/256) * (236/256)
-        try expectEqual(91, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 91), t.actual.p2.active.volatiles.substitute);
 
         try t.verify();
     }
@@ -9700,7 +9700,7 @@ test "Substitute + Confusion glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(35, 128); // (140/256) * (1/2)
-        try expectEqual(7, t.actual.p1.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p1.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Supersonic, P1.ident(1) });
         try t.log.expected.fail(.{ P1.ident(1), .None });
@@ -9711,7 +9711,7 @@ test "Substitute + Confusion glitch" {
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
         // (140/256) * (3/4) * (1/2) vs. (3/4) * (1/2)
         try if (showdown) t.expectProbability(105, 512) else t.expectProbability(3, 8);
-        try expectEqual(7, t.actual.p1.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p1.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Supersonic, P1.ident(1) });
         try t.log.expected.fail(.{ P1.ident(1), .None });
@@ -9724,7 +9724,7 @@ test "Substitute + Confusion glitch" {
         try expectEqual(Result.Default, try t.update(move(3), move(1)));
         // (140/256) * (2/3) * (1/2) vs.  (2/3) * (1/2)
         try if (showdown) t.expectProbability(35, 192) else t.expectProbability(1, 3);
-        try expectEqual(if (showdown) 2 else 7, t.actual.p1.active.volatiles.substitute);
+        try expectEqual(@as(u8, if (showdown) 2 else 7), t.actual.p1.active.volatiles.substitute);
 
         try t.verify();
     }
@@ -9749,7 +9749,7 @@ test "Substitute + Confusion glitch" {
 
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
         try t.expectProbability(363, 16384); // (242/256) * (234/256) * (1/39)
-        try expectEqual(7, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p2.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Supersonic, P1.ident(1) });
         try t.log.expected.start(.{ P1.ident(1), .Confusion });
@@ -9761,7 +9761,7 @@ test "Substitute + Confusion glitch" {
         // Opponent's sub doesn't take damage because confused user doesn't have one
         try expectEqual(Result.Default, try t.update(move(2), move(1)));
         try t.expectProbability(35, 128); // (140/256) * (1/2)
-        try expectEqual(7, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p2.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
         try t.log.expected.fail(.{ P2.ident(1), .Substitute });
@@ -9774,8 +9774,8 @@ test "Substitute + Confusion glitch" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(2)));
         try t.expectProbability(3, 8); // (3/4) * (1/2)
-        try expectEqual(7, t.actual.p1.active.volatiles.substitute);
-        try expectEqual(7, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p1.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p2.active.volatiles.substitute);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Substitute, P2.ident(1) });
         try t.log.expected.fail(.{ P2.ident(1), .Substitute });
@@ -9786,8 +9786,8 @@ test "Substitute + Confusion glitch" {
         // Opponent's sub takes damage for Confusion self-hit if both have one
         try expectEqual(Result.Default, try t.update(move(2), move(2)));
         try t.expectProbability(1, 3); // (2/3) * (1/2)
-        try expectEqual(7, t.actual.p1.active.volatiles.substitute);
-        try expectEqual(2, t.actual.p2.active.volatiles.substitute);
+        try expectEqual(@as(u8, 7), t.actual.p1.active.volatiles.substitute);
+        try expectEqual(@as(u8, 2), t.actual.p2.active.volatiles.substitute);
 
         try t.verify();
     }
@@ -9838,7 +9838,7 @@ test "Transform + Mirror Move/Metronome PP error" {
 
         try expectEqual(Result.Default, try t.update(move(1), move(1)));
         try t.expectProbability(255, 256);
-        try expectEqual(16, t.actual.p1.get(1).move(3).pp);
+        try expectEqual(@as(u8, 16), t.actual.p1.get(1).move(3).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Growl, P1.ident(1) });
         try t.log.expected.boost(.{ P1.ident(1), .Attack, -1 });
@@ -9849,7 +9849,7 @@ test "Transform + Mirror Move/Metronome PP error" {
 
         try expectEqual(Result.Default, try t.update(move(3), move(1)));
         try t.expectProbability(65025, 131072); // (1/2) * (255/256) ** 2
-        try expectEqual(if (showdown) 16 else 17, t.actual.p1.get(1).move(3).pp);
+        try expectEqual(@as(u8, if (showdown) 16 else 17), t.actual.p1.get(1).move(3).pp);
         try t.verify();
     }
     // Struggle softlock
@@ -9921,7 +9921,7 @@ test "Transform + Mirror Move/Metronome PP error" {
         try t.expectProbability(1, 1);
 
         n = t.battle.actual.choices(.P1, .Move, &choices);
-        try expectEqual(@intFromBool(showdown), n);
+        try expectEqual(@as(u8, @intFromBool(showdown)), n);
         if (showdown) {
             try t.log.expected.move(.{ P1.ident(1), Move.Struggle, P2.ident(1) });
             t.expected.p2.get(1).hp -= 34;

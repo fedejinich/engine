@@ -254,7 +254,7 @@ fn gcd(p: anytype, q: anytype) @TypeOf(p, q) {
 
 test gcd {
     const seed = if (@hasDecl(std.testing, "random_seed")) std.testing.random_seed else 0x12345678;
-    var prng = std.Random.DefaultPrng.init(seed);
+    var prng = (if (@hasDecl(std, "Random")) std.Random else std.rand).DefaultPrng.init(seed);
     var random = prng.random();
 
     for (0..1000) |_| {

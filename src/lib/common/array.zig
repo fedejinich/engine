@@ -5,7 +5,7 @@ const assert = std.debug.assert;
 
 /// Helpers for working with bit-packed arrays of non-powers-of-2 types.
 /// NOTE: ziglang/zig#12547
-pub fn Array(n: comptime_int, comptime U: type) type {
+pub fn Array(comptime n: comptime_int, comptime U: type) type {
     return struct {
         const size = @bitSizeOf(U);
         pub const T = @Type(.{ .Int = .{ .signedness = .unsigned, .bits = size * n } });
@@ -61,10 +61,10 @@ test Array {
     b = B.set(b, 2, .true);
     try expectEqual(Optional(bool).None, B.get(b, 1));
     try expectEqual(Optional(bool).true, B.get(b, 2));
-    try expectEqual(0b00100000, b);
+    try expectEqual(@as(u8, 0b00100000), b);
     b = B.set(b, 2, .None);
     b = B.set(b, 0, .false);
     try expectEqual(Optional(bool).None, B.get(b, 2));
     try expectEqual(Optional(bool).false, B.get(b, 0));
-    try expectEqual(0b0000001, b);
+    try expectEqual(@as(u8, 0b0000001), b);
 }

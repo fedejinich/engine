@@ -7,6 +7,8 @@ const swtch = pkmn.gen1.helpers.swtch;
 
 pub const pkmn_options = pkmn.Options{ .internal = true };
 
+const debug = false; // DEBUG
+
 pub fn main() !void {
     std.debug.assert(pkmn.options.calc and pkmn.options.chance);
 
@@ -102,7 +104,7 @@ pub fn main() !void {
 }
 
 fn format(gen: u8, stream: *pkmn.protocol.ByteStream) void {
-    if (!pkmn.options.log) return;
+    if (!pkmn.options.log or !debug) return;
     pkmn.protocol.format(switch (gen) {
         1 => pkmn.gen1,
         else => unreachable,

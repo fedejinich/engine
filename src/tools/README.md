@@ -70,3 +70,8 @@ This directory contains miscellaneous scripts and tools useful for working on th
   make it easier to debug or visualize:
 
       $ zig build transitions -Dcalc -Dchance -- <GEN> <SEED?> 2>/dev/null
+
+- [`version.zig`](version.zig): Helper to determine which version of the zig
+  [example](../../examples/zig) will build using the existing Zig version:
+
+      $ zig run src/tools/version.zig

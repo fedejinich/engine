@@ -6,6 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import minimist from 'minimist';
+import semver from 'semver';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -43,6 +44,12 @@ const TARGETS = [
   {label: 'Linux - x86_64', triple: 'x86_64-linux-musl', mcpu: 'baseline'},
   {label: 'Linux - ARM64', triple: 'aarch64-linux-musl', mcpu: 'baseline'},
 ];
+
+if (semver.gt(sh('zig', ['version'], {bypass: true}), '0.12.0-dev.866+3a47bc715')) {
+  // TODO: ziglang/zig#17768
+  console.error('Releases must only be built with a Zig compiler before v0.12.0-dev.866+3a47bc715');
+  process.exit(1);
+}
 
 try {
   sh('gh', ['auth', 'token'], {stdio: 'ignore'});
