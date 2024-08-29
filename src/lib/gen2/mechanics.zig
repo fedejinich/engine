@@ -2901,7 +2901,7 @@ pub const Rolls = struct {
     fn damage(battle: anytype, player: Player, i: u3, options: anytype) !u8 {
         _ = .{ player, options };
         const roll = if (options.calc.overridden(player, i, .damages)) |val|
-            @as(u8, val) + 216
+            val
         else roll: {
             if (showdown) break :roll battle.rng.range(u8, 217, 256);
             while (true) {
@@ -3357,11 +3357,11 @@ pub const Rolls = struct {
     }
 
     fn disableDuration(battle: anytype, player: Player, options: anytype) u4 {
-        const duration: u4 = if (options.calc.overridden(player, 0, .duration)) |val|
+        const duration: u3 = if (options.calc.overridden(player, 0, .duration)) |val|
             @intCast(val)
         else if (showdown)
             // Pokémon Showdown incorrectly inherits Generation III's Disable duration
-            battle.rng.range(u4, 2, 6)
+            battle.rng.range(u3, 2, 6)
         else duration: {
             while (true) {
                 const r = battle.rng.next() & 7;

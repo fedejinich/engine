@@ -154,7 +154,7 @@ const Null = struct {
 
 fn ReturnType(comptime field: Action.Field) type {
     return ?(switch (field) {
-        .damages => u6,
+        .damages => u8,
         .critical_hits => Optional(bool),
         else => std.meta.FieldType(Action, field),
     });

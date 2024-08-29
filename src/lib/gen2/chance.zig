@@ -111,7 +111,7 @@ test Actions {
 /// Observation made about a duration - whether the duration has started, been continued, or ended.
 pub const Observation = enum { started, continuing, ended };
 
-pub const Damages = Array(5, u6);
+pub const Damages = Array(5, u8);
 pub const Criticals = Array(5, Optional(bool));
 
 /// Information about the RNG that was observed during a Generation II battle `update` for a
@@ -164,10 +164,6 @@ pub const Action = packed struct(u128) {
     /// If not 0, the value (2-5) to return for Rolls.distribution for multi hit.
     multi_hit: u3 = 0,
 
-    _: u9 = 0,
-
-    /// If not 0, the value to by one of the Rolls.*Duration rolls.
-    duration: u4 = 0,
     sleep: Optional(Observation) = .None,
     /// TODO
     confusion: Optional(Observation) = .None,
@@ -180,6 +176,8 @@ pub const Action = packed struct(u128) {
     /// TODO
     encore: Optional(Observation) = .None,
 
+    /// If not 0, the value to by one of the Rolls.*Duration rolls.
+    duration: u3 = 0,
     /// If not None, the value to return for Rolls.conversion2.
     conversion_2: Optional(Type) = .None,
 
@@ -292,7 +290,7 @@ pub fn Chance(comptime Rational: type) type {
 
             try self.probability.update(1, 39);
             var a = self.actions.get(player);
-            a.damages = Damages.set(a.damages, i, @intCast(roll - 216));
+            a.damages = Damages.set(a.damages, i, roll);
         }
 
         pub fn confused(self: *Self, player: Player, cfz: bool) Error!void {
@@ -444,7 +442,7 @@ pub fn Chance(comptime Rational: type) type {
             self.actions.get(player).multi_hit = n;
         }
 
-        pub fn duration(self: *Self, player: Player, turns: u4) void {
+        pub fn duration(self: *Self, player: Player, turns: u3) void {
             if (!enabled) return;
 
             self.actions.get(player).duration = if (options.key) 2 else turns;
@@ -514,7 +512,7 @@ test "Chance.damage" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
     try chance.damage(.P1, 0, 219);
-    try expectValue(@as(u6, 3), Damages.get(chance.actions.p1.damages, 0));
+    try expectValue(@as(u8, 219), Damages.get(chance.actions.p1.damages, 0));
     try expectProbability(&chance.probability, 1, 39);
 }
 
@@ -783,7 +781,7 @@ test "Chance.duration" {
     var chance: Chance(rational.Rational(u64)) = .{ .probability = .{} };
 
     chance.duration(.P1, 2);
-    try expectValue(@as(u4, 2), chance.actions.p1.duration);
+    try expectValue(@as(u3, 2), chance.actions.p1.duration);
 }
 
 pub fn expectProbability(r: anytype, p: u64, q: u64) !void {
@@ -901,7 +899,7 @@ const Null = struct {
         _ = .{ self, player, move, n };
     }
 
-    pub fn duration(self: Null, player: Player, turns: u4) void {
+    pub fn duration(self: Null, player: Player, turns: u3) void {
         _ = .{ self, player, turns };
     }
 };
