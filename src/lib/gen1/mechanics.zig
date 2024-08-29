@@ -878,7 +878,7 @@ fn doMove(
 
     var late = showdown and move.effect != .Explode;
     const skip = status or immune;
-    if ((!showdown or (!skip or counter)) and !miss) blk: {
+    if ((!showdown or (!skip or counter)) and !miss) damage: {
         if (showdown and move.effect.isMulti()) {
             try Effects.multiHit(battle, player, move, options);
             hits = side.active.volatiles.attacks;
@@ -900,7 +900,7 @@ fn doMove(
                 ohko = if (!showdown) side.active.stats.spe >= foe.active.stats.spe else true;
                 // This can overflow after adjustDamage, but will still be sufficient to OHKO
                 battle.last_damage = if (ohko) 65535 else 0;
-                if (showdown) break :blk; // skip adjustDamage / randomizeDamage
+                if (showdown) break :damage; // skip adjustDamage / randomizeDamage
             } else if (!calcDamage(battle, player, player.foe(), move, crit, options)) {
                 if (!showdown) try options.chance.commit(player, .err);
                 return @as(?Result, Result.Error);

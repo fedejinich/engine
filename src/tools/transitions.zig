@@ -47,9 +47,9 @@ pub fn main() !void {
     var buf: [pkmn.LOGS_SIZE]u8 = undefined;
     var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
     var options = switch (gen) {
-        1 => blk: {
+        1 => options: {
             var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
-            break :blk pkmn.battle.options(
+            break :options pkmn.battle.options(
                 pkmn.protocol.FixedLog{ .writer = stream.writer() },
                 &chance,
                 pkmn.gen1.calc.NULL,

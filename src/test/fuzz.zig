@@ -95,7 +95,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
         std.debug.assert(!showdown or battle.side(.P2).get(1).hp > 0);
 
         switch (gen) {
-            1 => blk: {
+            1 => {
                 var chance_ = if (chance) chance: {
                     var durations = pkmn.gen1.chance.Durations{};
                     // Pokémon which start the battle sleeping must seen prior .started or
@@ -120,7 +120,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
                     &chance_,
                     pkmn.gen1.calc.NULL,
                 );
-                break :blk try run(&battle, &random, save, max, allocator, options);
+                try run(&battle, &random, save, max, allocator, options);
             },
             else => unreachable,
         }
