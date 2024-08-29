@@ -163,8 +163,10 @@ const install = async () => {
   }
 
   const index = JSON.parse(await fetch(INDEX));
-  const version = Object.keys(index)[+!ZIG_VERSION.dev];
-  const release = index[version][`${arch}-${platform}`];
+  // TODO: ziglang/zig#17768
+  // const version = Object.keys(index)[+!ZIG_VERSION.dev];
+  const version = VERSION;
+  const release = index[VERSION][`${arch}-${platform}`];
   const url = release.tarball;
 
   let base = path.basename(url);
