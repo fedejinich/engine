@@ -20,8 +20,6 @@ const ResolvedTarget =
     if (@hasDecl(std.Build, "ResolvedTarget")) std.Build.ResolvedTarget else std.zig.CrossTarget;
 
 pub fn module(b: *std.Build, options: Options) *std.Build.Module {
-    if (!has_path) @panic("Use build.zig.zon package management");
-
     const dirname = comptime std.fs.path.dirname(@src().file) orelse ".";
     const build_options = b.addOptions();
     build_options.addOption(?bool, "showdown", options.showdown);
