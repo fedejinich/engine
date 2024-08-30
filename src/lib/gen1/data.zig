@@ -256,7 +256,7 @@ pub const Status = enum(u8) {
 
     pub const TOX = 0b10001000;
 
-    const SLP = 0b111;
+    const SLEEP = 0b111;
 
     /// Whether or not the status `num` is the same as `status`.
     pub fn is(num: u8, status: Status) bool {
@@ -284,7 +284,7 @@ pub const Status = enum(u8) {
 
     /// Returns the duration of a sleep status.
     pub fn duration(num: u8) u3 {
-        return @intCast(num & SLP);
+        return @intCast(num & SLEEP);
     }
 
     /// Returns whether `num` reflects any status.
