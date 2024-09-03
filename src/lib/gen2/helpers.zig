@@ -2,7 +2,6 @@ const std = @import("std");
 
 const common = @import("../common/data.zig");
 const options = @import("../common/options.zig");
-const protocol = @import("../common/protocol.zig");
 const rng = @import("../common/rng.zig");
 
 const gen1 = @import("../gen1/data.zig");
@@ -10,8 +9,6 @@ const gen1 = @import("../gen1/data.zig");
 const data = @import("data.zig");
 
 const assert = std.debug.assert;
-
-const expectEqual = std.testing.expectEqual;
 
 const Choice = common.Choice;
 
@@ -25,7 +22,6 @@ const Move = data.Move;
 const MoveSlot = data.MoveSlot;
 const Species = data.Species;
 const Stats = data.Stats;
-const Status = data.Status;
 
 const Struct = if (@hasField(std.builtin.Type, "struct")) .@"struct" else .Struct;
 

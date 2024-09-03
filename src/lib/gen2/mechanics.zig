@@ -6,7 +6,6 @@ const common = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
 const protocol = @import("../common/protocol.zig");
 const rng = @import("../common/rng.zig");
-const util = @import("../common/util.zig");
 
 const data = @import("data.zig");
 const generated = @import("generated.zig");
@@ -34,17 +33,12 @@ const Start = protocol.Start;
 
 const Gen12 = rng.Gen12;
 
-const PointerType = util.PointerType;
-
 const ActivePokemon = data.ActivePokemon;
 const Boosts = data.Boosts;
 const Effectiveness = data.Effectiveness;
 const Item = data.Item;
 const Move = data.Move;
-const MoveSlot = data.MoveSlot;
-const Pokemon = data.Pokemon;
 const Side = data.Side;
-const Species = data.Species;
 const Stats = data.Stats;
 const Status = data.Status;
 const TriAttack = data.TriAttack;
