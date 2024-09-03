@@ -39,7 +39,7 @@ zig-lint:
 	ziglint --exclude src/lib/gen1/calc.zig,\
 	examples/zig/example.zig,\
 	examples/zig/legacy/example.zig,\
-	examples/zig/master/example.zig
+	examples/zig/modern/example.zig
 
 .PHONY: js-lint
 js-lint: node_modules
