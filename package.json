@@ -72,19 +72,19 @@
   },
   "publishConfig": {"access": "public"},
   "dependencies": {
-    "@pkmn/data": "^0.9.11",
-    "@pkmn/protocol": "^0.6.25"
+    "@pkmn/data": "^0.9.13",
+    "@pkmn/protocol": "^0.6.26"
   },
   "devDependencies": {
-    "@pkmn/eslint-config": "^8.1.0",
-    "@pkmn/img": "^0.2.31",
+    "@pkmn/eslint-config": "^8.3.0",
+    "@pkmn/img": "^0.2.32",
     "@pkmn/sets": "^5.1.2",
-    "@pkmn/sim": "0.9.11",
+    "@pkmn/sim": "0.9.13",
     "@types/html-minifier": "^4.0.5",
     "@types/jest": "^29.5.12",
     "@types/minimist": "^1.2.5",
     "@types/mustache": "^4.2.5",
-    "@types/node": "^22.0.2",
+    "@types/node": "^22.5.3",
     "@types/semver": "^7.5.8",
     "@vitest/coverage-v8": "^2.0.5",
     "binaryen": "^118.0.0",
