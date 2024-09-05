@@ -124,8 +124,8 @@ function play(
   debug?: boolean,
   errors?: Errors,
 ) {
-  let c1 = engine.Choice.pass();
-  let c2 = engine.Choice.pass();
+  let c1 = engine.Choice.pass;
+  let c2 = engine.Choice.pass;
 
   const frames: {pkmn: Frame[]; showdown: Frame[]} = {pkmn: [], showdown: []};
   const partial: {
@@ -177,7 +177,7 @@ function play(
         const player = players![id];
         const request = control[id].activeRequest;
         if (!request || request.wait) {
-          chose[id] = engine.Choice.pass();
+          chose[id] = engine.Choice.pass;
         } else {
           player.receiveRequest(request);
           const c = engine.Choice.format(chose[id]);
@@ -571,7 +571,7 @@ function fromInputLog(
   // choice was by processing the input log
   const initial = (player: engine.Player) =>
     (!options[player].length || options[player].length === 1 && options[player][0].type === 'pass')
-      ? engine.Choice.pass() : undefined;
+      ? engine.Choice.pass : undefined;
 
   const choices: {p1: engine.Choice | undefined; p2: engine.Choice | undefined} =
     {p1: initial('p1'), p2: initial('p2')};

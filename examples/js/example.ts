@@ -90,7 +90,7 @@ const choose = random.next.bind(random);
 // For convenience the engine actually is written so that passing in undefined
 // is equivalent to Choice.pass() but to appease the TypeScript compiler we're
 // going to be explicit here
-let result: Result, c1 = Choice.pass(), c2 = Choice.pass();
+let result: Result, c1 = Choice.pass, c2 = Choice.pass;
 while (!(result = battle.update(c1, c2)).type) {
   // If -Dlog is enabled we can parse and output the resulting logs since we
   // initialized the battle to support logging (both `-Dlog` *and* `log: true`

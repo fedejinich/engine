@@ -31,14 +31,14 @@ for (const gen of new Generations(Dex as any)) {
     });
 
     test('Choice.encode', () => {
-      expect(Choice.encode()).toBe(Choice.encode(Choice.pass()));
+      expect(Choice.encode()).toBe(Choice.encode(Choice.pass));
       expect(Choice.encode(Choice.move(4))).toBe(0b0001_0001);
       expect(Choice.encode(Choice.switch(5))).toBe(0b0001_0110);
     });
 
     test('Choice.parse', () => {
       expect(() => Choice.parse('foo')).toThrow('Invalid choice');
-      expect(Choice.parse('pass')).toEqual(Choice.pass());
+      expect(Choice.parse('pass')).toEqual(Choice.pass);
       expect(() => Choice.parse('pass 2')).toThrow('Invalid choice');
       expect(Choice.parse('move 2')).toEqual(Choice.move(2));
       expect(Choice.parse('move 0')).toEqual(Choice.move(0));
@@ -48,7 +48,7 @@ for (const gen of new Generations(Dex as any)) {
     });
 
     test('Choice.format', () => {
-      expect(Choice.format(Choice.pass())).toBe('pass');
+      expect(Choice.format(Choice.pass)).toBe('pass');
       expect(Choice.format(Choice.move(2))).toBe('move 2');
       expect(Choice.format(Choice.switch(4))).toBe('switch 4');
     });

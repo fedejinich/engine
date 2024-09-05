@@ -237,8 +237,8 @@ const CONFIGURATIONS: {[name: string]: Configuration} = {
         p = new PRNG(newSeed(prng));
         const p2 = p.next.bind(p);
 
-        let c1 = engine.Choice.pass();
-        let c2 = engine.Choice.pass();
+        let c1 = engine.Choice.pass;
+        let c2 = engine.Choice.pass;
 
         let result: engine.Result;
         const begin = process.hrtime.bigint();

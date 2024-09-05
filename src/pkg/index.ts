@@ -388,7 +388,6 @@ export class Choice {
   /** All valid choices types. */
   static Types = ['pass', 'move', 'switch'] as const;
 
-  protected static PASS = {type: 'pass', data: 0} as const;
   protected static MATCH = /^(?:(pass)|((move) ([0-4]))|((switch) ([2-6])))$/;
 
   private constructor() {}
@@ -422,10 +421,8 @@ export class Choice {
     return choice.type === 'pass' ? choice.type : `${choice.type} ${choice.data}`;
   }
 
-  /** Returns the "pass" `Choice`. */
-  static pass(): Choice {
-    return Choice.PASS;
-  }
+  /** The canonical "pass" `Choice`. */
+  static pass: Choice = {type: 'pass', data: 0} as const;
 
   /** Returns a "move" `Choice` with the provided data. */
   static move(data: 0 | 1 | 2 | 3 | 4): Choice {
