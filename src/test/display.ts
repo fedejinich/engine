@@ -94,7 +94,7 @@ class SpeciesNames implements Info {
   }
 }
 
-export type Frame = {
+type Frame = {
   result: Result;
   c1: Choice;
   c2: Choice;
@@ -336,9 +336,6 @@ function displayPokemon(
   last?: Pokemon,
 ) {
   const buf = [];
-
-  const divPokemon = document.createElement('div');
-  divPokemon.classList.add('pokemon');
   buf.push('<div class="pokemon">');
   const species = active ? pokemon.species : pokemon.stored.species;
 
@@ -493,68 +490,43 @@ function getHP(pokemon: Pokemon) {
 }
 
 function displayStatus(pokemon: Pokemon) {
-  const span = document.createElement('span');
-  span.classList.add('status', pokemon.status === 'tox' ? 'psn' : pokemon.status!);
-  let title = '';
-  if (pokemon.statusData.sleep) title += `Sleep: ${pokemon.statusData.sleep}`;
+  const c = pokemon.status === 'tox' ? 'psn' : pokemon.status!;
+  let t = '';
+  if (pokemon.statusData.sleep) t += `Sleep: ${pokemon.statusData.sleep}`;
   if (pokemon.status === 'tox' || pokemon.statusData.toxic) {
-    title += `${title ? ' ' : ''}Toxic: ${pokemon.statusData.toxic}`;
+    t += `Toxic: ${pokemon.statusData.toxic}`;
   }
-  if (title) span.title = title;
-  span.textContent = pokemon.statusData.self ? 'slf' : pokemon.status!;
-  return span;
+  if (t) t = `title="${t}"`;
+  const s = pokemon.statusData.self ? 'slf' : pokemon.status!;
+  return `<span class="status ${c}" ${t}>${s}</span>`;
 }
 
 function displayStat(stat: number, boost: number) {
-  const span = document.createElement('span');
-  if (!boost) {
-    span.textContent = stat.toString();
-  } else if (boost > 0) {
-    span.classList.add('good');
-    span.textContent = `${stat} (+${boost})`;
-  } else {
-    span.classList.add('bad');
-    span.textContent = `${stat} (${boost})`;
-  }
-  return span;
+  if (!boost) return `${stat}`;
+  if (boost > 0) return `<span class="good">${stat} (+${boost})</span>`;
+  return `<span class="bad">${stat} (${boost})</span>`;
 }
 
 function displayBoost(boost: number) {
-  const span = document.createElement('span');
-  span.classList.add(boost > 0 ? 'good' : 'bad');
-  span.textContent = boost.toString();
-  return span;
+  if (boost > 0) return `<span class="good">+${boost}</span>`;
+  return `<span class="bad">${boost}</span>`;
 }
 
 function icon(side: 'p1' | 'p2', pokemon: Pokemon) {
   const fainted = pokemon.hp === 0;
   const icon = Icons.getPokemon(pokemon.stored.species, {side, fainted, domain: 'pkmn.cc'});
-  const span = document.createElement('span');
-  for (const attr in icon.css) span.style[attr as any] = icon.css[attr];
-  return span;
+  return `<span style="${icon.style}"></span>`;
 }
 
 function sprite(showdown: boolean, species: ID, fainted: boolean) {
   const s = Sprites.getPokemon(species, {gen: showdown ? 'gen1' : 'gen1rb'});
-  const img = document.createElement('img');
-  img.src = s.url;
-  img.width = s.w;
-  img.height = s.h;
-  if (s.pixelated) img.style.imageRendering = 'pixelated';
-  if (fainted) {
-    img.style.opacity = '0.3';
-    img.style.filter = 'grayscale(100%) brightness(.5)';
-  }
-  return img;
+  let style = s.pixelated ? 'image-rendering: pixelated;' : '';
+  if (fainted) style += 'opacity: 0.3; filter: grayscale(100%) brightness(.5);';
+  return `<img class="sprite" src="${s.url}" width="${s.w}" height="${s.h}" style="${style}" />`;
 }
 
 function typicon(type: TypeName) {
   const i = Icons.getType(type);
-  const img = document.createElement('img');
-  img.classList.add('icon');
-  img.src = i.url;
-  img.width = i.w;
-  img.height = i.h;
-  img.style.imageRendering = 'pixelated';
-  return img;
+  const style = 'image-rendering: pixelated;';
+  return `<img class="icon" src="${i.url}" width="${i.w}" height="${i.h}" style="${style}" />`;
 }
