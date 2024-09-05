@@ -9,7 +9,7 @@ import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 
 import {LE} from '../pkg/data';
-import {display} from '../test/display';
+import {display} from '../tools/display';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const sh = promisify(execFile);

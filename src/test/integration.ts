@@ -13,14 +13,29 @@ import minimist from 'minimist';
 
 import * as engine from '../pkg';
 import * as addon from '../pkg/addon';
+import * as display from '../tools/display';
 
-import {Frame, render, toText} from './display';
 import {Choices, FILTER, formatFor, patch} from './showdown';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const ANSI = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 const CWD = process.env.INIT_CWD || process.env.CWD || process.cwd();
+
+const debug = (s: string) => s.startsWith('|debug')
+  ? /^\|debug\|[^|]*:\d/.test(s) ? 'class="debug rng"'
+  : 'class="debug"' : '';
+
+interface Frame {
+  pkmn: display.Frame;
+  showdown: {
+    result: engine.Result;
+    c1: engine.Choice;
+    c2: engine.Choice;
+    seed: number[];
+    chunk: string;
+  };
+}
 
 type RunnerOptions = sim.RunnerOptions & {usage: sim.ExhaustiveRunnerUsageTracker; errors?: Errors};
 class Runner {
@@ -127,10 +142,13 @@ function play(
   let c1 = engine.Choice.pass;
   let c2 = engine.Choice.pass;
 
-  const frames: {pkmn: Frame[]; showdown: Frame[]} = {pkmn: [], showdown: []};
+  const frames: {pkmn: Frame['pkmn'][]; showdown: Frame['showdown'][]} = {pkmn: [], showdown: []};
   const partial: {
-    pkmn: Partial<Frame> & {battle?: engine.Data<engine.Battle>; parsed?: engine.ParsedLine[]};
-    showdown: Partial<Frame> & {seed?: number[]; chunk?: string};
+    pkmn: Partial<Frame['pkmn']> & {
+      battle?: engine.Data<engine.Battle>;
+      parsed?: engine.ParsedLine[];
+    };
+    showdown: Partial<Frame['showdown']> & {seed?: number[]; chunk?: string};
   } = {pkmn: {c1, c2}, showdown: {c1, c2}};
 
   // We can't pass p1/p2 via BattleOptions because that would cause the battle to
@@ -249,9 +267,9 @@ function play(
       invalid = valid(result, 'p2', c2);
       assert.ok(!invalid, invalid);
 
-      frames.showdown.push(partial.showdown as Frame);
+      frames.showdown.push(partial.showdown as Frame['showdown']);
       partial.showdown = {};
-      frames.pkmn.push(partial.pkmn as Frame);
+      frames.pkmn.push(partial.pkmn as Frame['pkmn']);
       partial.pkmn = {};
     } while (!control.ended);
 
@@ -296,8 +314,8 @@ function dump(
   error: string,
   seed: bigint,
   input: string[],
-  frames: {pkmn: Frame[]; showdown: Frame[]},
-  partial: {pkmn: Partial<Frame>; showdown: Partial<Frame>}
+  frames: {pkmn: Frame['pkmn'][]; showdown: Frame['showdown'][]},
+  partial: {pkmn: Partial<Frame['pkmn']>; showdown: Partial<Frame['showdown']>}
 ) {
   const color = (s: string) => tty.isatty(2) ? `\x1b[36m${s}\x1b[0m` : s;
   const box = (s: string) =>
@@ -320,13 +338,61 @@ function dump(
 
   file = path.join(dir, `${hex}.pkmn.html`);
   link = path.join(dir, 'pkmn.html');
-  fs.writeFileSync(file, render(gen, true, error, seed, frames.pkmn, partial.pkmn));
+  fs.writeFileSync(file, display.renderFrames(gen, true, error, seed, frames.pkmn, partial.pkmn));
   console.error(' ◦ @pkmn/engine:', pretty(symlink(file, link)), '->', pretty(file));
 
   file = path.join(dir, `${hex}.showdown.html`);
   link = path.join(dir, 'showdown.html');
-  fs.writeFileSync(file, render(gen, true, error, seed, frames.showdown, partial.showdown));
+  fs.writeFileSync(file, displayShowdown(error, seed, frames.showdown, partial.showdown));
   console.error(' ◦ Pokémon Showdown:', pretty(symlink(file, link)), '->', pretty(file), '\n');
+}
+
+function displayShowdown(
+  error: string | undefined,
+  seed: bigint | undefined,
+  frames: Iterable<Frame['showdown']>,
+  partial: Partial<Frame['showdown']> = {},
+) {
+  const output: string[] = [];
+  const buf = [];
+  if (seed) buf.push(`<h1>0x${seed.toString(16).toUpperCase()}</h1>`);
+
+  for (const frame of frames) {
+    buf.push(displayShowdownFrame(frame));
+    output.push(frame.chunk);
+  }
+  buf.push(displayShowdownFrame(partial));
+
+  if (error) buf.push(display.error(error));
+
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'test', 'showdown.html.tmpl'), 'utf8');
+  return display.render(template, {
+    seed: buf.shift(),
+    content: buf.join(''),
+    output: output.join('\n'),
+  });
+}
+
+function displayShowdownFrame(partial: Partial<Frame['showdown']>) {
+  const buf = [];
+  if (partial.chunk) {
+    buf.push('<div class="log"><pre>');
+    for (const line of partial.chunk.split('\n')) {
+      buf.push(`<code ${debug(line)}>${line}</code><br />`);
+    }
+    buf.push('</pre></div>');
+  }
+  if ('seed' in partial && partial.seed) {
+    buf.push(`<div class="seed">${partial.seed.join(', ')}</div>`);
+  }
+  if (partial.result) {
+    const {result, c1, c2} = partial;
+    buf.push('<div class="sides" style="text-align: center;">');
+    buf.push(`<pre class="side"><code>${result.p1} -&gt; ${display.pretty(c1)}</code></pre>`);
+    buf.push(`<pre class="side"><code>${result.p2} -&gt; ${display.pretty(c2)}</code></pre>`);
+    buf.push('</div>');
+  }
+  return buf.join('');
 }
 
 function symlink(from: string, to: string) {
@@ -352,7 +418,7 @@ type Writeable<T> = {-readonly [P in keyof T]: T[P]};
 //     information that requires additional state to support
 //
 function compare(chunk: string, actual: engine.ParsedLine[]) {
-  const diff = `\n\n${toText(actual)}\n\nvs. expected:\n\n${chunk}\n`;
+  const diff = `\n\n${display.toText(actual)}\n\nvs. expected:\n\n${chunk}\n`;
   const buf: engine.ParsedLine[] = [];
   let i = 0;
   for (const {args, kwArgs} of Protocol.parse(chunk)) {
