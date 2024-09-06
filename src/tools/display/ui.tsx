@@ -1,7 +1,9 @@
-import {BoostID, Generation, GenerationNum, StatID, TypeName} from '@pkmn/data';
+import * as pkmn from '@pkmn/data';
 import {Icons, Sprites} from '@pkmn/img';
 
 import * as data from '../../pkg';
+import {LAYOUT, LE} from '../../pkg/data';
+import * as gen1 from '../../pkg/gen1';
 
 import * as util from './util';
 
@@ -27,42 +29,165 @@ const VOLATILES: {[id in keyof data.Pokemon['volatiles']]: [string, 'good' | 'ba
   transform: ['Transformed', 'neutral'],
 };
 
-export class Gen {
-  num: GenerationNum;
-  species: {[id: string]: string};
-  moves: {[id: string]: {name: string; maxpp: number; basePower: number; type: TypeName}};
+interface Generation {
+  num: pkmn.GenerationNum;
+  species: {
+    get(id: pkmn.ID): Species & {id: pkmn.ID} | undefined;
+    [Symbol.iterator](): Generator<Species & {id: pkmn.ID}, void>;
+  };
+  moves: {
+    get(id: pkmn.ID): Move & {id: pkmn.ID} | undefined;
+    [Symbol.iterator](): Generator<Move & {id: pkmn.ID}, void>;
+  };
+}
 
-  constructor(battle: data.Data<data.Battle>, gen: Generation) {
-    this.num = gen.num;
-    this.species = {};
-    this.moves = {};
-    for (const side of battle.sides) {
-      for (const pokemon of side.pokemon) {
-        // BUG: forme changes!
-        this.species[pokemon.species] = gen.species.get(pokemon.species)!.name;
-        for (const move of pokemon.moves) {
-          const m = gen.moves.get(move.id)!;
-          this.moves[move.id] = {
-            name: m.name,
-            maxpp: Math.min(m.pp / 5 * 8, gen.num === 1 ? 61 : 64),
-            basePower: m.basePower,
-            type: m.type,
-          };
-        }
-      }
+interface Species {
+  name: pkmn.SpeciesName;
+  num: number;
+  genderRatio: {M: number; F: number};
+  gender?: pkmn.GenderName;
+}
+
+interface Move {
+  name: pkmn.MoveName;
+  num: number;
+  maxpp: number;
+  basePower: number;
+  type: pkmn.TypeName;
+}
+
+class Gen implements Generation {
+  num: pkmn.GenerationNum;
+  species: API<Species>;
+  moves: API<Move>;
+
+  constructor(json: {
+    num: pkmn.GenerationNum;
+    species: {[id: string]: Species};
+    moves: {[id: string]: Move};
+  }) {
+    this.num = json.num;
+    this.species = new API(json.species);
+    this.moves = new API(json.moves);
+  }
+}
+
+class API<T> {
+  raw: {[id: string]: T};
+
+  constructor(raw: {[id: string]: T}) {
+    this.raw = raw;
+  }
+
+  get(id: pkmn.ID) {
+    return {id, ...this.raw[id]};
+  }
+
+  *[Symbol.iterator]() {
+    for (const id in this.raw) {
+      yield this.get(id as pkmn.ID);
     }
   }
 }
 
-export const Frame = ({frame, gen, showdown, last}: {
-  frame: Partial<{
-    result: data.Result;
-    c1: data.Choice;
-    c2: data.Choice;
-    battle: data.Data<data.Battle>;
-    parsed: data.ParsedLine[];
-  }>;
-  gen: Gen;
+class SpeciesNames implements data.Info {
+  gen: Generation;
+  battle: data.Battle;
+
+  constructor(gen: Generation, battle: data.Battle) {
+    this.gen = gen;
+    this.battle = battle;
+  }
+
+  get p1() {
+    const [p1] = Array.from(this.battle.sides);
+    const team = Array.from(p1.pokemon)
+      .sort((a, b) => a.position - b.position)
+      .map(p => ({species: p.stored.species}));
+    return new data.SideInfo(this.gen, {name: 'Player 1', team});
+  }
+
+  get p2() {
+    const [, p2] = Array.from(this.battle.sides);
+    const team = Array.from(p2.pokemon)
+      .sort((a, b) => a.position - b.position)
+      .map(p => ({species: p.stored.species}));
+    return new data.SideInfo(this.gen, {name: 'Player 2', team});
+  }
+}
+
+interface Foo {
+  result: data.Result;
+  c1: data.Choice;
+  c2: data.Choice;
+  battle: data.Data<data.Battle>;
+  parsed: data.ParsedLine[];
+}
+
+const App = ({gen, view, error, seed}: {
+  gen: Generation;
+  view: DataView;
+  error?: string;
+  seed?: bigint;
+}) => {
+  let offset = 0;
+  const showdown = !!view.getUint8(offset += 2);
+  const N = view.getUint16(offset, LE);
+  offset += 2;
+
+  const lookup = data.Lookup.get(gen);
+  const size = LAYOUT[gen.num - 1].sizes.Battle;
+  const deserialize = (d: DataView): data.Battle => {
+    switch (gen.num) {
+      case 1: return new gen1.Battle(lookup, d, {showdown});
+      default: throw new Error(`Unsupported gen: ${gen.num}`);
+    }
+  };
+
+  const battle = deserialize(new DataView(view.buffer, offset, offset += size));
+  const names = new SpeciesNames(gen, battle);
+  const log = new data.Log(gen, lookup, names);
+
+  let partial: Partial<Foo> | undefined = undefined;
+  const last: data.Data<data.Battle> | undefined = undefined;
+  const frames: JSX.Element[] = [];
+  while (offset < view.byteLength) {
+    partial = {parsed: []};
+    const it = log.parse(new DataView(view.buffer, offset))[Symbol.iterator]();
+    let r = it.next();
+    while (!r.done) {
+      partial.parsed!.push(r.value);
+      r = it.next();
+    }
+    offset += N || r.value;
+    if (offset >= view.byteLength) break;
+
+    partial.battle = deserialize(new DataView(view.buffer, offset, offset += size));
+    if (offset >= view.byteLength) break;
+
+    partial.result = data.Result.decode(view.getUint8(offset++));
+    if (offset >= view.byteLength) break;
+
+    partial.c1 = data.Choice.decode(view.getUint8(offset++));
+    if (offset >= view.byteLength) break;
+
+    partial.c2 = data.Choice.decode(view.getUint8(offset++));
+
+    frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
+    partial = undefined;
+  }
+  frames.push(<Frame frame={partial || {}} gen={gen} showdown={showdown} last={last} />);
+
+  return <div className='content'>
+    {!!seed && <h1>0x{seed.toString(16).toUpperCase()}</h1>}
+    {frames}
+    {error && <pre className='error'><code>{error}</code></pre>}
+  </div>;
+};
+
+const Frame = ({frame, gen, showdown, last}: {
+  frame: Partial<Foo>;
+  gen: Generation;
   showdown: boolean;
   last?: data.Data<data.Battle>;
 }) => <div className='frame'>
@@ -76,9 +201,9 @@ export const Frame = ({frame, gen, showdown, last}: {
   </div>}
 </div>;
 
-export const Battle = ({battle, gen, showdown, last}: {
+const Battle = ({battle, gen, showdown, last}: {
   battle: data.Data<data.Battle>;
-  gen: Gen;
+  gen: Generation;
   showdown: boolean;
   last?: data.Data<data.Battle>;
 }) => {
@@ -99,21 +224,20 @@ export const Battle = ({battle, gen, showdown, last}: {
   </div>;
 };
 
-export const Side = ({side, battle, player, gen, showdown, last}: {
+const Side = ({side, battle, player, gen, showdown, last}: {
   side: data.Side;
   battle: data.Data<data.Battle>;
   player: 'p1' | 'p2';
-  gen: Gen;
+  gen: Generation;
   showdown: boolean;
   last?: data.Side;
 }) => {
   let header = undefined;
   if (battle.turn) {
-    const used = side.lastUsedMove ? gen.moves[side.lastUsedMove].name : <em>None</em>;
-    const selected = side.lastSelectedMove ? gen.moves[side.lastSelectedMove] : undefined;
+    const used = side.lastUsedMove ? gen.moves.get(side.lastUsedMove)!.name : <em>None</em>;
+    const selected = side.lastSelectedMove ? gen.moves.get(side.lastSelectedMove) : undefined;
     const move = selected?.name ?? <em>None</em>;
-    const counterable = !!selected && selected.basePower > 0 &&
-      side.lastSelectedMove !== 'counter' &&
+    const counterable = !!selected && selected.basePower > 0 && selected.id !== 'counter' &&
       (selected.type === 'Normal' || selected.type === 'Fighting');
     const mismatch = counterable !== side.lastMoveCounterable ? '*' : '';
     const index = side.lastMoveIndex ? ` (${side.lastMoveIndex})` : '';
@@ -171,11 +295,11 @@ export const Side = ({side, battle, player, gen, showdown, last}: {
   </div>;
 };
 
-export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
+const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   pokemon: data.Pokemon;
   battle: data.Data<data.Battle>;
   active: boolean;
-  gen: Gen;
+  gen: Generation;
   showdown: boolean;
   last?: data.Pokemon;
 }) => {
@@ -185,8 +309,8 @@ export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   for (const stat of STATS) {
     if (gen.num === 1 && stat === 'spd') continue;
     ths.push(<th>{DISPLAY[gen.num === 1 && stat === 'spa' ? 'spc' : stat]}</th>);
-    const boost = active ? pokemon.boosts[stat as BoostID] : 0;
-    tds.push(<td><Stat value={stats[stat as StatID]} boost={boost} /></td>);
+    const boost = active ? pokemon.boosts[stat as pkmn.BoostID] : 0;
+    tds.push(<td><Stat value={stats[stat as pkmn.StatID]} boost={boost} /></td>);
   }
 
   const boosts = active ? <div className='boosts'>
@@ -199,7 +323,7 @@ export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   const lis = [];
   const moves = active ? pokemon.moves : pokemon.stored.moves;
   for (const move of moves) {
-    const {name, maxpp} = gen.moves[(move.id)];
+    const {name, maxpp} = gen.moves.get(move.id)!;
     const disabled = !move.pp || (move as any).disabled ? 'disabled' : '';
     const title = (move as any).disabled ? `Disabled: ${(move as any).disabled as number}` : '';
     lis.push(<li className={disabled} title={title}>{name} <small>({move.pp}/{maxpp})</small></li>);
@@ -265,20 +389,21 @@ export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   </div>;
 };
 
-export const PokemonNameStatus = ({pokemon, active, gen}: {
+const PokemonNameStatus = ({pokemon, active, gen}: {
   pokemon: data.Pokemon;
   active: boolean;
-  gen: Gen;
+  gen: Generation;
 }) => {
   const species = active ? pokemon.species : pokemon.stored.species;
-  const name = <strong>{gen.species[species]}&nbsp;<small>L{pokemon.level}</small></strong>;
+  const n = gen.species.get(species)!.name;
+  const name = <strong>{n}&nbsp;<small>L{pokemon.level}</small></strong>;
   return <span className='name'>
     <Status pokemon={pokemon} />
     {(active && pokemon.species !== pokemon.stored.species) ? <em>{name}</em> : name}
   </span>;
 };
 
-export const HPBar = ({pokemon, last}: {pokemon: data.Pokemon; last?: data.Pokemon}) => {
+const HPBar = ({pokemon, last}: {pokemon: data.Pokemon; last?: data.Pokemon}) => {
   const {percent, color, style} = getHP(pokemon);
   let bar = <div className={`hp ${color}`} style={style}></div>;
   if (last && last.position === pokemon.position && pokemon.hp < last.hp) {
@@ -290,7 +415,7 @@ export const HPBar = ({pokemon, last}: {pokemon: data.Pokemon; last?: data.Pokem
   return <div className='hpbar'>{bar}<div className='hptext'>{percent}%</div></div>;
 };
 
-export const Status = ({pokemon}: {pokemon: data.Pokemon}) => {
+const Status = ({pokemon}: {pokemon: data.Pokemon}) => {
   if (!pokemon.status) return '';
   const classes = `status ${pokemon.status === 'tox' ? 'psn' : pokemon.status}`;
   let title = '';
@@ -303,24 +428,24 @@ export const Status = ({pokemon}: {pokemon: data.Pokemon}) => {
   </span>;
 };
 
-export const Stat = ({value, boost}: {value: number; boost: number}) => {
+const Stat = ({value, boost}: {value: number; boost: number}) => {
   if (!boost) return value.toString();
   if (boost > 0) return <span className='good'>{value} (+{boost})</span>;
   return <span className='bad'>{value} ({boost})</span>;
 };
 
-export const Boost = ({value}: {value: number}) => {
+const Boost = ({value}: {value: number}) => {
   if (value > 0) return <span className='good'>+{value}</span>;
   return <span className='bad'>{value}</span>;
 };
 
-export const PokemonIcon = ({pokemon, side}: {pokemon: data.Pokemon; side: 'p1' | 'p2'}) => {
+const PokemonIcon = ({pokemon, side}: {pokemon: data.Pokemon; side: 'p1' | 'p2'}) => {
   const fainted = pokemon.hp === 0;
   const i = Icons.getPokemon(pokemon.stored.species, {side, fainted, domain: 'pkmn.cc'});
   return <span style={i.css}></span>;
 };
 
-export const PokemonSprite = ({pokemon, active, showdown}: {
+const PokemonSprite = ({pokemon, active, showdown}: {
   pokemon: data.Pokemon;
   active: boolean;
   showdown: boolean;
@@ -335,14 +460,14 @@ export const PokemonSprite = ({pokemon, active, showdown}: {
   }} />;
 };
 
-export const TypeIcons = ({pokemon, active}: {pokemon: data.Pokemon; active: boolean}) => {
+const TypeIcons = ({pokemon, active}: {pokemon: data.Pokemon; active: boolean}) => {
   const types = active ? pokemon.types : pokemon.stored.types;
   const type1 = <TypeIcon type={types[0]} />;
   const type2 = types[0] !== types[1] ? <TypeIcon type={types[1]} /> : '';
   return <div className='types'>{type1}{type2}</div>;
 };
 
-export const TypeIcon = ({type}: {type: TypeName}) => {
+const TypeIcon = ({type}: {type: pkmn.TypeName}) => {
   const i = Icons.getType(type);
   const style = {imageRendering: 'pixelated' as const};
   return <img className='icon' src={i.url} width={i.w} height={i.h} style={style} />;
@@ -361,3 +486,12 @@ function getHP(pokemon: data.Pokemon) {
   const style = {width: width, borderRightWidth: `${percent === 100 ? 1 : 0}px;`};
   return {percent, color, style};
 }
+
+const json = JSON.parse(document.getElementById('data')!.textContent!);
+const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
+document.getElementById('content')!.appendChild(<App
+  gen={new Gen(json.gen)}
+  view={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
+  error={json.error}
+  seed={json.seed && BigInt(json.seed)}
+/>);

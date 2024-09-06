@@ -1,4 +1,14 @@
-import {BoostID, GenderName, Generation, ID, StatusName, TypeName} from '@pkmn/data';
+import {
+  BoostID,
+  GenderName,
+  GenerationNum,
+  ID,
+  MoveName,
+  SpeciesName,
+  StatusName,
+  TypeName,
+  toID,
+} from '@pkmn/data';
 import {Protocol} from '@pkmn/protocol';
 
 import {LE, Lookup, PROTOCOL} from './data';
@@ -6,6 +16,21 @@ import {LE, Lookup, PROTOCOL} from './data';
 import {PlayerOptions} from '.';
 
 const ArgType = PROTOCOL.ArgType;
+
+// Minimal subset of the @pkmn/data Generation API
+interface Generation {
+  num: GenerationNum;
+  species: {
+    get(id: ID): {
+      name: SpeciesName;
+      genderRatio: {M: number; F: number};
+      gender?: GenderName;
+    } | undefined;
+  };
+  moves: {
+    get(id: ID): {name: MoveName} | undefined;
+  };
+}
 
 /** A message logged by the engine parsed into Pokémon Showdown's protocol. */
 export interface ParsedLine {
@@ -44,10 +69,11 @@ export class SideInfo {
   constructor(gen: Generation, player: PlayerOptions) {
     this.name = player.name;
     this.team = player.team.map(p => {
-      const species = gen.species.get(p.species!)!;
+      const species = gen.species.get(toID(p.species!))!;
       const name = p.name ?? species.name;
+      const dv = Math.floor((p.ivs?.atk ?? 31) / 2);
       const fallback = gen.num === 1 ? undefined
-        : gen.num === 2 ? gen.stats.toDV(p.ivs?.atk ?? 31) >= species.genderRatio.F * 16 ? 'M' : 'F'
+        : gen.num === 2 ? dv >= species.genderRatio.F * 16 ? 'M' : 'F'
         : 'M';
       const gender = (p.gender ?? species.gender ?? fallback) as GenderName;
       return {species: species.name, name, gender, shiny: p.shiny};

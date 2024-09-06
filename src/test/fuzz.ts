@@ -9,7 +9,7 @@ import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 
 import {LE} from '../pkg/data';
-import {display} from '../tools/display';
+import * as display from '../tools/display';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const sh = promisify(execFile);
@@ -44,9 +44,6 @@ export async function run(
 
     console.error(raw);
 
-    seed = LE ? stdout.readBigUInt64LE(0) : stdout.readBigUInt64BE(0);
-    const output = display(gens, stdout.subarray(8), raw.slice(panic), seed);
-
     const dir = path.join(ROOT, 'logs');
     try {
       fs.mkdirSync(dir, {recursive: true});
@@ -54,11 +51,12 @@ export async function run(
       if (e.code !== 'EEXIST') throw e;
     }
 
+    seed = LE ? stdout.readBigUInt64LE(0) : stdout.readBigUInt64BE(0);
     const hex = `0x${seed.toString(16).toUpperCase()}`;
     const file = path.join(dir, `${hex}.fuzz.html`);
     const link = path.join(dir, 'fuzz.html');
 
-    fs.writeFileSync(file, output);
+    fs.writeFileSync(file, display.render(gens, stdout.subarray(8), raw.slice(panic), seed));
     fs.rmSync(link, {force: true});
     fs.symlinkSync(file, link);
 

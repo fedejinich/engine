@@ -9,7 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
     "lib": ["es2022", "dom", "dom.iterable"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -25,6 +27,7 @@
     "tsBuildInfoFile": ".tsbuildinfo",
     "paths": {
       "@pkmn/sim/*": ["node_modules/@pkmn/sim/build/types/sim/*"],
+      "dom": ["src/tools/display/dom"]
     }
   }
 }

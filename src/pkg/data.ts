@@ -1,4 +1,4 @@
-import {Generation, ID, TypeName} from '@pkmn/data';
+import {GenerationNum, ID, TypeName} from '@pkmn/data';
 
 import idsJSON from './data/ids.json';
 import offsetsJSON from './data/layout.json';
@@ -43,6 +43,19 @@ export const Data = new class {
 };
 
 const LOOKUPS: Lookup[] = [];
+
+// Minimal subset of the @pkmn/data Generation API
+interface Generation {
+  num: GenerationNum;
+  species: {
+    get(id: ID): {num: number} | undefined;
+    [Symbol.iterator](): Generator<{id: ID; num: number}, void>;
+  };
+  moves: {
+    get(id: ID): {num: number} | undefined;
+    [Symbol.iterator](): Generator<{id: ID; num: number}, void>;
+  };
+}
 
 /**
  * Translation table for encoding/decoding Pokémon Showdown string identifiers

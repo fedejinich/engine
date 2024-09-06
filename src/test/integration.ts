@@ -9,6 +9,7 @@ import {Generation, GenerationNum, Generations} from '@pkmn/data';
 import {Protocol} from '@pkmn/protocol';
 import {Battle, BattleStreams, Dex, ID, PRNG, PRNGSeed, Streams, Teams, toID} from '@pkmn/sim';
 import * as sim from '@pkmn/sim/tools';
+import {minify} from 'html-minifier';
 import minimist from 'minimist';
 
 import * as engine from '../pkg';
@@ -18,6 +19,7 @@ import * as display from '../tools/display';
 import {Choices, FILTER, formatFor, patch} from './showdown';
 
 const ROOT = path.resolve(__dirname, '..', '..');
+
 const ANSI = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 const CWD = process.env.INIT_CWD || process.env.CWD || process.cwd();
@@ -27,7 +29,13 @@ const debug = (s: string) => s.startsWith('|debug')
   : 'class="debug"' : '';
 
 interface Frame {
-  pkmn: display.Frame;
+  pkmn: {
+    result: engine.Result;
+    c1: engine.Choice;
+    c2: engine.Choice;
+    battle: engine.Data<engine.Battle>;
+    parsed: engine.ParsedLine[];
+  };
   showdown: {
     result: engine.Result;
     c1: engine.Choice;
@@ -338,7 +346,8 @@ function dump(
 
   file = path.join(dir, `${hex}.pkmn.html`);
   link = path.join(dir, 'pkmn.html');
-  fs.writeFileSync(file, display.renderFrames(gen, true, error, seed, frames.pkmn, partial.pkmn));
+  // FIXME
+  // fs.writeFileSync(file, display.render(gen, true, error, seed, frames.pkmn, partial.pkmn));
   console.error(' ◦ @pkmn/engine:', pretty(symlink(file, link)), '->', pretty(file));
 
   file = path.join(dir, `${hex}.showdown.html`);
@@ -363,14 +372,23 @@ function displayShowdown(
   }
   buf.push(displayShowdownFrame(partial));
 
-  if (error) buf.push(display.error(error));
+  if (error) {
+    buf.push(`<pre class="error"><code>${
+      display.error(error)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;')
+        .replace(/\//g, '&#x2f;')
+        .replace(/\n/g, '<br />')
+    }</code></pre>`);
+  }
 
-  const template = fs.readFileSync(path.join(ROOT, 'src', 'test', 'showdown.html.tmpl'), 'utf8');
-  return display.render(template, {
-    seed: buf.shift(),
-    content: buf.join(''),
-    output: output.join('\n'),
-  });
+  return minify(fs.readFileSync(path.join(ROOT, 'src', 'test', 'showdown.html.tmpl'), 'utf8')
+    .replace('{{{ seed }}}', buf.shift()!)
+    .replace('{{{ content }}}', buf.join(''))
+    .replace('{{{ output }}}', output.join('\n')), {minifyCSS: true, minifyJS: true});
 }
 
 function displayShowdownFrame(partial: Partial<Frame['showdown']>) {

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 
-import {display} from './display';
+import * as display from './display';
 
 async function run(gens: Generations) {
   let input;
@@ -22,7 +22,7 @@ async function run(gens: Generations) {
     }
     input = Buffer.concat(result, length);
   }
-  process.stdout.write(display(gens, input));
+  process.stdout.write(display.render(gens, input));
 }
 
 run(new Generations(Dex as any)).catch(err => {
