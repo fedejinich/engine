@@ -95,7 +95,7 @@ export function render(
       .replaceAll(ROOT + path.sep, '')
       .replaceAll(ZIG, '$ZIG')
       .split('\n').slice(0, -3).join('\n');
-    buf.push(`<pre class="error"><code>${escapeHTML(err)}</pre></code>`);
+    buf.push(`<pre class="error"><code>${escapeHTML(err)}</code></pre>`);
   }
 
   const type = Array.isArray(last) ? 'showdown' : 'pkmn';
@@ -250,7 +250,7 @@ function displayPokemon(
   buf.push('<span class="name">');
   if (pokemon.status) buf.push(displayStatus(pokemon));
   let name: string = gen.species.get(species)!.name;
-  if (active && pokemon.species !== pokemon.stored.species) name = `<em>${name}</em>`;
+  if (active && pokemon.species !== pokemon.stored.species) name = `<em>${name}`;
   buf.push(`<strong>${name}&nbsp;<small>L${pokemon.level}</small></strong>`);
   if (active && pokemon.species !== pokemon.stored.species) buf.push('</em>');
   buf.push('</span>');
