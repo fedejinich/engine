@@ -11,6 +11,7 @@ import {Battle, BattleStreams, Dex, ID, PRNG, PRNGSeed, Streams, Teams, toID} fr
 import * as sim from '@pkmn/sim/tools';
 import {minify} from 'html-minifier';
 import minimist from 'minimist';
+import * as mustache from 'mustache';
 
 import * as engine from '../pkg';
 import * as addon from '../pkg/addon';
@@ -385,10 +386,16 @@ function displayShowdown(
     }</code></pre>`);
   }
 
-  return minify(fs.readFileSync(path.join(ROOT, 'src', 'test', 'showdown.html.tmpl'), 'utf8')
-    .replace('{{{ seed }}}', buf.shift()!)
-    .replace('{{{ content }}}', buf.join(''))
-    .replace('{{{ output }}}', output.join('\n')), {minifyCSS: true, minifyJS: true});
+  const render = ('render' in mustache ? mustache : (mustache as any).default).render;
+  return minify(
+    render(
+      fs.readFileSync(path.join(ROOT, 'src', 'test', 'showdown.html.tmpl'), 'utf8'), {
+        seed: buf.shift(),
+        content: buf.join(''),
+        output: output.join('\n'),
+      }
+    ), {minifyCSS: true, minifyJS: true}
+  );
 }
 
 function displayShowdownFrame(partial: Partial<Frame['showdown']>) {
