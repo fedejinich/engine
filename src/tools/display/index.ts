@@ -78,7 +78,7 @@ export function render(gens: pkmn.Generations, buf: Buffer, err?: string, seed?:
     write: false,
   });
 
-  // TODO smaller img with adaptable, smaller data without JSON quotes
+  // TODO smaller data without JSON quotes
   return minify(`<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -86,15 +86,14 @@ export function render(gens: pkmn.Generations, buf: Buffer, err?: string, seed?:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="https://pkmn.cc/favicon.ico">
     <title>@pkmn/engine</title>
-    <script type="application/json" id="data">
-    ${JSON.stringify({
+    <script>
+    window.DATA = ${JSON.stringify({
     gen: json,
     buf: buf.toString('base64'),
     error: err && error(err),
     seed: seed && `${seed}n`,
-  })}
-    </script>
-    <script>${result.outputFiles[0].text}</script>
+  })};
+  ${result.outputFiles[0].text}</script>
     <style>${fs.readFileSync(path.join(ROOT, 'src', 'tools', 'display', 'ui.css'), 'utf8')}</style>
   </head>
   <body>

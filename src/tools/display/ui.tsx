@@ -1,5 +1,5 @@
 import * as pkmn from '@pkmn/data';
-import {Icons, Sprites} from '@pkmn/img';
+import * as adaptable from '@pkmn/img/adaptable';
 
 import * as data from '../../pkg';
 import {LAYOUT, LE} from '../../pkg/data';
@@ -487,10 +487,26 @@ function getHP(pokemon: data.Pokemon) {
   return {percent, color, style};
 }
 
-const json = JSON.parse(document.getElementById('data')!.textContent!);
+const json = (window as any).DATA;
+const GEN = new Gen(json.gen);
+const adapted = new class {
+  getPokemon(name: string) {
+    const s = GEN.species.get(pkmn.toID(name));
+    return {spriteid: s.id, gen: GEN.num, ...s};
+  }
+  getItem() {
+    return undefined;
+  }
+  getAvatar() {
+    return undefined;
+  }
+};
+
+const Sprites = new adaptable.Sprites(adapted);
+const Icons = new adaptable.Icons(adapted);
 const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
 document.getElementById('content')!.appendChild(<App
-  gen={new Gen(json.gen)}
+  gen={GEN}
   view={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
   error={json.error}
   seed={json.seed && BigInt(json.seed)}
