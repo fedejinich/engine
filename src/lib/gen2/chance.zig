@@ -8,6 +8,7 @@ const expectEqual = std.testing.expectEqual;
 
 const options = @import("../common/options.zig");
 const rational = @import("../common/rational.zig");
+const rng = @import("../common/rng.zig");
 const util = @import("../common/util.zig");
 
 const Array = @import("../common/array.zig").Array;
@@ -18,6 +19,8 @@ const data = @import("data.zig");
 
 const enabled = options.chance;
 const showdown = options.showdown;
+
+const Gen12 = rng.Gen12;
 
 const PointerType = util.PointerType;
 const isPointerTo = util.isPointerTo;

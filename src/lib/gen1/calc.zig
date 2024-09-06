@@ -577,6 +577,8 @@ fn format(writer: anytype, actions: Actions, p1: u9, p2: u9) !void {
     try writer.writeAll(output[0..len]);
 }
 
+const NONE = @intFromEnum(Optional(bool).None);
+
 /// Helper functions that efficiently return valid ranges for various RNG events based on the
 /// state of an `Action` and other events to be used to construct a "transitions" function.
 pub const Rolls = struct {

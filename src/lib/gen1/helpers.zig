@@ -12,8 +12,10 @@ const data = @import("data.zig");
 const assert = std.debug.assert;
 
 const Choice = common.Choice;
+const Player = common.Player;
 
 const showdown = options.showdown;
+const chance = options.chance;
 
 const PSRNG = rng.PSRNG;
 
@@ -22,6 +24,7 @@ const Move = data.Move;
 const MoveSlot = data.MoveSlot;
 const Species = data.Species;
 const Stats = data.Stats;
+const Status = data.Status;
 
 const endian = builtin.cpu.arch.endian();
 
