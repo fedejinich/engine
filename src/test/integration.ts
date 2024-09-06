@@ -30,13 +30,7 @@ const debug = (s: string) => s.startsWith('|debug')
   : 'class="debug"' : '';
 
 interface Frame {
-  pkmn: {
-    result: engine.Result;
-    c1: engine.Choice;
-    c2: engine.Choice;
-    battle: engine.Data<engine.Battle>;
-    parsed: engine.ParsedLine[];
-  };
+  pkmn: display.Frame;
   showdown: {
     result: engine.Result;
     c1: engine.Choice;

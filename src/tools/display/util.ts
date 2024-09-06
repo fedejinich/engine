@@ -1,4 +1,4 @@
-import {Choice, ParsedLine} from '../../pkg';
+import {Battle, Choice, Data, ParsedLine, Result} from '../../pkg';
 
 const format = (kwVal: any) => typeof kwVal === 'boolean' ? '' : ` ${kwVal as string}`;
 const trim = (args: string[]) => {
@@ -15,4 +15,12 @@ export const toText = (parsed: ParsedLine[]) => `|${parsed.map(compact).join('\n
 export const pretty = (choice?: Choice) => choice
   ? choice.type === 'pass' ? choice.type : `${choice.type} ${choice.data}`
   : '???';
+
+export interface Frame {
+  result: Result;
+  c1: Choice;
+  c2: Choice;
+  battle: Data<Battle>;
+  parsed: ParsedLine[];
+}
 

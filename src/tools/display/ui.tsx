@@ -116,14 +116,6 @@ class SpeciesNames implements data.Info {
   }
 }
 
-interface Foo {
-  result: data.Result;
-  c1: data.Choice;
-  c2: data.Choice;
-  battle: data.Data<data.Battle>;
-  parsed: data.ParsedLine[];
-}
-
 const App = ({gen, view, error, seed}: {
   gen: Generation;
   view: DataView;
@@ -148,7 +140,7 @@ const App = ({gen, view, error, seed}: {
   const names = new SpeciesNames(gen, battle);
   const log = new data.Log(gen, lookup, names);
 
-  let partial: Partial<Foo> | undefined = undefined;
+  let partial: Partial<util.Frame> | undefined = undefined;
   const last: data.Data<data.Battle> | undefined = undefined;
   const frames: JSX.Element[] = [];
   while (offset < view.byteLength) {
@@ -186,7 +178,7 @@ const App = ({gen, view, error, seed}: {
 };
 
 const Frame = ({frame, gen, showdown, last}: {
-  frame: Partial<Foo>;
+  frame: Partial<util.Frame>;
   gen: Generation;
   showdown: boolean;
   last?: data.Data<data.Battle>;
