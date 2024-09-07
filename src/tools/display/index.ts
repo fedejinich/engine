@@ -112,7 +112,7 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
     jsxFactory: 'h',
     jsxFragment: 'Fragment',
     inject: [path.join(ROOT, 'src', 'tools', 'display', 'dom.ts')],
-    entryPoints: [path.join(ROOT, 'src', 'tools', 'display', 'ui.tsx')],
+    entryPoints: [path.join(ROOT, 'build', 'tools', 'display', 'ui.jsx')],
     bundle: true,
     write: false,
   });
