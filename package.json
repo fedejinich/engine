@@ -8,7 +8,8 @@
   "main": "build/pkg/index.js",
   "types": "build/pkg/index.d.ts",
   "browser": {
-    "./build/pkg/node.js": "./build/pkg/browser.js"
+     "./src/pkg/addon/node.ts": "./src/pkg/addon/browser.ts",
+    "./build/pkg/addon/node.js": "./build/pkg/addon/browser.js"
   },
   "files": [
     "build.zig",
@@ -36,10 +37,15 @@
     "build/pkg/protocol.d.ts",
     "build/pkg/protocol.js.map",
     "build/pkg/protocol.js",
-    "build/test/display.js.map",
-    "build/test/display.js",
     "build/tools/debug.js.map",
     "build/tools/debug.js",
+    "build/tools/display/dom.js.map",
+    "build/tools/display/dom.js",
+    "build/tools/display/index.js.map",
+    "build/tools/display/index.js",
+    "build/tools/display/ui.css",
+    "build/tools/display/util.js.map",
+    "build/tools/display/util.js",
     "src/lib/common/array.zig",
     "src/lib/common/battle.zig",
     "src/lib/common/data.zig",
@@ -72,7 +78,7 @@
     "src/lib/node.zig",
     "src/lib/pkmn.zig",
     "src/lib/wasm.zig",
-    "src/test/display/pkmn.html.tmpl"
+    "src/tools/display/ui.tsx"
   ],
   "engines": {"node": ">=16.0.0"},
   "bin": {
@@ -134,10 +140,7 @@
       "files": ["**/*.ts"],
       "parserOptions": {"project": ["./tsconfig.json", "./examples/js/tsconfig.json"]}
     }, {
-      "files": ["src/test/display.ts"],
-      "rules": {"@typescript-eslint/no-unnecessary-type-assertion": "off"}
-    }, {
-      "files": ["src/pkg/index.ts", "src/test/display.ts", "src/test/integration.ts"],
+      "files": ["src/pkg/index.ts", "src/test/integration.ts"],
       "rules": {
         "no-control-regex": "off",
         "@typescript-eslint/no-empty-interface": "off",

@@ -113,15 +113,12 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
     jsx: 'transform',
     jsxFactory: 'h',
     jsxFragment: 'Fragment',
-    // inject: ['import {h, Fragment} from \'dom\''],
+    inject: [path.join(ROOT, 'src', 'tools', 'display', 'dom.ts')],
     entryPoints: [path.join(ROOT, 'src', 'tools', 'display', 'ui.tsx')],
     bundle: true,
-    external: ['path'],
-    // platform: 'node', // TODO
     write: false,
   });
 
-  // TODO smaller data without JSON quotes
   return minify(`<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -129,20 +126,21 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="https://pkmn.cc/favicon.ico">
     <title>@pkmn/engine</title>
-    <script>
-    window.DATA = ${JSON.stringify({
-    gen: json,
-    buf: buffer.toString('base64'),
-    error: err && error(err),
-    seed: seed && `${seed}n`,
-  })};
-  ${result.outputFiles[0].text}</script>
     <style>${fs.readFileSync(path.join(ROOT, 'src', 'tools', 'display', 'ui.css'), 'utf8')}</style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="content"></div>
     <script>
+     window.DATA = ${JSON.stringify({
+    gen: json,
+    buf: buffer.toString('base64'),
+    error: err && error(err),
+    seed: seed?.toString(),
+  })};
+
+  ${result.outputFiles[0].text}
+
       for (const details of document.getElementsByTagName('details')) {
         details.addEventListener('toggle', e => {
           for (const d of details.parentElement.parentElement.getElementsByTagName('details')) {

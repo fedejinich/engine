@@ -15,7 +15,7 @@ const ROOT = resolve(__dirname, '..', '..');
 const packageJSON = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 
 const missing = [];
-for (const dep of ['@pkmn/img', 'html-minifier', 'mustache']) {
+for (const dep of ['@pkmn/img', 'html-minifier', 'esbuild']) {
   try {
     require.resolve(dep);
   } catch (e) {
