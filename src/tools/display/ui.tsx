@@ -1,7 +1,7 @@
 import * as pkmn from '@pkmn/data';
 import * as adaptable from '@pkmn/img/adaptable';
 
-import * as data from '../../pkg';
+import * as engine from '../../pkg';
 import {LAYOUT, LE} from '../../pkg/data';
 import * as gen1 from '../../pkg/gen1';
 
@@ -10,7 +10,8 @@ import * as util from './util';
 const POSITIONS = ['a', 'b', 'c', 'd', 'e', 'f'];
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 const DISPLAY = {hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', spc: 'Spc'};
-const VOLATILES: {[id in keyof data.Pokemon['volatiles']]: [string, 'good' | 'bad' | 'neutral']} = {
+const VOLATILES: {[id in keyof engine.Pokemon['volatiles']]: [string, 'good' | 'bad' | 'neutral']} =
+{
   bide: ['Bide', 'good'],
   thrashing: ['Thrashing', 'neutral'],
   flinch: ['Flinch', 'bad'],
@@ -90,11 +91,11 @@ class API<T> {
   }
 }
 
-class SpeciesNames implements data.Info {
+class SpeciesNames implements engine.Info {
   gen: Generation;
-  battle: data.Battle;
+  battle: engine.Battle;
 
-  constructor(gen: Generation, battle: data.Battle) {
+  constructor(gen: Generation, battle: engine.Battle) {
     this.gen = gen;
     this.battle = battle;
   }
@@ -104,7 +105,7 @@ class SpeciesNames implements data.Info {
     const team = Array.from(p1.pokemon)
       .sort((a, b) => a.position - b.position)
       .map(p => ({species: p.stored.species}));
-    return new data.SideInfo(this.gen, {name: 'Player 1', team});
+    return new engine.SideInfo(this.gen, {name: 'Player 1', team});
   }
 
   get p2() {
@@ -112,58 +113,58 @@ class SpeciesNames implements data.Info {
     const team = Array.from(p2.pokemon)
       .sort((a, b) => a.position - b.position)
       .map(p => ({species: p.stored.species}));
-    return new data.SideInfo(this.gen, {name: 'Player 2', team});
+    return new engine.SideInfo(this.gen, {name: 'Player 2', team});
   }
 }
 
-const App = ({gen, view, error, seed}: {
+const App = ({gen, data, error, seed}: {
   gen: Generation;
-  view: DataView;
+  data: DataView;
   error?: string;
   seed?: bigint;
 }) => {
   let offset = 0;
-  const showdown = !!view.getUint8(offset += 2);
-  const N = view.getUint16(offset, LE);
+  const showdown = !!data.getUint8(offset += 2);
+  const N = data.getUint16(offset, LE);
   offset += 2;
 
-  const lookup = data.Lookup.get(gen);
+  const lookup = engine.Lookup.get(gen);
   const size = LAYOUT[gen.num - 1].sizes.Battle;
-  const deserialize = (d: DataView): data.Battle => {
+  const deserialize = (d: DataView): engine.Battle => {
     switch (gen.num) {
       case 1: return new gen1.Battle(lookup, d, {inert: true, showdown});
       default: throw new Error(`Unsupported gen: ${gen.num}`);
     }
   };
 
-  const battle = deserialize(new DataView(view.buffer, offset, offset += size));
+  const battle = deserialize(windowed(data, offset, offset += size));
   const names = new SpeciesNames(gen, battle);
-  const log = new data.Log(gen, lookup, names);
+  const log = new engine.Log(gen, lookup, names);
 
   let partial: Partial<util.Frame> | undefined = undefined;
-  const last: data.Data<data.Battle> | undefined = undefined;
+  const last: engine.Data<engine.Battle> | undefined = undefined;
   const frames: JSX.Element[] = [];
-  while (offset < view.byteLength) {
+  while (offset < data.byteLength) {
     partial = {parsed: []};
-    const it = log.parse(new DataView(view.buffer, offset))[Symbol.iterator]();
+    const it = log.parse(windowed(data, offset))[Symbol.iterator]();
     let r = it.next();
     while (!r.done) {
       partial.parsed!.push(r.value);
       r = it.next();
     }
     offset += N || r.value;
-    if (offset >= view.byteLength) break;
+    if (offset >= data.byteLength) break;
 
-    partial.battle = deserialize(new DataView(view.buffer, offset, offset += size));
-    if (offset >= view.byteLength) break;
+    partial.battle = deserialize(windowed(data, offset, offset += size));
+    if (offset >= data.byteLength) break;
 
-    partial.result = data.Result.decode(view.getUint8(offset++));
-    if (offset >= view.byteLength) break;
+    partial.result = engine.Result.decode(data.getUint8(offset++));
+    if (offset >= data.byteLength) break;
 
-    partial.c1 = data.Choice.decode(view.getUint8(offset++));
-    if (offset >= view.byteLength) break;
+    partial.c1 = engine.Choice.decode(data.getUint8(offset++));
+    if (offset >= data.byteLength) break;
 
-    partial.c2 = data.Choice.decode(view.getUint8(offset++));
+    partial.c2 = engine.Choice.decode(data.getUint8(offset++));
 
     frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
     partial = undefined;
@@ -177,11 +178,16 @@ const App = ({gen, view, error, seed}: {
   </div>;
 };
 
+function windowed(data: DataView, byteOffset: number, byteLength?: number) {
+  const length = byteLength ? byteLength - byteOffset : undefined;
+  return new DataView(data.buffer, data.byteOffset + byteOffset, length);
+}
+
 const Frame = ({frame, gen, showdown, last}: {
   frame: Partial<util.Frame>;
   gen: Generation;
   showdown: boolean;
-  last?: data.Data<data.Battle>;
+  last?: engine.Data<engine.Battle>;
 }) => <div className='frame'>
   {frame.parsed && <div className='log'>
     <pre><code>${util.toText(frame.parsed)}</code></pre>
@@ -194,10 +200,10 @@ const Frame = ({frame, gen, showdown, last}: {
 </div>;
 
 const Battle = ({battle, gen, showdown, last}: {
-  battle: data.Data<data.Battle>;
+  battle: engine.Data<engine.Battle>;
   gen: Generation;
   showdown: boolean;
-  last?: data.Data<data.Battle>;
+  last?: engine.Data<engine.Battle>;
 }) => {
   const [p1, p2] = Array.from(battle.sides);
   const [o1, o2] = last ? Array.from(last.sides) : [undefined, undefined];
@@ -217,12 +223,12 @@ const Battle = ({battle, gen, showdown, last}: {
 };
 
 const Side = ({side, battle, player, gen, showdown, last}: {
-  side: data.Side;
-  battle: data.Data<data.Battle>;
+  side: engine.Side;
+  battle: engine.Data<engine.Battle>;
   player: 'p1' | 'p2';
   gen: Generation;
   showdown: boolean;
-  last?: data.Side;
+  last?: engine.Side;
 }) => {
   let header = undefined;
   if (battle.turn) {
@@ -288,12 +294,12 @@ const Side = ({side, battle, player, gen, showdown, last}: {
 };
 
 const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
-  pokemon: data.Pokemon;
-  battle: data.Data<data.Battle>;
+  pokemon: engine.Pokemon;
+  battle: engine.Data<engine.Battle>;
   active: boolean;
   gen: Generation;
   showdown: boolean;
-  last?: data.Pokemon;
+  last?: engine.Pokemon;
 }) => {
   const ths = [];
   const tds = [];
@@ -323,7 +329,7 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
 
   const volatiles = [];
   for (const v in pokemon.volatiles) {
-    const volatile = v as keyof data.Pokemon['volatiles'];
+    const volatile = v as keyof engine.Pokemon['volatiles'];
     const [name, type] = VOLATILES[volatile]!;
     let text = '';
     if (['binding', 'confusion', 'substitute'].includes(volatile)) {
@@ -382,7 +388,7 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
 };
 
 const PokemonNameStatus = ({pokemon, active, gen}: {
-  pokemon: data.Pokemon;
+  pokemon: engine.Pokemon;
   active: boolean;
   gen: Generation;
 }) => {
@@ -395,7 +401,7 @@ const PokemonNameStatus = ({pokemon, active, gen}: {
   </span>;
 };
 
-const HPBar = ({pokemon, last}: {pokemon: data.Pokemon; last?: data.Pokemon}) => {
+const HPBar = ({pokemon, last}: {pokemon: engine.Pokemon; last?: engine.Pokemon}) => {
   const {percent, color, style} = getHP(pokemon);
   let bar = <div className={`hp ${color}`} style={style}></div>;
   if (last && last.position === pokemon.position && pokemon.hp < last.hp) {
@@ -407,7 +413,7 @@ const HPBar = ({pokemon, last}: {pokemon: data.Pokemon; last?: data.Pokemon}) =>
   return <div className='hpbar'>{bar}<div className='hptext'>{percent}%</div></div>;
 };
 
-const Status = ({pokemon}: {pokemon: data.Pokemon}) => {
+const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
   if (!pokemon.status) return '';
   const classes = `status ${pokemon.status === 'tox' ? 'psn' : pokemon.status}`;
   let title = '';
@@ -431,14 +437,14 @@ const Boost = ({value}: {value: number}) => {
   return <span className='bad'>{value}</span>;
 };
 
-const PokemonIcon = ({pokemon, side}: {pokemon: data.Pokemon; side: 'p1' | 'p2'}) => {
+const PokemonIcon = ({pokemon, side}: {pokemon: engine.Pokemon; side: 'p1' | 'p2'}) => {
   const fainted = pokemon.hp === 0;
   const i = Icons.getPokemon(pokemon.stored.species, {side, fainted, domain: 'pkmn.cc'});
   return <span style={i.css}></span>;
 };
 
 const PokemonSprite = ({pokemon, active, showdown}: {
-  pokemon: data.Pokemon;
+  pokemon: engine.Pokemon;
   active: boolean;
   showdown: boolean;
 }) => {
@@ -452,7 +458,7 @@ const PokemonSprite = ({pokemon, active, showdown}: {
   }} />;
 };
 
-const TypeIcons = ({pokemon, active}: {pokemon: data.Pokemon; active: boolean}) => {
+const TypeIcons = ({pokemon, active}: {pokemon: engine.Pokemon; active: boolean}) => {
   const types = active ? pokemon.types : pokemon.stored.types;
   const type1 = <TypeIcon type={types[0]} />;
   const type2 = types[0] !== types[1] ? <TypeIcon type={types[1]} /> : '';
@@ -465,7 +471,7 @@ const TypeIcon = ({type}: {type: pkmn.TypeName}) => {
   return <img className='icon' src={i.url} width={i.w} height={i.h} style={style} />;
 };
 
-function getHP(pokemon: data.Pokemon) {
+function getHP(pokemon: engine.Pokemon) {
   const ratio = pokemon.hp / pokemon.stats.hp;
   let percent = Math.ceil(ratio * 100);
   if ((percent === 100) && (ratio < 1.0)) {
@@ -499,7 +505,7 @@ const Icons = new adaptable.Icons(adapted);
 const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
 document.getElementById('content')!.appendChild(<App
   gen={GEN}
-  view={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
+  data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
   error={json.error}
   seed={json.seed && BigInt(json.seed)}
 />);

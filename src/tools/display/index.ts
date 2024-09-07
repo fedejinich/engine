@@ -148,5 +148,5 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
       }
     </script>
   </body>
-</html>`, {minifyCSS: false, minifyJS: false}); // DEBUG
+</html>`, {minifyCSS: true, minifyJS: true});
 }
