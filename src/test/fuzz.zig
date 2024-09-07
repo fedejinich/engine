@@ -164,7 +164,7 @@ fn run(
             });
         }
 
-        std.debug.assert(battle.turn <= 32);
+        std.debug.assert(battle.turn <= 32); // DEBUG
     }
 
     std.debug.assert(!showdown or result.type != .Error);
