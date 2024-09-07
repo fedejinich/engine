@@ -44,7 +44,6 @@ const Durations = chance.Durations;
 const Move = data.Move;
 const Species = data.Species;
 const Status = data.Status;
-const Type = data.Type;
 const Types = data.Types;
 const NULL = data.NULL;
 
@@ -52,7 +51,6 @@ const Battle = helpers.Battle;
 const EXP = helpers.EXP;
 const move = helpers.move;
 const Pokemon = helpers.Pokemon;
-const Side = helpers.Side;
 const swtch = helpers.swtch;
 
 const CHOICES_SIZE = data.CHOICES_SIZE;

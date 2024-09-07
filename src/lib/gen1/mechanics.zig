@@ -4,7 +4,6 @@ const pkmn = @import("../pkmn.zig");
 
 const common = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
-const optional = @import("../common/optional.zig");
 const protocol = @import("../common/protocol.zig");
 const rng = @import("../common/rng.zig");
 
@@ -29,11 +28,9 @@ const Heal = protocol.Heal;
 
 const Gen12 = rng.Gen12;
 
-const ActivePokemon = data.ActivePokemon;
 const Effectiveness = data.Effectiveness;
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
-const Pokemon = data.Pokemon;
 const Side = data.Side;
 const Species = data.Species;
 const Stats = data.Stats;
