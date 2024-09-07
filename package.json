@@ -7,13 +7,22 @@
   "sideEffects": false,
   "main": "build/pkg/index.js",
   "types": "build/pkg/index.d.ts",
+  "browser": {
+    "./build/pkg/node.js": "./build/pkg/browser.js"
+  },
   "files": [
     "build.zig",
-    "build/pkg/data.d.ts",
-    "build/pkg/data.js.map",
     "build/pkg/addon.d.ts",
     "build/pkg/addon.js.map",
     "build/pkg/addon.js",
+    "build/pkg/addon/browser.d.ts",
+    "build/pkg/addon/browser.js.map",
+    "build/pkg/addon/browser.js",
+    "build/pkg/addon/node.d.ts",
+    "build/pkg/addon/node.js.map",
+    "build/pkg/addon/node.js",
+    "build/pkg/data.d.ts",
+    "build/pkg/data.js.map",
     "build/pkg/data.js",
     "build/pkg/data/ids.json",
     "build/pkg/data/layout.json",
@@ -31,11 +40,11 @@
     "build/test/display.js",
     "build/tools/debug.js.map",
     "build/tools/debug.js",
+    "src/lib/common/array.zig",
     "src/lib/common/battle.zig",
     "src/lib/common/data.zig",
     "src/lib/common/debug.zig",
     "src/lib/common/js.zig",
-    "src/lib/common/array.zig",
     "src/lib/common/optional.zig",
     "src/lib/common/options.zig",
     "src/lib/common/protocol.zig",
@@ -134,7 +143,7 @@
         "@typescript-eslint/no-unsafe-declaration-merging": "off"
       }
     }, {
-      "files": ["src/pkg/addon.ts"],
+      "files": ["src/pkg/addon/node.ts"],
       "rules": {"@typescript-eslint/no-var-requires": "off"}
     },{
       "files": ["src/test/benchmark*.ts"],
