@@ -258,6 +258,8 @@ export type CreateOptions = {
    * that the engine be built in a specific compatibility mode).
    */
   showdown?: boolean;
+  /** Whether the battle should be initialized without functionality afforded by native code. */
+  inert?: true;
 } & ({
   /** Player 1's options. */
   p1: PlayerOptions;

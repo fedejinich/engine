@@ -36,10 +36,8 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
   const lookup = data.Lookup.get(gen);
   const size = data.LAYOUT[gen.num - 1].sizes.Battle;
   const deserialize = (buf: Buffer) => {
-    // We don't care about the native addon, we just need to load it so other checks don't fail
-    void addon.supports(true);
     switch (gen.num) {
-      case 1: return new gen1.Battle(lookup, data.Data.view(buf), {showdown});
+      case 1: return new gen1.Battle(lookup, data.Data.view(buf), {inert: true, showdown});
       default: throw new Error(`Unsupported gen: ${gen.num}`);
     }
   };
@@ -150,5 +148,5 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
       }
     </script>
   </body>
-</html>`, {minifyCSS: true, minifyJS: true});
+</html>`, {minifyCSS: false, minifyJS: false}); // DEBUG
 }

@@ -131,7 +131,7 @@ const App = ({gen, view, error, seed}: {
   const size = LAYOUT[gen.num - 1].sizes.Battle;
   const deserialize = (d: DataView): data.Battle => {
     switch (gen.num) {
-      case 1: return new gen1.Battle(lookup, d, {showdown});
+      case 1: return new gen1.Battle(lookup, d, {inert: true, showdown});
       default: throw new Error(`Unsupported gen: ${gen.num}`);
     }
   };
