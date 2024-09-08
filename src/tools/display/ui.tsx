@@ -351,7 +351,7 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
         }
       }
     }
-    text = (text ? `${name}: ${text}` : name).replace(' ', '&nbsp;');
+    text = (text ? `${name}: ${text}` : name).replace(' ', '\u00A0');
     volatiles.push(<span className={`volatile ${type}`}>{text}</span>);
   }
 
