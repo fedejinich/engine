@@ -1,11 +1,10 @@
 import * as fs from 'fs';
 
 import {Generations} from '@pkmn/data';
-import {Dex} from '@pkmn/sim';
 
 import * as display from './display';
 
-async function run(gens: Generations) {
+export async function run(gens: Generations) {
   let input;
   if (process.argv.length > 2) {
     if (process.argv.length > 3) {
@@ -25,7 +24,10 @@ async function run(gens: Generations) {
   process.stdout.write(display.render(gens, input));
 }
 
-run(new Generations(Dex as any)).catch(err => {
-  console.error(err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  run(new Generations(require('@pkmn/sim').Dex)).catch(err => {
+    console.error(err.message);
+    process.exit(1);
+  });
+}
