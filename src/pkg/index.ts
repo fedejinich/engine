@@ -387,8 +387,10 @@ export const Battle = new class {
 
 /** Utilities for working with `Choice` objects. */
 export class Choice {
+  /** Encoded values of the various choice types.  */
+  static Encoding = {pass: 0, move: 1, switch: 2} as const;
   /** All valid choices types. */
-  static Types = ['pass', 'move', 'switch'] as const;
+  static Types = Object.keys(Choice.Encoding) as readonly Choice['type'][];
 
   protected static MATCH = /^(?:(pass)|((move) ([0-4]))|((switch) ([2-6])))$/;
 
@@ -401,9 +403,7 @@ export class Choice {
 
   /** Encode a choice to its binary representation. */
   static encode(choice?: Choice): number {
-    return (choice
-      ? (choice.data << 2 | (choice.type === 'pass' ? 0 : choice.type === 'move' ? 1 : 2))
-      : 0);
+    return (choice ? (choice.data << 2 | Choice.Encoding[choice.type]) : 0);
   }
 
   /**
@@ -439,6 +439,8 @@ export class Choice {
 
 /** Utilities for working with `Result` objects */
 export class Result {
+  /** Encoded values of non-empty various result types.  */
+  static Encoding = {win: 1, lose: 2, tie: 3, error: 4} as const;
   /** All valid result types. */
   static Types = [undefined, 'win', 'lose', 'tie', 'error'] as const;
 
@@ -451,6 +453,13 @@ export class Result {
       p1: Choice.Types[(byte >> 4) & 0b11],
       p2: Choice.Types[byte >> 6],
     };
+  }
+
+  /** Encode a `Result`` to its binary representation. */
+  static encode(result: Result): number {
+    return ((result.type ? Result.Encoding[result.type] : 0) |
+        Choice.Encoding[result.p1] << 4 |
+        Choice.Encoding[result.p2] << 6);
   }
 }
 

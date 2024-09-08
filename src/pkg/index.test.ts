@@ -57,5 +57,11 @@ for (const gen of new Generations(Dex as any)) {
       expect(Result.decode(0b0101_0000)).toEqual({type: undefined, p1: 'move', p2: 'move'});
       expect(Result.decode(0b1000_0000)).toEqual({type: undefined, p1: 'pass', p2: 'switch'});
     });
+
+    test('Result.encode', () => {
+      expect(Result.encode({type: undefined, p1: 'move', p2: 'move'})).toBe(0b0101_0000);
+      expect(Result.encode({type: undefined, p1: 'pass', p2: 'switch'})).toBe(0b1000_0000);
+      expect(Result.encode({type: 'win', p1: 'pass', p2: 'pass'})).toBe(0b0000_0001);
+    });
   });
 }
