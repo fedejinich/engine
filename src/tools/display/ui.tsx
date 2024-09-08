@@ -109,7 +109,8 @@ const App = ({gen, data, error, seed}: {
   seed?: bigint;
 }) => {
   let offset = 0;
-  const showdown = !!data.getUint8(offset += 2);
+  const showdown = !!data.getUint8(offset);
+  offset += 2;
   const N = data.getUint16(offset, LE);
   offset += 2;
 

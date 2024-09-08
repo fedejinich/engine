@@ -29,7 +29,7 @@ const debug = (s: string) => s.startsWith('|debug')
   : 'class="debug"' : '';
 
 interface Frame {
-  pkmn: Omit<display.Frame, 'parsed'> & {log: DataView};
+  pkmn: Omit<display.Frame, 'battle' | 'parsed'> & {battle: DataView; log: DataView};
   showdown: {
     result: engine.Result;
     c1: engine.Choice;
@@ -79,8 +79,8 @@ class Runner {
     return Promise.resolve(play(
       this.gen,
       {formatid: this.format, seed},
-      {spec: {name: 'Bot 1', ...this.p1options}, create: create(this.p1options)},
-      {spec: {name: 'Bot 2', ...this.p2options}, create: create(this.p2options)},
+      {spec: {name: 'Player 1', ...this.p1options}, create: create(this.p1options)},
+      {spec: {name: 'Player 2', ...this.p2options}, create: create(this.p2options)},
       undefined,
       this.debug,
       this.errors,
@@ -245,10 +245,10 @@ function play(
 
       result = battle.update(c1, c2);
       partial.pkmn.result = result;
-      partial.pkmn.battle = battle.toJSON();
+      partial.pkmn.battle = copy((battle as any).data);
 
       const parsed = Array.from(log.parse(battle.log!));
-      partial.pkmn.log = battle.log!;
+      partial.pkmn.log = copy(battle.log!);
 
       compare(chunk, parsed);
       assert.deepEqual(result, request);
@@ -335,7 +335,7 @@ function dump(
 
   file = path.join(dir, `${hex}.pkmn.html`);
   link = path.join(dir, 'pkmn.html');
-  const buffer = convert(gen, frames.pkmn, partial.pkmn);
+  const buffer = Buffer.from(convert(gen, frames.pkmn, partial.pkmn));
   fs.writeFileSync(file, display.render(gen, buffer, error, seed));
   console.error(' ◦ @pkmn/engine:', pretty(symlink(file, link)), '->', pretty(file));
 
@@ -395,13 +395,48 @@ function convert(gen: Generation, frames: Frame['pkmn'][], partial: Partial<Fram
 
   const buf = new ArrayBuffer(n);
   const data = new DataView(buf);
-  let offset = 0;
-  data.setUint8(offset++, 1); // showdown
-  data.setUint8(offset++, gen.num);
-  data.setUint16(offset += 2, sizes.log, LE);
 
-  // const size = 4 + (frames.length *)
-  return null! as Buffer; // FIXME
+  let offset = 0;
+  data.setUint8(offset++, +true); // showdown
+  data.setUint8(offset++, gen.num);
+  data.setUint16(offset, sizes.log, LE);
+  offset += 2;
+  // Not actually the initial battle state (initial switches have happened), but doesn't matter
+  offset += concat(data, frames[0].battle, offset);
+
+  for (const frame of frames) {
+    offset += concat(data, frame.log, offset);
+    offset += concat(data, frame.battle, offset);
+    data.setUint8(offset++, engine.Result.encode(frame.result));
+    data.setUint8(offset++, engine.Choice.encode(frame.c1));
+    data.setUint8(offset++, engine.Choice.encode(frame.c2));
+  }
+
+  if (partial.log) offset += concat(data, partial.log, offset);
+  if (partial.battle) offset += concat(data, partial.battle, offset);
+  if (partial.result) data.setUint8(offset++, engine.Result.encode(partial.result));
+  if (partial.c1) data.setUint8(offset++, engine.Choice.encode(partial.c1));
+  if (partial.c2) data.setUint8(offset++, engine.Choice.encode(partial.c2));
+
+  return buf;
+}
+
+function copy(src: DataView) {
+  const buffer = new ArrayBuffer(src.byteLength);
+  const dst = new DataView(buffer);
+  for (let i = 0; i < src.byteLength; i++) {
+    const byte = src.getUint8(i);
+    dst.setUint8(i, byte);
+  }
+  return dst;
+}
+
+function concat(dst: DataView, src: DataView, offset: number) {
+  for (let i = 0; i < src.byteLength; i++) {
+    const byte = src.getUint8(i);
+    dst.setUint8(offset + i, byte);
+  }
+  return src.byteLength;
 }
 
 function displayShowdownFrame(partial: Partial<Frame['showdown']>) {
