@@ -20,9 +20,7 @@ import * as display from '../tools/display';
 import {Choices, FILTER, formatFor, patch} from './showdown';
 
 const ROOT = path.resolve(__dirname, '..', '..');
-
 const ANSI = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
-
 const CWD = process.env.INIT_CWD || process.env.CWD || process.cwd();
 
 const debug = (s: string) => s.startsWith('|debug')

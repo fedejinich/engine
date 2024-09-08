@@ -163,8 +163,6 @@ fn run(
                 .log = try buf.?.toOwnedSlice(),
             });
         }
-
-        std.debug.assert(battle.turn <= 32); // DEBUG
     }
 
     std.debug.assert(!showdown or result.type != .Error);

@@ -33,39 +33,24 @@ const VOLATILES: {[id in keyof engine.Pokemon['volatiles']]: [string, 'good' | '
 interface Generation {
   num: pkmn.GenerationNum;
   species: {
-    get(id: pkmn.ID): Species & {id: pkmn.ID} | undefined;
-    [Symbol.iterator](): Generator<Species & {id: pkmn.ID}, void>;
+    get(id: pkmn.ID): util.Species & {id: pkmn.ID} | undefined;
+    [Symbol.iterator](): Generator<util.Species & {id: pkmn.ID}, void>;
   };
   moves: {
-    get(id: pkmn.ID): Move & {id: pkmn.ID} | undefined;
-    [Symbol.iterator](): Generator<Move & {id: pkmn.ID}, void>;
+    get(id: pkmn.ID): util.Move & {id: pkmn.ID} | undefined;
+    [Symbol.iterator](): Generator<util.Move & {id: pkmn.ID}, void>;
   };
-}
-
-interface Species {
-  name: pkmn.SpeciesName;
-  num: number;
-  genderRatio: {M: number; F: number};
-  gender?: pkmn.GenderName;
-}
-
-interface Move {
-  name: pkmn.MoveName;
-  num: number;
-  maxpp: number;
-  basePower: number;
-  type: pkmn.TypeName;
 }
 
 class Gen implements Generation {
   num: pkmn.GenerationNum;
-  species: API<Species>;
-  moves: API<Move>;
+  species: API<util.Species>;
+  moves: API<util.Move>;
 
   constructor(json: {
     num: pkmn.GenerationNum;
-    species: {[id: string]: Species};
-    moves: {[id: string]: Move};
+    species: {[id: string]: util.Species};
+    moves: {[id: string]: util.Move};
   }) {
     this.num = json.num;
     this.species = new API(json.species);
@@ -489,8 +474,14 @@ function getHP(pokemon: engine.Pokemon) {
   return {percent, color, style};
 }
 
+// Data is inlined in the same script tag to save bytes - it would be more proper embed the data in
+// a <script type="application/json" id="data">...</script>, however this would force us all of the
+// keys to be quoted which wastes space (not to mention parsing the object would then add latency)
 const json = (window as any).DATA;
 const GEN = new Gen(json.gen);
+
+// @pkmn/img/adaptable means we can use our pruned data to provide sprite
+// info for just the SpriteGen's that we're going to use
 const adapted = new class {
   getPokemon(name: string) {
     const s = GEN.species.get(pkmn.toID(name));
@@ -503,10 +494,13 @@ const adapted = new class {
     return undefined;
   }
 };
-
 const Sprites = new adaptable.Sprites(adapted);
 const Icons = new adaptable.Icons(adapted);
+
+// NB: "The Unicode Problem" is not relevant here - we know this isn't Unicode text
+// https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
 const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
+
 document.getElementById('content')!.appendChild(<App
   gen={GEN}
   data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}

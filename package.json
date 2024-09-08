@@ -40,7 +40,6 @@
     "build/tools/debug.js",
     "build/tools/display/index.js.map",
     "build/tools/display/index.js",
-    "build/tools/display/ui.css",
     "build/tools/display/ui.jsx.map",
     "build/tools/display/ui.jsx",
     "build/tools/display/util.js.map",
@@ -77,7 +76,8 @@
     "src/lib/node.zig",
     "src/lib/pkmn.zig",
     "src/lib/wasm.zig",
-    "src/tools/display/dom.ts"
+    "src/tools/display/dom.ts",
+    "src/tools/display/ui.css"
   ],
   "engines": {"node": ">=16.0.0"},
   "bin": {

@@ -1,4 +1,3 @@
-
 import {execFileSync} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -7,9 +6,10 @@ import * as pkmn from '@pkmn/data';
 import * as esbuild from 'esbuild';
 import {minify} from 'html-minifier';
 
-import * as addon from '../../pkg/addon';
 import * as data from '../../pkg/data';
 import * as gen1 from '../../pkg/gen1';
+
+import {Move, Species} from './util';
 
 export * from './util';
 
@@ -26,6 +26,8 @@ export function error(err: string) {
 export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, seed?: bigint) {
   if (!buffer.length) throw new Error('Invalid input');
 
+  // Peek at the start of the data buffer just to figure out whether showdown is enabled, what
+  // generation it is, and the intial state of the Battle.
   const view = data.Data.view(buffer);
 
   let offset = 0;
@@ -35,6 +37,7 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
 
   const lookup = data.Lookup.get(gen);
   const size = data.LAYOUT[gen.num - 1].sizes.Battle;
+
   const deserialize = (buf: Buffer) => {
     switch (gen.num) {
       case 1: return new gen1.Battle(lookup, data.Data.view(buf), {inert: true, showdown});
@@ -44,37 +47,34 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
 
   const battle = deserialize(buffer.subarray(offset, offset += size));
 
-  const json: {
+  // In order to avoid requiring the full @pkmn/data Generation (more importantly, the @pkmn/dex Dex
+  // data backing it), we need to figure out the minimum amount of data actually required to render
+  // the battle. We only need data for the game objects that occur in the battle, though without
+  // reading through all of the frames here we can't know for sure what is required. We error on the
+  // side of overincluding information to save having to parse the entire buffer twice.
+  const pruned: {
     num: pkmn.GenerationNum;
-    species: {[id: string]: {
-      name: pkmn.SpeciesName;
-      num: number;
-      // TODO: technically these gender fields are useless in gen 1
-      genderRatio: {M: number; F: number};
-      gender?: pkmn.GenderName;
-    };};
-    moves: {[id: string]: {
-      name: pkmn.MoveName;
-      num: number;
-      maxpp: number;
-      basePower: number;
-      type: pkmn.TypeName;
-    };};
+    species: {[id: string]: Species};
+    moves: {[id: string]: Move};
   } = {num: gen.num, species: {}, moves: {}};
 
   let metronome = false;
   for (const side of battle.sides) {
     for (const pokemon of side.pokemon) {
       const s = gen.species.get(pokemon.species)!;
+      // Certain Pokémon can change formes in battle (eg. Shaymin-Sky -> Shaymin) so
+      // we just greedily include all formes of a species just to be safe
       for (const forme of [s.id, ...(s.formes ?? [])]) {
         const species = gen.species.get(forme)!;
-        json.species[species.id] = {
+        pruned.species[species.id] = {
           name: species.name,
           num: species.num,
           genderRatio: species.genderRatio,
           gender: species.gender,
         };
       }
+      // Similarly - Metronome can proc pretty much any other move. If any Pokémon
+      // has Metronome we just give up and include the whole set of moves
       if (!metronome) {
         for (const ms of pokemon.moves) {
           if (ms.id === 'metronome') {
@@ -82,35 +82,22 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
             break;
           }
           const move = gen.moves.get(ms.id)!;
-          json.moves[move.id] = {
-            name: move.name,
-            num: move.num,
-            maxpp: Math.min(move.pp / 5 * 8, gen.num === 1 ? 61 : 64),
-            basePower: move.basePower,
-            type: move.type,
-          };
+          pruned.moves[move.id] = prune(gen, move);
         }
       }
     }
   }
   if (metronome) {
     for (const move of gen.moves) {
-      json.moves[move.id] = {
-        name: move.name,
-        num: move.num,
-        maxpp: Math.min(move.pp / 5 * 8, gen.num === 1 ? 61 : 64),
-        basePower: move.basePower,
-        type: move.type,
-      };
+      pruned.moves[move.id] = prune(gen, move);
     }
   }
 
-  // we want to use the transform API but also want to bundle
-  // cant write to tmp bc then all the paths will be fucked
   const result = esbuild.buildSync({
     jsx: 'transform',
     jsxFactory: 'h',
     jsxFragment: 'Fragment',
+    // NB: trying to include the .js built version of this doesn't work, it must be the .ts version
     inject: [path.join(ROOT, 'src', 'tools', 'display', 'dom.ts')],
     entryPoints: [path.join(ROOT, 'build', 'tools', 'display', 'ui.jsx')],
     bundle: true,
@@ -131,7 +118,7 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
     <div id="content"></div>
     <script>
      window.DATA = ${JSON.stringify({
-    gen: json,
+    gen: pruned,
     buf: buffer.toString('base64'),
     error: err && error(err),
     seed: seed?.toString(),
@@ -149,4 +136,14 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
     </script>
   </body>
 </html>`, {minifyCSS: true, minifyJS: true});
+}
+
+function prune(gen: pkmn.Generation, move: pkmn.Move) {
+  return {
+    name: move.name,
+    num: move.num,
+    maxpp: Math.min(move.pp / 5 * 8, gen.num === 1 ? 61 : 64),
+    basePower: move.basePower,
+    type: move.type,
+  };
 }

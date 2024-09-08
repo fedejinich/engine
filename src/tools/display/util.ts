@@ -1,3 +1,5 @@
+import {GenderName, MoveName, SpeciesName, TypeName} from '@pkmn/data';
+
 import {Battle, Choice, Data, ParsedLine, Result} from '../../pkg';
 
 export interface Frame {
@@ -6,6 +8,21 @@ export interface Frame {
   c2: Choice;
   battle: Data<Battle>;
   parsed: ParsedLine[];
+}
+
+export interface Species {
+  name: SpeciesName;
+  num: number;
+  genderRatio: {M: number; F: number};
+  gender?: GenderName;
+}
+
+export interface Move {
+  name: MoveName;
+  num: number;
+  maxpp: number;
+  basePower: number;
+  type: TypeName;
 }
 
 const format = (kwVal: any) => typeof kwVal === 'boolean' ? '' : ` ${kwVal as string}`;

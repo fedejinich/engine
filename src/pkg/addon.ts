@@ -4,15 +4,20 @@ import {Choice, Player, Result} from '.';
 
 export type Argument = string | URL | WebAssembly.Module | Promise<Response>;
 
-const ADDON: [Bindings<false>?, Bindings<true>?] = [];
+const ADDONS: [Bindings<false>?, Bindings<true>?] = [];
 const loading: [Promise<Bindings<false>>?, Promise<Bindings<true>>?] = [];
 
-export interface Bindings<T extends boolean> {
-  options: {showdown: T; log: boolean};
+interface Bindings<T extends boolean> {
+  /**
+   * The compile-time options the bindings were built with. showdown is special
+   * cased because it changes the name of addon.
+   */
+  options: {showdown: T; log: boolean}; // TODO: {chance: boolean; calc: boolean; }
+  /** Bindings are per-generation, Generation I is index 0. */
   bindings: Binding[];
 }
 
-export interface Binding {
+interface Binding {
   CHOICES_SIZE: number;
   LOGS_SIZE: number;
   update(battle: ArrayBuffer, c1: number, c2: number, log: ArrayBuffer | undefined): number;
@@ -25,7 +30,7 @@ export async function initialize(showdown: boolean, addon?: Argument) {
   }
   loading[+showdown] = load(showdown, addon);
   loading[+showdown]!.then(a => {
-    ADDON[+showdown] = a;
+    ADDONS[+showdown] = a;
   }).catch(() => {
     loading[+showdown] = undefined;
   });
@@ -33,8 +38,8 @@ export async function initialize(showdown: boolean, addon?: Argument) {
 }
 
 export function check(showdown: boolean) {
-  if (!autoload(showdown)[+showdown]) {
-    const opts = ADDON[+!showdown]!.options.log ? ['-log'] : [];
+  if (!addons(showdown)[+showdown]) {
+    const opts = ADDONS[+!showdown]!.options.log ? ['-log'] : [];
     if (showdown) opts.push('-Dshowdown');
     throw new Error(
       `@pkmn/engine has ${showdown ? 'not' : 'only'} been configured to support Pokémon Showdown.` +
@@ -44,15 +49,16 @@ export function check(showdown: boolean) {
 }
 
 export function supports(showdown: boolean, log?: boolean) {
-  if (!autoload(showdown)[+showdown]) return false;
+  if (!addons(showdown)[+showdown]) return false;
   if (log === undefined) return true;
-  return ADDON[+showdown]!.options.log === log;
+  return ADDONS[+showdown]!.options.log === log;
 }
 
-function autoload(showdown: boolean) {
-  if (ADDON[+showdown]) return ADDON;
-  ADDON[+showdown] = loadSync(showdown);
-  return ADDON;
+function addons(showdown: boolean) {
+  if (ADDONS[+showdown]) return ADDONS;
+  // If we havem't been initialized attempt to autoload if we're on Node
+  ADDONS[+showdown] = loadSync(showdown);
+  return ADDONS;
 }
 
 export function update(
@@ -63,7 +69,7 @@ export function update(
   c2?: Choice,
   log?: ArrayBuffer,
 ) {
-  return Result.decode(ADDON[+showdown]!.bindings[index]
+  return Result.decode(ADDONS[+showdown]!.bindings[index]
     .update(battle, Choice.encode(c1), Choice.encode(c2), log));
 }
 
@@ -76,7 +82,7 @@ export function choices(
   buf: ArrayBuffer,
 ) {
   const request = choice[0] === 'p' ? 0 : choice[0] === 'm' ? 1 : 2;
-  const n = ADDON[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
+  const n = ADDONS[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
   // The top-level API signature means our hands our tied with respect to
   // writing really fast bindings here. The simplest approach would be to return
   // the ArrayBuffer the bindings populate as well as its size and only decode a
@@ -110,13 +116,13 @@ export function choose(
   fn: (n: number) => number,
 ) {
   const request = choice[0] === 'p' ? 0 : choice[0] === 'm' ? 1 : 2;
-  const n = ADDON[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
+  const n = ADDONS[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
   const data = new Uint8Array(buf);
   return Choice.decode(data[fn(n)]);
 }
 
 export function size(index: number, type: 'choices' | 'log') {
-  const bindings = (ADDON[1] ?? ADDON[0])!.bindings[index];
+  const bindings = (ADDONS[1] ?? ADDONS[0])!.bindings[index];
   return type[0] === 'c' ? bindings.CHOICES_SIZE : bindings.LOGS_SIZE;
 }
 

@@ -5,14 +5,10 @@ import * as path from 'path';
 import type {Argument} from '../addon';
 
 const ROOT = path.join(__dirname, '..', '..', '..');
-const NODE = [
-  path.join(ROOT, 'build', 'lib', 'pkmn.node'),
-  path.join(ROOT, 'build', 'lib', 'pkmn-showdown.node'),
-];
-const WASM = [
-  path.join(ROOT, 'build', 'lib', 'pkmn.wasm'),
-  path.join(ROOT, 'build', 'lib', 'pkmn-showdown.wasm'),
-];
+const LIB = path.join(ROOT, 'build', 'lib');
+
+const NODE = [path.join(LIB, 'pkmn.node'), path.join(LIB, 'pkmn-showdown.node')];
+const WASM = [path.join(LIB, 'pkmn.wasm'), path.join(LIB, 'pkmn-showdown.wasm')];
 
 export async function load(showdown: boolean, addon?: Argument) {
   if (addon === undefined || typeof addon === 'string' && addon !== 'wasm') {

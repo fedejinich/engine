@@ -25,7 +25,7 @@ export async function load(showdown: boolean, addon?: Argument) {
       const message = !addon || addon === 'wasm'
         ? `Could not find ${name} - did you run \`npx install-pkmn-engine\`?`
         : (addon as Promise<Response> | URL) instanceof URL
-          ? `Could not fetch WASM module from '${(addon as URL).href}'`
+          ? `Could not fetch WASM module from '${(addon as URL).href}'!`
           : 'Could not instantiate WASM module!';
       throw new Error(`${message}\n${err.message}`);
     }
