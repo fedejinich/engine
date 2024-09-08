@@ -8,15 +8,14 @@ try {
 }
 
 const {execFileSync} = require('child_process');
-const {readFileSync, mkdirSync, symlinkSync} = require('fs');
-const {dirname, join, resolve} = require('path');
+const {readFileSync} = require('fs');
+const {join, resolve} = require('path');
 
 const ROOT = resolve(__dirname, '..', '..');
 const packageJSON = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 
-const DEPS = ['@pkmn/img', 'html-minifier', 'esbuild'];
 const missing = [];
-for (const dep of DEPS) {
+for (const dep of ['@pkmn/img', 'html-minifier', 'esbuild']) {
   try {
     require.resolve(dep);
   } catch (e) {
@@ -38,11 +37,6 @@ try {
   }
 }
 
-const node_modules = {
-  local: execFileSync('npm', ['root'], {encoding: 'utf8'}).trim(),
-  global: execFileSync('npm', ['root', '--global'], {encoding: 'utf8'}).trim(),
-};
-
 if (missing.length) {
   if (+/^v(\d+)/.exec(process.version)[1] < 16) {
     console.error('pkmn-debug requires Node v16+');
@@ -51,24 +45,10 @@ if (missing.length) {
 
   execFileSync('npm', ['install', ...missing, '--global'], {encoding: 'utf8'});
 
-  if (!process.env.NODE_PATH || !process.env.NODE_PATH.includes(node_modules.global)) {
-    const dir = node_modules.global;
-    console.error(`NODE_PATH must include npm's global node_modules directory: '${dir}'`);
+  const node_modules = execFileSync('npm', ['root', '--global'], {encoding: 'utf8'}).trim();
+  if (!process.env.NODE_PATH || !process.env.NODE_PATH.includes(node_modules)) {
+    console.error(`NODE_PATH must include npm's global node_modules directory: '${node_modules}'`);
     process.exit(1);
-  }
-}
-
-for (const dep of DEPS) {
-  const resolved = require.resolve(dep);
-  if (resolved.startsWith(node_modules.global)) {
-    if (dep.includes('/')) {
-      try {
-        mkdirSync(join(node_modules.local, dirname(dep)));
-      } catch (err) {
-        if (err.code !== 'EEXIST') throw err;
-      }
-    }
-    symlinkSync(join(node_modules.global, dep), join(node_modules.local, dep));
   }
 }
 
