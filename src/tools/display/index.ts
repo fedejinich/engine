@@ -109,6 +109,10 @@ export function render(
     // NB: trying to include the .js built version of this doesn't work, it must be the .ts version
     inject: [path.join(ROOT, 'src', 'tools', 'display', 'dom.ts')],
     entryPoints: [path.join(ROOT, 'build', 'tools', 'display', 'ui.jsx')],
+    // esbuild is insanely annoying and refuses to look in NODE_MODULES to find globally installed
+    // packages unless we explicitly tell it to do so. require.resolve.paths will return the full
+    // lookup path Node uses... which is what a sane person would expect esbuild to do to begin with
+    nodePaths: require.resolve.paths('') ?? [],
     bundle: true,
     write: false,
   });
