@@ -15,6 +15,7 @@ import * as mustache from 'mustache';
 
 import * as engine from '../pkg';
 import * as addon from '../pkg/addon';
+import {LAYOUT, LE} from '../pkg/data';
 import * as display from '../tools/display';
 
 import {Choices, FILTER, formatFor, patch} from './showdown';
@@ -28,7 +29,7 @@ const debug = (s: string) => s.startsWith('|debug')
   : 'class="debug"' : '';
 
 interface Frame {
-  pkmn: display.Frame;
+  pkmn: Omit<display.Frame, 'parsed'> & {log: DataView};
   showdown: {
     result: engine.Result;
     c1: engine.Choice;
@@ -144,13 +145,8 @@ function play(
   let c2 = engine.Choice.pass;
 
   const frames: {pkmn: Frame['pkmn'][]; showdown: Frame['showdown'][]} = {pkmn: [], showdown: []};
-  const partial: {
-    pkmn: Partial<Frame['pkmn']> & {
-      battle?: engine.Data<engine.Battle>;
-      parsed?: engine.ParsedLine[];
-    };
-    showdown: Partial<Frame['showdown']> & {seed?: number[]; chunk?: string};
-  } = {pkmn: {c1, c2}, showdown: {c1, c2}};
+  const partial: {pkmn: Partial<Frame['pkmn']>; showdown: Partial<Frame['showdown']>} =
+    {pkmn: {c1, c2}, showdown: {c1, c2}};
 
   // We can't pass p1/p2 via BattleOptions because that would cause the battle to
   // start before we could patch it, desyncing the PRNG due to spurious advances
@@ -252,7 +248,7 @@ function play(
       partial.pkmn.battle = battle.toJSON();
 
       const parsed = Array.from(log.parse(battle.log!));
-      partial.pkmn.parsed = parsed;
+      partial.pkmn.log = battle.log!;
 
       compare(chunk, parsed);
       assert.deepEqual(result, request);
@@ -339,8 +335,8 @@ function dump(
 
   file = path.join(dir, `${hex}.pkmn.html`);
   link = path.join(dir, 'pkmn.html');
-  // FIXME
-  // fs.writeFileSync(file, display.render(gen, true, error, seed, frames.pkmn, partial.pkmn));
+  const buffer = convert(gen, frames.pkmn, partial.pkmn);
+  fs.writeFileSync(file, display.render(gen, buffer, error, seed));
   console.error(' ◦ @pkmn/engine:', pretty(symlink(file, link)), '->', pretty(file));
 
   file = path.join(dir, `${hex}.showdown.html`);
@@ -388,6 +384,24 @@ function displayShowdown(
       }
     ), {minifyCSS: true, minifyJS: true}
   );
+}
+
+function convert(gen: Generation, frames: Frame['pkmn'][], partial: Partial<Frame['pkmn']>) {
+  const sizes = {log: addon.size(gen.num - 1, 'log'), battle: LAYOUT[gen.num - 1].sizes.Battle};
+  let n = 4 + sizes.battle + frames.length * (sizes.log + sizes.battle + 3);
+  if (partial.log) n += sizes.log;
+  if (partial.battle) n += sizes.battle;
+  n += (+!!partial.result + +!!partial.c1 + +!!partial.c2);
+
+  const buf = new ArrayBuffer(n);
+  const data = new DataView(buf);
+  let offset = 0;
+  data.setUint8(offset++, 1); // showdown
+  data.setUint8(offset++, gen.num);
+  data.setUint16(offset += 2, sizes.log, LE);
+
+  // const size = 4 + (frames.length *)
+  return null! as Buffer; // FIXME
 }
 
 function displayShowdownFrame(partial: Partial<Frame['showdown']>) {

@@ -23,7 +23,12 @@ export function error(err: string) {
     .split('\n').slice(0, -3).join('\n'));
 }
 
-export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, seed?: bigint) {
+export function render(
+  gens: pkmn.Generation | pkmn.Generations,
+  buffer: Buffer,
+  err?: string,
+  seed?: bigint
+) {
   if (!buffer.length) throw new Error('Invalid input');
 
   // Peek at the start of the data buffer just to figure out whether showdown is enabled, what
@@ -32,7 +37,11 @@ export function render(gens: pkmn.Generations, buffer: Buffer, err?: string, see
 
   let offset = 0;
   const showdown = !!view.getUint8(offset++);
-  const gen = gens.get(view.getUint8(offset++));
+  const num = view.getUint8(offset++);
+  const gen = 'get' in gens ? gens.get(num) : gens;
+  if (gen.num !== num) {
+    throw new Error(`Require generation ${num} but was passed generation ${gen.num}`);
+  }
   offset += 2;
 
   const lookup = data.Lookup.get(gen);
