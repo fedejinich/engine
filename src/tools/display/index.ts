@@ -32,7 +32,7 @@ export function render(
   if (!buffer.length) throw new Error('Invalid input');
 
   // Peek at the start of the data buffer just to figure out whether showdown is enabled, what
-  // generation it is, and the intial state of the Battle.
+  // generation it is, and the intial state of the Battle
   const view = data.Data.view(buffer);
 
   let offset = 0;
@@ -60,7 +60,7 @@ export function render(
   // data backing it), we need to figure out the minimum amount of data actually required to render
   // the battle. We only need data for the game objects that occur in the battle, though without
   // reading through all of the frames here we can't know for sure what is required. We error on the
-  // side of overincluding information to save having to parse the entire buffer twice.
+  // side of overincluding information to save having to parse the entire buffer twice
   const pruned: {
     num: pkmn.GenerationNum;
     species: {[id: string]: Species};

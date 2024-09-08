@@ -387,7 +387,7 @@ export const Battle = new class {
 
 /** Utilities for working with `Choice` objects. */
 export class Choice {
-  /** Encoded values of the various choice types.  */
+  /** Encoded values of the various choice types. */
   static Encoding = {pass: 0, move: 1, switch: 2} as const;
   /** All valid choices types. */
   static Types = Object.keys(Choice.Encoding) as readonly Choice['type'][];
@@ -437,9 +437,9 @@ export class Choice {
   }
 }
 
-/** Utilities for working with `Result` objects */
+/** Utilities for working with `Result` objects. */
 export class Result {
-  /** Encoded values of non-empty various result types.  */
+  /** Encoded values of non-empty various result types. */
   static Encoding = {win: 1, lose: 2, tie: 3, error: 4} as const;
   /** All valid result types. */
   static Types = [undefined, 'win', 'lose', 'tie', 'error'] as const;
