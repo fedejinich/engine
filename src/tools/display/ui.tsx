@@ -142,7 +142,7 @@ const App = ({gen, data, error, seed}: {
   const log = new engine.Log(gen, lookup, names);
 
   let partial: Partial<util.Frame> | undefined = undefined;
-  const last: engine.Data<engine.Battle> | undefined = undefined;
+  let last: engine.Data<engine.Battle> | undefined = undefined;
   const frames: JSX.Element[] = [];
   while (offset < data.byteLength) {
     partial = {parsed: []};
@@ -167,6 +167,7 @@ const App = ({gen, data, error, seed}: {
     partial.c2 = engine.Choice.decode(data.getUint8(offset++));
 
     frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
+    last = partial.battle;
     partial = undefined;
   }
   frames.push(<Frame frame={partial || {}} gen={gen} showdown={showdown} last={last} />);
@@ -190,12 +191,12 @@ const Frame = ({frame, gen, showdown, last}: {
   last?: engine.Data<engine.Battle>;
 }) => <div className='frame'>
   {frame.parsed && <div className='log'>
-    <pre><code>${util.toText(frame.parsed)}</code></pre>
+    <pre><code>{util.toText(frame.parsed)}</code></pre>
   </div>}
   {frame.battle && <Battle battle={frame.battle} gen={gen} showdown={showdown} last={last} />}
   {frame.result && <div className='sides' style={{textAlign: 'center'}}>
-    <pre className='side'><code>${frame.result.p1} -&gt; ${util.pretty(frame.c1)}</code></pre>
-    <pre className='side'><code>${frame.result.p2} -&gt; ${util.pretty(frame.c2)}</code></pre>
+    <pre className='side'><code>{frame.result.p1} -&gt; {util.pretty(frame.c1)}</code></pre>
+    <pre className='side'><code>{frame.result.p2} -&gt; {util.pretty(frame.c2)}</code></pre>
   </div>}
 </div>;
 
@@ -209,7 +210,7 @@ const Battle = ({battle, gen, showdown, last}: {
   const [o1, o2] = last ? Array.from(last.sides) : [undefined, undefined];
   return <div className='battle'>
     {battle.turn && <div className='details'>
-      <h2>Turn: {battle.turn}</h2>
+      <h2>Turn {battle.turn}</h2>
       <div className="inner">
         <div><strong>Last Damage:</strong> {battle.lastDamage}</div>
         <div><strong>Seed:</strong> {battle.prng.join(', ')}</div>
@@ -247,21 +248,23 @@ const Side = ({side, battle, player, gen, showdown, last}: {
 
   let active = undefined;
   if (side.active) {
+    let prev = undefined;
     if (last) {
       for (const pokemon of last.pokemon) {
         if (pokemon.position === side.active.position) {
-          active = <div className='active'>
-            <Pokemon pokemon={side.active}
-              battle={battle}
-              active={true}
-              gen={gen}
-              showdown={showdown}
-              last={pokemon}
-            /></div>;
+          prev = pokemon;
           break;
         }
       }
     }
+    active = <div className='active'>
+      <Pokemon pokemon={side.active}
+        battle={battle}
+        active={true}
+        gen={gen}
+        showdown={showdown}
+        last={prev}
+      /></div>;
   }
 
   let i = 0;
@@ -275,6 +278,7 @@ const Side = ({side, battle, player, gen, showdown, last}: {
     icons.push(<PokemonIcon pokemon={pokemon} side={player}/>);
     i++;
   }
+  if (icons.length) teamicons.push(<div className='teamicons'>{icons}</div>);
 
   const party = [];
   for (const pokemon of side.pokemon) {
@@ -312,9 +316,9 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   }
 
   const boosts = active ? <div className='boosts'>
-    {pokemon.boosts.accuracy &&
+    {!!pokemon.boosts.accuracy &&
       <div><strong>Accuracy:</strong><Boost value={pokemon.boosts.accuracy} /></div>}
-    {pokemon.boosts.evasion &&
+    {!!pokemon.boosts.evasion &&
       <div><strong>Evasion:</strong><Boost value={pokemon.boosts.evasion} /></div>}
   </div> : '';
 
@@ -365,7 +369,7 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
     volatiles.push(<span className={`volatile ${type}`}>{text}</span>);
   }
 
-  const position = active ? '' : <div className='position'>${POSITIONS[pokemon.position - 1]}</div>;
+  const position = active ? '' : <div className='position'>{POSITIONS[pokemon.position - 1]}</div>;
   return <div className='pokemon'>
     <div className='left' title={`${pokemon.hp}/${pokemon.stats.hp}`}>
       {position}
