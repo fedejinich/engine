@@ -9,7 +9,7 @@ import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 
 import {LE} from '../pkg/data';
-import * as display from '../tools/display';
+import * as debug from '../tools/debug';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const sh = promisify(execFile);
@@ -56,7 +56,7 @@ export async function run(
     const file = path.join(dir, `${hex}.fuzz.html`);
     const link = path.join(dir, 'fuzz.html');
 
-    fs.writeFileSync(file, display.render(gens, stdout.subarray(8), raw.slice(panic), seed));
+    fs.writeFileSync(file, debug.render(gens, stdout.subarray(8), raw.slice(panic), seed));
     fs.rmSync(link, {force: true});
     fs.symlinkSync(file, link);
 

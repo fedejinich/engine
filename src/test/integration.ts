@@ -16,6 +16,7 @@ import * as mustache from 'mustache';
 import * as engine from '../pkg';
 import * as addon from '../pkg/addon';
 import {LAYOUT, LE} from '../pkg/data';
+import {error, render} from '../tools/debug';
 import * as display from '../tools/display';
 
 import {Choices, FILTER, formatFor, patch} from './showdown';
@@ -308,7 +309,7 @@ function toResult(battle: Battle, name: string) {
 
 function dump(
   gen: Generation,
-  error: string,
+  err: string,
   seed: bigint,
   input: string[],
   frames: {pkmn: Frame['pkmn'][]; showdown: Frame['showdown'][]},
@@ -336,17 +337,17 @@ function dump(
   file = path.join(dir, `${hex}.pkmn.html`);
   link = path.join(dir, 'pkmn.html');
   const buffer = Buffer.from(convert(gen, frames.pkmn, partial.pkmn));
-  fs.writeFileSync(file, display.render(gen, buffer, error, seed));
+  fs.writeFileSync(file, render(gen, buffer, err, seed));
   console.error(' ◦ @pkmn/engine:', pretty(symlink(file, link)), '->', pretty(file));
 
   file = path.join(dir, `${hex}.showdown.html`);
   link = path.join(dir, 'showdown.html');
-  fs.writeFileSync(file, displayShowdown(error, seed, frames.showdown, partial.showdown));
+  fs.writeFileSync(file, displayShowdown(err, seed, frames.showdown, partial.showdown));
   console.error(' ◦ Pokémon Showdown:', pretty(symlink(file, link)), '->', pretty(file), '\n');
 }
 
 function displayShowdown(
-  error: string | undefined,
+  err: string | undefined,
   seed: bigint | undefined,
   frames: Iterable<Frame['showdown']>,
   partial: Partial<Frame['showdown']> = {},
@@ -361,9 +362,9 @@ function displayShowdown(
   }
   buf.push(displayShowdownFrame(partial));
 
-  if (error) {
+  if (err) {
     buf.push(`<pre class="error"><code>${
-      display.error(error)
+      error(err)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')

@@ -2,10 +2,11 @@ import * as pkmn from '@pkmn/data';
 import * as adaptable from '@pkmn/img/adaptable';
 
 import * as engine from '../../pkg';
-import {LAYOUT, LE} from '../../pkg/data';
-import * as gen1 from '../../pkg/gen1';
 
 import * as util from './util';
+
+declare const Sprites: adaptable.Sprites;
+declare const Icons: adaptable.Icons;
 
 const POSITIONS = ['a', 'b', 'c', 'd', 'e', 'f'];
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
@@ -30,7 +31,7 @@ const VOLATILES: {[id in keyof engine.Pokemon['volatiles']]: [string, 'good' | '
   transform: ['Transformed', 'neutral'],
 };
 
-interface Generation {
+export interface Generation {
   num: pkmn.GenerationNum;
   species: {
     get(id: pkmn.ID): util.Species & {id: pkmn.ID} | undefined;
@@ -42,7 +43,7 @@ interface Generation {
   };
 }
 
-class Gen implements Generation {
+export class Gen implements Generation {
   num: pkmn.GenerationNum;
   species: API<util.Species>;
   moves: API<util.Move>;
@@ -76,126 +77,18 @@ class API<T> {
   }
 }
 
-class SpeciesNames implements engine.Info {
-  gen: Generation;
-  battle: engine.Battle;
-
-  constructor(gen: Generation, battle: engine.Battle) {
-    this.gen = gen;
-    this.battle = battle;
-  }
-
-  get p1() {
-    const [p1] = Array.from(this.battle.sides);
-    const team = Array.from(p1.pokemon)
-      .sort((a, b) => a.position - b.position)
-      .map(p => ({species: p.stored.species}));
-    return new engine.SideInfo(this.gen, {name: 'Player 1', team});
-  }
-
-  get p2() {
-    const [, p2] = Array.from(this.battle.sides);
-    const team = Array.from(p2.pokemon)
-      .sort((a, b) => a.position - b.position)
-      .map(p => ({species: p.stored.species}));
-    return new engine.SideInfo(this.gen, {name: 'Player 2', team});
-  }
-}
-
-const App = ({gen, data, error, seed}: {
-  gen: Generation;
-  data: DataView;
-  error?: string;
-  seed?: bigint;
-}) => {
-  let offset = 0;
-  const showdown = !!data.getUint8(offset);
-  offset += 2;
-  const N = data.getUint16(offset, LE);
-  offset += 2;
-
-  const lookup = engine.Lookup.get(gen);
-  const size = LAYOUT[gen.num - 1].sizes.Battle;
-  const deserialize = (d: DataView): engine.Battle => {
-    switch (gen.num) {
-      case 1: return new gen1.Battle(lookup, d, {inert: true, showdown});
-      default: throw new Error(`Unsupported gen: ${gen.num}`);
-    }
-  };
-
-  const battle = deserialize(windowed(data, offset, offset += size));
-  const names = new SpeciesNames(gen, battle);
-  const log = new engine.Log(gen, lookup, names);
-
-  let partial: Partial<util.Frame> | undefined = undefined;
-  let last: engine.Data<engine.Battle> | undefined = undefined;
-  const frames: JSX.Element[] = [];
-  while (offset < data.byteLength) {
-    partial = {parsed: []};
-    const it = log.parse(windowed(data, offset))[Symbol.iterator]();
-    let r = it.next();
-    while (!r.done) {
-      partial.parsed!.push(r.value);
-      r = it.next();
-    }
-    offset += N || r.value;
-    if (offset >= data.byteLength) break;
-
-    partial.battle = deserialize(windowed(data, offset, offset += size));
-    if (offset >= data.byteLength) break;
-
-    partial.result = engine.Result.decode(data.getUint8(offset++));
-    if (offset >= data.byteLength) break;
-
-    partial.c1 = engine.Choice.decode(data.getUint8(offset++));
-    if (offset >= data.byteLength) break;
-
-    partial.c2 = engine.Choice.decode(data.getUint8(offset++));
-
-    frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
-    last = partial.battle;
-    partial = undefined;
-  }
-  frames.push(<Frame frame={partial || {}} gen={gen} showdown={showdown} last={last} />);
-
-  return <div className='content'>
-    {!!seed && <h1>0x{seed.toString(16).toUpperCase()}</h1>}
-    {frames}
-    {error && <pre className='error'><code>{error}</code></pre>}
-  </div>;
-};
-
-function windowed(data: DataView, byteOffset: number, byteLength?: number) {
-  const length = byteLength ? byteLength - byteOffset : undefined;
-  return new DataView(data.buffer, data.byteOffset + byteOffset, length);
-}
-
-const Frame = ({frame, gen, showdown, last}: {
-  frame: Partial<util.Frame>;
-  gen: Generation;
-  showdown: boolean;
-  last?: engine.Data<engine.Battle>;
-}) => <div className='frame'>
-  {frame.parsed && <div className='log'>
-    <pre><code>{util.toText(frame.parsed)}</code></pre>
-  </div>}
-  {frame.battle && <Battle battle={frame.battle} gen={gen} showdown={showdown} last={last} />}
-  {frame.result && <div className='sides' style={{textAlign: 'center'}}>
-    <pre className='side'><code>{frame.result.p1} -&gt; {util.pretty(frame.c1)}</code></pre>
-    <pre className='side'><code>{frame.result.p2} -&gt; {util.pretty(frame.c2)}</code></pre>
-  </div>}
-</div>;
-
-const Battle = ({battle, gen, showdown, last}: {
+export const Battle = (props : {
   battle: engine.Data<engine.Battle>;
   gen: Generation;
   showdown: boolean;
   last?: engine.Data<engine.Battle>;
+  hide?: boolean;
 }) => {
+  const {battle, last, hide} = props;
   const [p1, p2] = Array.from(battle.sides);
   const [o1, o2] = last ? Array.from(last.sides) : [undefined, undefined];
   return <div className='battle'>
-    {battle.turn && <div className='details'>
+    {!hide && battle.turn && <div className='details'>
       <h2>Turn {battle.turn}</h2>
       <div className="inner">
         <div><strong>Last Damage:</strong> {battle.lastDamage}</div>
@@ -203,19 +96,20 @@ const Battle = ({battle, gen, showdown, last}: {
       </div>
     </div>}
     <div className='sides'>
-      <Side side={p1} battle={battle} player={'p1'} gen={gen} showdown={showdown} last={o1} />
-      <Side side={p2} battle={battle} player={'p2'} gen={gen} showdown={showdown} last={o2} />
+      <Side {...props} side={p1} player={'p1'} last={o1} />
+      <Side {...props} side={p2} player={'p2'} last={o2} />
     </div>
   </div>;
 };
 
-const Side = ({side, battle, player, gen, showdown, last}: {
+export const Side = ({side, battle, player, gen, showdown, last, hide}: {
   side: engine.Side;
   battle: engine.Data<engine.Battle>;
   player: 'p1' | 'p2';
   gen: Generation;
   showdown: boolean;
   last?: engine.Side;
+  hide?: boolean;
 }) => {
   let header = undefined;
   if (battle.turn) {
@@ -277,13 +171,13 @@ const Side = ({side, battle, player, gen, showdown, last}: {
   }
 
   return <div className={`side ${player}`}>
-    {header}
+    {!hide && header}
     {active}
-    <details className='team'><summary>{teamicons}</summary>{party}</details>
+    {!hide && <details className='team'><summary>{teamicons}</summary>{party}</details>}
   </div>;
 };
 
-const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
+export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   pokemon: engine.Pokemon;
   battle: engine.Data<engine.Battle>;
   active: boolean;
@@ -377,7 +271,7 @@ const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
   </div>;
 };
 
-const PokemonNameStatus = ({pokemon, active, gen}: {
+export const PokemonNameStatus = ({pokemon, active, gen}: {
   pokemon: engine.Pokemon;
   active: boolean;
   gen: Generation;
@@ -403,7 +297,7 @@ const HPBar = ({pokemon, last}: {pokemon: engine.Pokemon; last?: engine.Pokemon}
   return <div className='hpbar'>{bar}<div className='hptext'>{percent}%</div></div>;
 };
 
-const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
+export const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
   if (!pokemon.status) return '';
   const classes = `status ${pokemon.status === 'tox' ? 'psn' : pokemon.status}`;
   let title = '';
@@ -416,24 +310,24 @@ const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
   </span>;
 };
 
-const Stat = ({value, boost}: {value: number; boost: number}) => {
+export const Stat = ({value, boost}: {value: number; boost: number}) => {
   if (!boost) return value.toString();
   if (boost > 0) return <span className='good'>{value} (+{boost})</span>;
   return <span className='bad'>{value} ({boost})</span>;
 };
 
-const Boost = ({value}: {value: number}) => {
+export const Boost = ({value}: {value: number}) => {
   if (value > 0) return <span className='good'>+{value}</span>;
   return <span className='bad'>{value}</span>;
 };
 
-const PokemonIcon = ({pokemon, side}: {pokemon: engine.Pokemon; side: 'p1' | 'p2'}) => {
+export const PokemonIcon = ({pokemon, side}: {pokemon: engine.Pokemon; side: 'p1' | 'p2'}) => {
   const fainted = pokemon.hp === 0;
   const i = Icons.getPokemon(pokemon.stored.species, {side, fainted, domain: 'pkmn.cc'});
   return <span style={i.css}></span>;
 };
 
-const PokemonSprite = ({pokemon, active, showdown}: {
+export const PokemonSprite = ({pokemon, active, showdown}: {
   pokemon: engine.Pokemon;
   active: boolean;
   showdown: boolean;
@@ -448,20 +342,20 @@ const PokemonSprite = ({pokemon, active, showdown}: {
   }} />;
 };
 
-const TypeIcons = ({pokemon, active}: {pokemon: engine.Pokemon; active: boolean}) => {
+export const TypeIcons = ({pokemon, active}: {pokemon: engine.Pokemon; active: boolean}) => {
   const types = active ? pokemon.types : pokemon.stored.types;
   const type1 = <TypeIcon type={types[0]} />;
   const type2 = types[0] !== types[1] ? <TypeIcon type={types[1]} /> : '';
   return <div className='types'>{type1}{type2}</div>;
 };
 
-const TypeIcon = ({type}: {type: pkmn.TypeName}) => {
+export const TypeIcon = ({type}: {type: pkmn.TypeName}) => {
   const i = Icons.getType(type);
   const style = {imageRendering: 'pixelated' as const};
   return <img className='icon' src={i.url} width={i.w} height={i.h} style={style} />;
 };
 
-function getHP(pokemon: engine.Pokemon) {
+export function getHP(pokemon: engine.Pokemon) {
   const ratio = pokemon.hp / pokemon.stats.hp;
   let percent = Math.ceil(ratio * 100);
   if ((percent === 100) && (ratio < 1.0)) {
@@ -475,36 +369,22 @@ function getHP(pokemon: engine.Pokemon) {
   return {percent, color, style};
 }
 
-// Data is inlined in the same script tag to save bytes - it would be more proper embed the data in
-// a <script type="application/json" id="data">...</script>, however this would force us all of the
-// keys to be quoted which wastes space (not to mention parsing the object would then add latency)
-const json = (window as any).DATA;
-const GEN = new Gen(json.gen);
-
 // @pkmn/img/adaptable means we can use our pruned data to provide sprite
 // info for just the SpriteGen's that we're going to use
-const adapted = new class {
-  getPokemon(name: string) {
-    const s = GEN.species.get(pkmn.toID(name));
-    return {spriteid: s.id, gen: GEN.num, ...s};
-  }
-  getItem() {
-    return undefined;
-  }
-  getAvatar() {
-    return undefined;
-  }
-};
-const Sprites = new adaptable.Sprites(adapted);
-const Icons = new adaptable.Icons(adapted);
-
-// NB: "The Unicode Problem" is not relevant here - we know this isn't Unicode text
-// https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
-const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
-
-document.getElementById('content')!.appendChild(<App
-  gen={GEN}
-  data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
-  error={json.error}
-  seed={json.seed && BigInt(json.seed)}
-/>);
+export function adapt(gen: Generation) {
+  const Data = new class {
+    getPokemon(name: string) {
+      const s = gen.species.get(pkmn.toID(name))!;
+      return {spriteid: s.id, gen: gen.num, ...s};
+    }
+    getItem() {
+      return undefined;
+    }
+    getAvatar() {
+      return undefined;
+    }
+  };
+  (globalThis as any).Sprites = new adaptable.Sprites(Data);
+  (globalThis as any).Icons = new adaptable.Icons(Data);
+  return gen;
+}

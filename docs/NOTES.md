@@ -40,7 +40,7 @@
 14. Write **`helper.zig`** and implement **`choices`** method
     - matching `Choices` code required in [showdown](../src/test/showdown/index.ts)
 15. Ensure **[fuzz tests](../src/test/benchmark.zig)** pass
-    - update [`fuzz.ts`](../src/test/fuzz.ts) and [`display.ts`](../src/test/display.ts)
+    - update [`fuzz.ts`](../src/test/fuzz.ts) and [`debug.ts`](../src/tools/debug.ts)
 16. Ensure **[integration tests](../src/test/integration.ts)** pass
 17. Add **`chance.zig`** and **`calc.zig`** files with data types
 18. **Instrument code with `Chance` and `Calc` calls**

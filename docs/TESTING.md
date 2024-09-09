@@ -439,8 +439,9 @@ that they run for predefined time durations as opposed to a given number of batt
 [unimplementable](#unimplementable) effects that are usually excluded in `-Dshowdown` compatibility
 mode. When run with the `-Dlog` flag, additional binary data is dumped on crashes to allow for
 debugging with the help of [`fuzz.ts`](./fuzz.ts) and the [debug UI](https://pkmn.cc/debug.html)
-rendered by [`display.ts`](./display.ts). If `-Dchance` and `-Dcalc` are enabled the fuzz test also
-ensures a `transitions` function can correctly detect all valid transitions without crashing.
+rendered by [`debug.ts`](../src/tools/debug.ts). If `-Dchance` and `-Dcalc` are enabled the fuzz
+test also ensures a `transitions` function can correctly detect all valid transitions without
+crashing.
 
 To run the fuzz tool locally use:
 
