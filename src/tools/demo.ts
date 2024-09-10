@@ -11,6 +11,7 @@ import {Battle, Choice, Lookup} from '../pkg';
 import {Move, Species, pruneMove, pruneSpecies, render} from './display';
 
 const ROOT = path.resolve(__dirname, '..', '..');
+
 const showdown = true;
 const gens = new Generations(Dex as any);
 const smogon = new Smogon(fetch);
@@ -35,27 +36,27 @@ const options = {
   log: false,
 };
 
-const SKIP = ['gen1lc'] as ID[];
+// const SKIP = ['gen1lc'] as ID[];
 
-(async () => {
-  const order = [];
+(() => {
+  const order: number[] = [];
   const species: {[id: string]: Species} = {};
   for (const s of gen.species) {
     species[s.id] = pruneSpecies(gen, s);
-    let moves: string[];
-    try {
-      if (SKIP.includes(Smogon.format(gen, s)!)) throw new Error();
-      const stats = await smogon.stats(gen, s);
-      moves = Object.keys(stats!.moves);
-    } catch {
-      moves = (await smogon.sets(gen, s))[0]?.moves ??
-      Object.keys((await gen.learnsets.learnable(s.name))!);
-    }
-    order.push(...moves
-      .filter(m => m !== 'Nothing')
-      .slice(0, 20)
-      .map(m => lookup.moveByID(toID(m))),
-    0);
+    // let moves: string[];
+    // try {
+    //   if (SKIP.includes(Smogon.format(gen, s)!)) throw new Error();
+    //   const stats = await smogon.stats(gen, s);
+    //   moves = Object.keys(stats!.moves);
+    // } catch {
+    //   moves = (await smogon.sets(gen, s))[0]?.moves ??
+    //   Object.keys((await gen.learnsets.learnable(s.name))!);
+    // }
+    // order.push(...moves
+    //   .filter(m => m !== 'Nothing')
+    //   .slice(0, 20)
+    //   .map(m => lookup.moveByID(toID(m))),
+    // 0);
   }
   const moves: {[id: string]: Move} = {};
   for (const m of gen.moves) moves[m.id] = pruneMove(gen, m);
@@ -67,5 +68,5 @@ const SKIP = ['gen1lc'] as ID[];
     gen: {num: gen.num, species, moves},
     buf: Buffer.from((battle as any).data.buffer).toString('base64'),
     showdown,
-  }));
+  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'autocomplete.css')]}));
 })();
