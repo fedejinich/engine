@@ -56,7 +56,7 @@ export function render(
     buf: buffer.toString('base64'),
     error: err && error(err),
     seed: seed?.toString(),
-  });
+  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'debug.css')]});
 }
 
 export async function run(gens: Generations) {

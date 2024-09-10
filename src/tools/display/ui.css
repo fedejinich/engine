@@ -250,11 +250,6 @@ th, td {
 .disabled {
   color: #AAAAAA;
 }
-.log {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 2em;
-}
 .position {
   position: absolute;
   right: 10px;

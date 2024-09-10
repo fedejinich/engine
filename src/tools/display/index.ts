@@ -13,7 +13,7 @@ export * from './util';
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 
-export function render(entryPoint: string, json: any) { // FIXME
+export function render(entryPoint: string, json: any, options: {styles?: string[]} = {}) {
   const result = esbuild.buildSync({
     jsx: 'transform',
     jsxFactory: 'h',
@@ -29,6 +29,8 @@ export function render(entryPoint: string, json: any) { // FIXME
     write: false,
   });
 
+  const styles = options.styles?.map(style => fs.readFileSync(style, 'utf8')) ?? [];
+
   return minify(`<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -36,7 +38,10 @@ export function render(entryPoint: string, json: any) { // FIXME
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="https://pkmn.cc/favicon.ico">
     <title>@pkmn/engine</title>
-    <style>${fs.readFileSync(path.join(ROOT, 'src', 'tools', 'display', 'ui.css'), 'utf8')}</style>
+    <style>
+    ${fs.readFileSync(path.join(ROOT, 'src', 'tools', 'display', 'ui.css'), 'utf8')}
+    ${styles.join('')}
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
