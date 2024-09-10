@@ -78,12 +78,7 @@ export function prune(gen: pkmn.Generation, battle: Data<Battle>) {
       // we just greedily include all formes of a species just to be safe
       for (const forme of [s.id, ...(s.formes ?? [])]) {
         const species = gen.species.get(forme)!;
-        pruned.species[species.id] = {
-          name: species.name,
-          num: species.num,
-          genderRatio: species.genderRatio,
-          gender: species.gender,
-        };
+        pruned.species[species.id] = pruneSpecies(gen, species);
       }
       // Similarly - Metronome can proc pretty much any other move. If any Pokémon
       // has Metronome we just give up and include the whole set of moves
@@ -108,7 +103,16 @@ export function prune(gen: pkmn.Generation, battle: Data<Battle>) {
   return pruned;
 }
 
-function pruneMove(gen: pkmn.Generation, move: pkmn.Move) {
+export function pruneSpecies(gen: pkmn.Generation, species: pkmn.Specie) {
+  return {
+    name: species.name,
+    num: species.num,
+    genderRatio: species.genderRatio,
+    gender: species.gender,
+  };
+}
+
+export function pruneMove(gen: pkmn.Generation, move: pkmn.Move) {
   return {
     name: move.name,
     num: move.num,

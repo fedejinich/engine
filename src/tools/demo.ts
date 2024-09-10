@@ -7,7 +7,7 @@ import {Dex} from '@pkmn/sim';
 
 import {Battle, Choice} from '../pkg';
 
-import {prune, render} from './display';
+import {Move, Species, pruneMove, pruneSpecies, render} from './display';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const showdown = true;
@@ -32,10 +32,15 @@ const options = {
   log: false,
 };
 
+const species: {[id: string]: Species} = {};
+for (const s of gen.species) species[s.id] = pruneSpecies(gen, s);
+const moves: {[id: string]: Move} = {};
+for (const m of gen.moves) moves[m.id] = pruneMove(gen, m);
+
 const battle = Battle.create(gen, options);
 battle.update(Choice.pass, Choice.pass);
 process.stdout.write(render(path.join(ROOT, 'build', 'tools', 'display', 'demo.jsx'), {
-  gen: prune(gen, battle),
+  gen: {num: gen.num, species, moves},
   buf: Buffer.from((battle as any).data.buffer).toString('base64'),
   showdown,
 }));
