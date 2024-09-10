@@ -110,7 +110,7 @@
     "binaryen": "^119.0.0",
     "esbuild": "^0.23.1",
     "eslint": "<=8",
-    "fz-search": "^1.0.0",
+    "fz-search": "jeancroy/FuzzySearch",
     "html-minifier": "^4.0.0",
     "json-stringify-pretty-compact": "3.0.0",
     "minimist": "^1.2.8",
