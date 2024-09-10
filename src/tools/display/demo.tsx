@@ -18,6 +18,21 @@ const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: 
 
 const json = (window as any).DATA;
 const GEN = adapt(new Gen(json.gen));
+
+const lookup = engine.Lookup.get(GEN);
+const raw = atob(json.order);
+const order: {[id: string]: string[]} = {};
+let i = 0;
+for (const s of GEN.species) {
+  const moves = [];
+  for (; i < raw.length && raw.charCodeAt(i) !== 0; i++) {
+    moves.push(lookup.moveByNum(raw.charCodeAt(i)));
+  }
+  order[s.id] = moves;
+  i++;
+}
+console.debug(order);
+
 const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
 document.getElementById('content')!.appendChild(<App
   gen={GEN}

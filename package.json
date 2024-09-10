@@ -96,6 +96,7 @@
     "@pkmn/img": "^0.2.32",
     "@pkmn/sets": "^5.1.2",
     "@pkmn/sim": "0.9.17",
+    "@pkmn/smogon": "^0.5.13",
     "@types/html-minifier": "^4.0.5",
     "@types/jest": "^29.5.13",
     "@types/minimist": "^1.2.5",
