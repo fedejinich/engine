@@ -30,8 +30,8 @@ pub fn main() !void {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
             // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .moves = &.{.Teleport} }},
-            &.{.{ .species = .Koffing, .moves = &.{ .ConfuseRay, .Teleport } }},
+            &.{.{ .species = .Dratini, .moves = &.{.Spore, .Teleport} }},
+            &.{.{ .species = .Koffing, .moves = &.{ .Teleport } }},
 
             // ONE DAMAGE
             // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -69,38 +69,15 @@ pub fn main() !void {
     });
     options.chance.reset();
 
-    _ = try battle.update(move(1), move(2), &options);
-    format(gen, &stream);
-    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
-        options.chance.actions,
-        options.chance.durations,
-    });
-    options.chance.reset();
 
-    _ = try battle.update(move(1), move(1), &options);
-    format(gen, &stream);
-    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
-        options.chance.actions,
-        options.chance.durations,
-    });
-    options.chance.reset();
-
-    _ = try battle.update(move(1), move(2), &options);
-    format(gen, &stream);
-    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
-        options.chance.actions,
-        options.chance.durations,
-    });
-    options.chance.reset();
-
-    // const out = std.io.getStdOut().writer();
+    const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
-    // const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
-    //     .durations = durations,
-    //     .cap = true,
-    //     .seed = seed,
-    // });
-    // try out.print("{}\n", .{stats.?});
+    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(@intFromBool(pkmn.options.showdown)), allocator, out, .{
+        .durations = options.chance.durations,
+        .cap = true,
+        .seed = seed,
+    });
+    try out.print("{}\n", .{stats.?});
 }
 
 fn format(gen: u8, stream: *pkmn.protocol.ByteStream) void {

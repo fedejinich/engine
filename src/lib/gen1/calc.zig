@@ -35,7 +35,10 @@ const isPointerTo = util.isPointerTo;
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
+const Duration = chance.Duration;
 const Durations = chance.Durations;
+const Observation = chance.Observation;
+const Sleeps = chance.Sleeps;
 
 const tty = true; // DEBUG
 const summary = false; // DEBUG
@@ -194,9 +197,11 @@ pub fn transitions(
     var frontier = std.ArrayList(Actions).init(allocator);
     defer frontier.deinit();
 
+    const durations = options.durations;
+
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{}, .durations = options.durations },
+        Chance(Rational(u128)){ .probability = .{}, .durations = durations },
         Calc{},
     );
 
@@ -235,6 +240,8 @@ pub fn transitions(
         };
 
         for (Rolls.speedTie(f.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
+        for (Rolls.sleep(f.p1, durations.p1)) |p1_slp| { a.p1.sleep = p1_slp;
+        for (Rolls.sleep(f.p2, durations.p2)) |p2_slp| { a.p2.sleep = p2_slp;
         for (Rolls.confused(f.p1)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(f.p2)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
@@ -266,7 +273,7 @@ pub fn transitions(
 
                 opts.calc.overrides = a;
                 opts.calc.summaries = .{};
-                opts.chance = .{ .probability = .{}, .durations = options.durations };
+                opts.chance = .{ .probability = .{}, .durations = durations };
                 const q = &opts.chance.probability;
 
                 b = battle;
@@ -358,7 +365,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
@@ -588,6 +595,21 @@ pub const Rolls = struct {
         return if (action.speed_tie == .None) &PLAYER_NONE else &PLAYERS;
     }
 
+    const OBS_NONE = [_]Optional(Observation){.None};
+    const OBS_STARTED = [_]Optional(Observation){.started};
+    const OBS_ENDED = [_]Optional(Observation){.ended};
+    const OBS = [_]Optional(Observation){ .continuing, .ended };
+
+    /// Returns a slice with a range of values for sleep given the `action` state and observed
+    /// `durations`.
+    pub fn sleep(action: Action, duration: Duration) []const Optional(Observation) {
+        return switch (action.sleep) {
+            .None => &OBS_NONE,
+            .started => &OBS_STARTED,
+            else => if (Sleeps.get(duration.sleeps, 0) >= 7) &OBS_ENDED else &OBS,
+        };
+    }
+
     const BOOL_NONE = [_]Optional(bool){.None};
     const BOOLS = [_]Optional(bool){ .false, .true };
 
@@ -703,6 +725,10 @@ test "Rolls.speedTie" {
     const actions: Actions = .{ .p1 = .{ .speed_tie = .P2 } };
     try expectEqualSlices(Optional(Player), &.{ .P1, .P2 }, Rolls.speedTie(actions.p1));
     try expectEqualSlices(Optional(Player), &.{.None}, Rolls.speedTie(actions.p2));
+}
+
+test "Rolls.sleep" {
+    return error.SkipZigTest; // TODO
 }
 
 test "Rolls.damage" {

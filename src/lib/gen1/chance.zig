@@ -251,7 +251,7 @@ pub const Durations = struct {
     }
 };
 
-const Sleeps = Array(6, u3);
+pub const Sleeps = Array(6, u3);
 
 /// TODO
 pub const Duration = packed struct(u32) {
