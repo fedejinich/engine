@@ -30,8 +30,8 @@ pub fn main() !void {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
             // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .moves = &.{.Spore, .Teleport} }},
-            &.{.{ .species = .Koffing, .moves = &.{ .Teleport } }},
+            &.{.{ .species = .Dratini, .moves = &.{ .Spore, .Teleport } }},
+            &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
 
             // ONE DAMAGE
             // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -69,10 +69,11 @@ pub fn main() !void {
     });
     options.chance.reset();
 
-
     const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
-    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(@intFromBool(pkmn.options.showdown)), allocator, out, .{
+    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(
+        @intFromBool(pkmn.options.showdown),
+    ), allocator, out, .{
         .durations = options.chance.durations,
         .cap = true,
         .seed = seed,
