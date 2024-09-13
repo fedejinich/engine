@@ -272,7 +272,6 @@ fn durations(m: Move) bool {
         .Binding,
         .Thrashing,
         .ConfusionChance,
-        .Disable,
         .Metronome,
         => true,
         else => false,

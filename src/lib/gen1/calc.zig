@@ -242,6 +242,8 @@ pub fn transitions(
         for (Rolls.speedTie(f.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
         for (Rolls.sleep(f.p1, durations.p1)) |p1_slp| { a.p1.sleep = p1_slp;
         for (Rolls.sleep(f.p2, durations.p2)) |p2_slp| { a.p2.sleep = p2_slp;
+        for (Rolls.disable(f.p1, durations.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
+        for (Rolls.disable(f.p2, durations.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
         for (Rolls.confused(f.p1)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(f.p2)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
@@ -365,7 +367,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
@@ -610,6 +612,21 @@ pub const Rolls = struct {
         };
     }
 
+    /// Returns a slice with a range of values for disable given the `action`, observed `durations`,
+    /// and the state of the `parent` (observation of the player's Pokémon sleep status).
+    pub fn disable(
+        action: Action,
+        duration: Duration,
+        parent: Optional(Observation),
+    ) []const Optional(Observation) {
+        if (parent != .None and parent != .ended) return &OBS_NONE;
+        return switch (action.disable) {
+            .None => &OBS_NONE,
+            .started => &OBS_STARTED,
+            else => if (Sleeps.get(duration.sleeps, 0) >= 8) &OBS_ENDED else &OBS,
+        };
+    }
+
     const BOOL_NONE = [_]Optional(bool){.None};
     const BOOLS = [_]Optional(bool){ .false, .true };
 
@@ -728,6 +745,10 @@ test "Rolls.speedTie" {
 }
 
 test "Rolls.sleep" {
+    return error.SkipZigTest; // TODO
+}
+
+test "Rolls.disable" {
     return error.SkipZigTest; // TODO
 }
 
