@@ -3,6 +3,11 @@ const std = @import("std");
 const debug = std.debug;
 const io = std.io;
 
+const Array = if (@hasField(std.builtin.Type, "array")) .array else .Array;
+const Optional = if (@hasField(std.builtin.Type, "optional")) .optional else .Optional;
+const Pointer = if (@hasField(std.builtin.Type, "pointer")) .pointer else .Pointer;
+const Struct = if (@hasField(std.builtin.Type, "struct")) .@"struct" else .Struct;
+
 pub fn print(value: anytype) void {
     debug.lockStdErr();
     defer debug.unlockStdErr();
@@ -19,7 +24,7 @@ pub fn print(value: anytype) void {
             }) catch return;
         } else {
             switch (@typeInfo(@TypeOf(value))) {
-                .Struct => |info| {
+                Struct => |info| {
                     if (info.is_tuple) {
                         inline for (info.fields, 0..) |f, i| {
                             inspect(@field(value, f.name));
@@ -42,11 +47,11 @@ fn inspect(value: anytype) void {
     nosuspend {
         const err = "Unable to format type '" ++ @typeName(@TypeOf(value)) ++ "'";
         switch (@typeInfo(@TypeOf(value))) {
-            .Array => |info| {
+            Array => |info| {
                 if (info.child == u8) return stderr.print("{s}", .{value}) catch return;
                 @compileError(err);
             },
-            .Pointer => |ptr_info| switch (ptr_info.size) {
+            Pointer => |ptr_info| switch (ptr_info.size) {
                 .One => switch (@typeInfo(ptr_info.child)) {
                     .Array => |info| {
                         if (info.child == u8) return stderr.print("{s}", .{value}) catch return;
@@ -67,7 +72,7 @@ fn inspect(value: anytype) void {
                     @compileError(err);
                 },
             },
-            .Optional => stderr.print("{?}", .{value}) catch return,
+            Optional => stderr.print("{?}", .{value}) catch return,
             else => stderr.print("{}", .{value}) catch return,
         }
     }
