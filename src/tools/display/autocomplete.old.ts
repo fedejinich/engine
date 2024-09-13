@@ -47,158 +47,159 @@ export class AutoComplete {
   initialize() {
     const o = this.options; // TODO
     // init
-    const that = this.element; // TODO
+    const input = this.element; // TODO
     const source = this.source;
 
     // create suggestions container "sc"
-    that.sc = document.createElement('div');
-    that.sc.className = 'autocomplete-suggestions ' + o.menuClass;
+    input.sc = document.createElement('div');
+    input.sc.className = 'autocomplete-suggestions ' + o.menuClass;
 
-    that.autocompleteAttr = that.getAttribute('autocomplete');
-    that.setAttribute('autocomplete', 'off');
-    that.cache = {};
-    that.last_val = '';
+    input.autocompleteAttr = input.getAttribute('autocomplete');
+    input.setAttribute('autocomplete', 'off');
+    input.cache = {};
+    input.last_val = '';
 
-    that.updateSC = function (resize, next) {
-      const rect = that.getBoundingClientRect();
-      that.sc.style.left = Math.round(rect.left + (window.pageXOffset || document.documentElement.scrollLeft) + o.offsetLeft) + 'px';
-      that.sc.style.top = Math.round(rect.bottom + (window.pageYOffset || document.documentElement.scrollTop) + o.offsetTop) + 'px';
-      that.sc.style.width = Math.round(rect.right - rect.left) + 'px'; // outerWidth
-      if (!resize) {
-        that.sc.style.display = 'block';
-        if (!that.sc.maxHeight) { that.sc.maxHeight = parseInt((window.getComputedStyle ? getComputedStyle(that.sc, null) : that.sc.currentStyle).maxHeight); }
-        if (!that.sc.suggestionHeight) that.sc.suggestionHeight = that.sc.querySelector('.autocomplete-suggestion').offsetHeight;
-        if (that.sc.suggestionHeight) {
-          if (!next) {that.sc.scrollTop = 0;} else {
-            const scrTop = that.sc.scrollTop, selTop = next.getBoundingClientRect().top - that.sc.getBoundingClientRect().top;
-            if (selTop + that.sc.suggestionHeight - that.sc.maxHeight > 0) {that.sc.scrollTop = selTop + that.sc.suggestionHeight + scrTop - that.sc.maxHeight;} else if (selTop < 0) {that.sc.scrollTop = selTop + scrTop;}
-          }
-        }
-      }
-    };
-    addEvent(window, 'resize', that.updateSC);
-    document.body.appendChild(that.sc);
+    // input.updateSC = function (resize, next) {
+    //   const rect = input.getBoundingClientRect();
+    //   input.sc.style.left = Math.round(rect.left + (window.pageXOffset || document.documentElement.scrollLeft) + o.offsetLeft) + 'px';
+    //   input.sc.style.top = Math.round(rect.bottom + (window.pageYOffset || document.documentElement.scrollTop) + o.offsetTop) + 'px';
+    //   input.sc.style.width = Math.round(rect.right - rect.left) + 'px'; // outerWidth
+    //   if (!resize) {
+    //     input.sc.style.display = 'block';
+    //     if (!input.sc.maxHeight) { input.sc.maxHeight = parseInt((window.getComputedStyle ? getComputedStyle(input.sc, null) : input.sc.currentStyle).maxHeight); }
+    //     if (!input.sc.suggestionHeight) input.sc.suggestionHeight = input.sc.querySelector('.autocomplete-suggestion').offsetHeight;
+    //     if (input.sc.suggestionHeight) {
+    //       if (!next) {input.sc.scrollTop = 0;} else {
+    //         const scrTop = input.sc.scrollTop, selTop = next.getBoundingClientRect().top - input.sc.getBoundingClientRect().top;
+    //         if (selTop + input.sc.suggestionHeight - input.sc.maxHeight > 0) {input.sc.scrollTop = selTop + input.sc.suggestionHeight + scrTop - input.sc.maxHeight;} else if (selTop < 0) {input.sc.scrollTop = selTop + scrTop;}
+    //       }
+    //     }
+    //   }
+    // };
+    // addEvent(window, 'resize', input.updateSC);
+    // document.body.appendChild(input.sc);
 
-    live('autocomplete-suggestion', 'mouseleave', function (e) {
-      const sel = that.sc.querySelector('.autocomplete-suggestion.selected');
-      if (sel) setTimeout(function () { sel.className = sel.className.replace('selected', ''); }, 20);
-    }, that.sc);
+    // live('autocomplete-suggestion', 'mouseleave', function (e) {
+    //   const sel = input.sc.querySelector('.autocomplete-suggestion.selected');
+    //   if (sel) setTimeout(function () { sel.className = sel.className.replace('selected', ''); }, 20);
+    // }, input.sc);
 
-    live('autocomplete-suggestion', 'mouseover', function (e) {
-      const sel = that.sc.querySelector('.autocomplete-suggestion.selected');
-      if (sel) sel.className = sel.className.replace('selected', '');
-      this.className += ' selected';
-    }, that.sc);
+    // live('autocomplete-suggestion', 'mouseover', function (e) {
+    //   const sel = input.sc.querySelector('.autocomplete-suggestion.selected');
+    //   if (sel) sel.className = sel.className.replace('selected', '');
+    //   this.className += ' selected';
+    // }, input.sc);
 
-    live('autocomplete-suggestion', 'mousedown', function (e) {
-      if (hasClass(this, 'autocomplete-suggestion')) { // else outside click
-        const v = this.getAttribute('data-val');
-        that.value = v;
-        o.onSelect(e, v, this);
-        that.sc.style.display = 'none';
-      }
-    }, that.sc);
+    // live('autocomplete-suggestion', 'mousedown', function (e) {
+    //   if (hasClass(this, 'autocomplete-suggestion')) { // else outside click
+    //     const v = this.getAttribute('data-val');
+    //     input.value = v;
+    //     o.onSelect(e, v, this);
+    //     input.sc.style.display = 'none';
+    //   }
+    // }, input.sc);
 
-    that.blurHandler = function () {
-      try { var over_sb = document.querySelector('.autocomplete-suggestions:hover'); } catch (e) { var over_sb = 0; }
-      if (!over_sb) {
-        that.last_val = that.value;
-        that.sc.style.display = 'none';
-        setTimeout(function () { that.sc.style.display = 'none'; }, 350); // hide suggestions on fast input
-      } else if (that !== document.activeElement) {setTimeout(function () { that.focus(); }, 20);}
-    };
-    addEvent(that, 'blur', that.blurHandler);
+    // input.blurHandler = function () {
+    //   try { var over_sb = document.querySelector('.autocomplete-suggestions:hover'); } catch (e) { var over_sb = 0; }
+    //   if (!over_sb) {
+    //     input.last_val = input.value;
+    //     input.sc.style.display = 'none';
+    //     setTimeout(function () { input.sc.style.display = 'none'; }, 350); // hide suggestions on fast input
+    //   } else if (input !== document.activeElement) {setTimeout(function () { input.focus(); }, 20);}
+    // };
+    // addEvent(input, 'blur', input.blurHandler);
 
-    const suggest = function (data) {
-      const val = that.value;
-      that.cache[val] = data;
-      if (data.length && val.length >= o.minChars) {
-        let s = '';
-        for (let i = 0; i < data.length; i++) s += o.renderItem(data[i], val);
-        that.sc.innerHTML = s;
-        that.updateSC(0);
-      } else {that.sc.style.display = 'none';}
-    };
+    // const suggest = function (data) {
+    //   const val = input.value;
+    //   input.cache[val] = data;
+    //   if (data.length && val.length >= o.minChars) {
+    //     let s = '';
+    //     for (let i = 0; i < data.length; i++) s += o.renderItem(data[i], val);
+    //     input.sc.innerHTML = s;
+    //     input.updateSC(0);
+    //   } else {input.sc.style.display = 'none';}
+    // };
 
-    that.keydownHandler = function (e) {
+    input.keydownHandler = function (e) {
       const key = window.event ? e.keyCode : e.which;
       // down (40), up (38)
-      if ((key == 40 || key == 38) && that.sc.innerHTML) {
-        var next, sel = that.sc.querySelector('.autocomplete-suggestion.selected');
+      if ((key == 40 || key == 38) && input.sc.innerHTML) {
+        var next, sel = input.sc.querySelector('.autocomplete-suggestion.selected');
         if (!sel) {
-          next = (key == 40) ? that.sc.querySelector('.autocomplete-suggestion') : that.sc.childNodes[that.sc.childNodes.length - 1]; // first : last
+          next = (key == 40) ? input.sc.querySelector('.autocomplete-suggestion') : input.sc.childNodes[input.sc.childNodes.length - 1]; // first : last
           next.className += ' selected';
-          that.value = next.getAttribute('data-val');
+          input.value = next.getAttribute('data-val');
         } else {
           next = (key == 40) ? sel.nextSibling : sel.previousSibling;
           if (next) {
             sel.className = sel.className.replace('selected', '');
             next.className += ' selected';
-            that.value = next.getAttribute('data-val');
-          } else { sel.className = sel.className.replace('selected', ''); that.value = that.last_val; next = 0; }
+            input.value = next.getAttribute('data-val');
+          } else { sel.className = sel.className.replace('selected', ''); input.value = input.last_val; next = 0; }
         }
-        that.updateSC(0, next);
+        input.updateSC(0, next);
         return false;
       }
       // esc
-      else if (key == 27) { that.value = that.last_val; that.sc.style.display = 'none'; }
+      else if (key == 27) { input.value = input.last_val; input.sc.style.display = 'none'; }
       // enter
       else if (key == 13 || key == 9) {
-        var sel = that.sc.querySelector('.autocomplete-suggestion.selected');
-        if (sel && that.sc.style.display != 'none') { o.onSelect(e, sel.getAttribute('data-val'), sel); setTimeout(function () { that.sc.style.display = 'none'; }, 20); }
+        var sel = input.sc.querySelector('.autocomplete-suggestion.selected');
+        if (sel && input.sc.style.display != 'none') { o.onSelect(e, sel.getAttribute('data-val'), sel); setTimeout(function () { input.sc.style.display = 'none'; }, 20); }
       }
     };
-    addEvent(that, 'keydown', that.keydownHandler);
+    addEvent(input, 'keydown', input.keydownHandler);
 
-    that.keyupHandler = function (e) {
+    input.keyupHandler = function (e) {
       const key = window.event ? e.keyCode : e.which;
       if (!key || (key < 35 || key > 40) && key != 13 && key != 27) {
-        const val = that.value;
+        const val = input.value;
         if (val.length >= o.minChars) {
-          if (val != that.last_val) {
-            that.last_val = val;
-            clearTimeout(that.timer);
+          if (val != input.last_val) {
+            input.last_val = val;
+            clearTimeout(input.timer);
             if (o.cache) {
-              if (val in that.cache) { suggest(that.cache[val]); return; }
+              if (val in input.cache) { suggest(input.cache[val]); return; }
+
               // no requests if previous suggestions were empty
               for (let i = 1; i < val.length - o.minChars; i++) {
                 const part = val.slice(0, val.length - i);
-                if (part in that.cache && !that.cache[part].length) { suggest([]); return; }
+                if (part in input.cache && !input.cache[part].length) { suggest([]); return; }
               }
             }
-            that.timer = setTimeout(function () { source(val, suggest); }, o.delay);
+            input.timer = setTimeout(function () { source(val, suggest); }, o.delay);
           }
         } else {
-          that.last_val = val;
-          that.sc.style.display = 'none';
+          input.last_val = val;
+          input.sc.style.display = 'none';
         }
       }
     };
-    addEvent(that, 'keyup', that.keyupHandler);
+    addEvent(input, 'keyup', input.keyupHandler);
 
-    that.focusHandler = function (e) {
-      that.last_val = '\n';
-      that.keyupHandler(e);
-    };
-    if (!o.minChars) addEvent(that, 'focus', that.focusHandler);
+    // input.focusHandler = function (e) {
+    //   input.last_val = '\n';
+    //   input.keyupHandler(e);
+    // };
+    // if (!o.minChars) addEvent(input, 'focus', input.focusHandler);
   }
 
-  destroy() {
-    let that = this.element;
+  // destroy() {
+  //   let that = this.element;
 
-    removeEvent(window, 'resize', that.updateSC);
-    removeEvent(that, 'blur', that.blurHandler);
-    removeEvent(that, 'focus', that.focusHandler);
-    removeEvent(that, 'keydown', that.keydownHandler);
-    removeEvent(that, 'keyup', that.keyupHandler);
-    if (that.autocompleteAttr) {
-      that.setAttribute('autocomplete', that.autocompleteAttr);
-    } else {
-      that.removeAttribute('autocomplete');
-    }
-    document.body.removeChild(that.sc);
-    that = null;
-  }
+  //   removeEvent(window, 'resize', that.updateSC);
+  //   removeEvent(that, 'blur', that.blurHandler);
+  //   removeEvent(that, 'focus', that.focusHandler);
+  //   removeEvent(that, 'keydown', that.keydownHandler);
+  //   removeEvent(that, 'keyup', that.keyupHandler);
+  //   if (that.autocompleteAttr) {
+  //     that.setAttribute('autocomplete', that.autocompleteAttr);
+  //   } else {
+  //     that.removeAttribute('autocomplete');
+  //   }
+  //   document.body.removeChild(that.sc);
+  //   that = null;
+  // }
 }
 
 function hasClass(el, className) {

@@ -14,6 +14,16 @@ const ROOT = path.resolve(__dirname, '..', '..');
 
 const showdown = true;
 const gens = new Generations(Dex as any);
+
+import {promises as fs} from 'fs';
+const URL = 'https://data.pkmn.cc/';
+const fetch = async (url: string) => {
+  if (!url.startsWith(URL)) throw new Error(`Invalid url: '${url}'`);
+  const name = path.resolve(ROOT, '..', 'smogon', 'data', url.slice(URL.length + 1));
+  const json = JSON.parse(await fs.readFile(name, 'utf8'));
+  return {json: () => Promise.resolve(json)};
+};
+
 const smogon = new Smogon(fetch);
 
 const gen = gens.get(process.argv[2]);
@@ -83,7 +93,7 @@ const SKIP = ['gen1lc'] as ID[];
     gen: data,
     buf: Buffer.from((battle as any).data.buffer).toString('base64'),
     showdown,
-  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'autocomplete.css')]}));
+  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'select.css')]}));
 })();
 
 const TIERS = Object.fromEntries([

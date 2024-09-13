@@ -1,11 +1,7 @@
-// @ts-ignore
-import FuzzySearch from 'fz-search';
-console.log(FuzzySearch);
-
 import * as engine from '../../pkg';
 import * as gen1 from '../../pkg/gen1';
 
-// import {AutoComplete} from './autocomplete';
+// import {Select} from './select';
 import {Battle, Gen, Generation, adapt} from './ui';
 
 const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: boolean}) => {
@@ -52,28 +48,6 @@ document.getElementById('content')!.appendChild(<App
   showdown={json.showdown}
 />);
 
-// const SpeciesSelect = () => {
-//   // const options = Array.from(gen.species).map(s => <option value={s.id}>{s.name}</option>);
-//   // return <select name="species" id="species">{options}</select>;
+// const select = <Select options={order.species} placeholder='Tauros' />;
 
-//   const searcher = new FuzzySearch({
-//     source: order.species,
-//     token_field_min_length: 1,
-//     sorter: (a: any, b: any) => b.score - a.score,
-//   });
-
-//   const input = <input type="text" name="q" placeholder="Tauros" ></input>;
-//   const _ = new AutoComplete(input,
-//     function (term, suggest) {
-//       suggest(searcher.search(term));
-//     }, {
-//       minChars: 1,
-//       renderItem(item: string) {
-//         return '<div class="autocomplete-suggestion" data-val="' + item + '">' +
-//         searcher.highlight(item) + '</div>';
-//       },
-//     });
-//   return input;
-// };
-
-// document.getElementById('content')!.appendChild(<SpeciesSelect />);
+// document.getElementById('content')!.appendChild(select);
