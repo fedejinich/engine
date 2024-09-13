@@ -1,7 +1,5 @@
 /** @license MIT modified from Pixabay's https://github.com/Pixabay/JavaScript-autoComplete */
 
-import FuzzySearch from 'fz-search';
-
 const FRAME_MS = 20;
 const DELAY_MS = 150;
 const HIDE_MS = 350;
