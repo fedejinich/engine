@@ -35,6 +35,7 @@ const isPointerTo = util.isPointerTo;
 const Actions = chance.Actions;
 const Action = chance.Action;
 const Chance = chance.Chance;
+const Confusion = chance.Confusion;
 const Duration = chance.Duration;
 const Durations = chance.Durations;
 const Observation = chance.Observation;
@@ -244,10 +245,16 @@ pub fn transitions(
         for (Rolls.sleep(f.p2, durations.p2)) |p2_slp| { a.p2.sleep = p2_slp;
         for (Rolls.disable(f.p1, durations.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
         for (Rolls.disable(f.p2, durations.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
-        for (Rolls.confused(f.p1)) |p1_cfzd| { a.p1.confused = p1_cfzd;
-        for (Rolls.confused(f.p2)) |p2_cfzd| { a.p2.confused = p2_cfzd;
+        for (Rolls.confusion(f.p1, durations.p1, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
+        for (Rolls.confusion(f.p2, durations.p2, p1_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
+        for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
+        for (Rolls.confused(f.p2, p1_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(f.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
+        for (Rolls.attacking(f.p1, durations.p1, p1_par)) |p1_atk| { a.p1.attacking = p1_atk;
+        for (Rolls.attacking(f.p2, durations.p2, p2_par)) |p2_atk| { a.p2.attacking = p2_atk;
+        for (Rolls.binding(f.p1, durations.p1, p1_par)) |p1_bind| { a.p1.binding = p1_bind;
+        for (Rolls.binding(f.p2, durations.p2, p2_par)) |p2_bind| { a.p2.binding = p2_bind;
         for (Rolls.hit(f.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
         for (Rolls.hit(f.p2, p2_par)) |p2_hit| { a.p2.hit = p2_hit;
         for (Rolls.psywave(f.p1, p1, p1_hit)) |p1_psywave| { a.p1.psywave = p1_psywave;
@@ -367,7 +374,7 @@ pub fn transitions(
                 p2_dmg.min = p2_max;
             }
 
-        }}}}}}}}}}}}}}}}}}}}}}
+        }}}}}}}}}}}}}}}}}}}}}}}}}}}}
 
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
@@ -627,6 +634,52 @@ pub const Rolls = struct {
         };
     }
 
+    // FIXME overwritten?
+    const CFZ_NONE = [_]Optional(Confusion){.None};
+    const CFZ_STARTED = [_]Optional(Confusion){.started};
+    const CFZ_ENDED = [_]Optional(Confusion){.ended};
+    const CFZ = [_]Optional(Confusion){ .continuing, .ended };
+
+    /// Returns a slice with a range of values for confusion given the `action`, observed `durations`,
+    /// and the state of the `parent` (observation of the player's Pokémon sleep status).
+    pub fn confusion(
+        action: Action,
+        duration: Duration,
+        parent: Optional(Observation),
+    ) []const Optional(Confusion) {
+        if (parent != .None and parent != .ended) return &CFZ_NONE;
+        _ = action;
+        _ = duration;
+        return &CFZ_NONE; // TODO
+    }
+
+    /// Returns a slice with a range of values for attacking given the `action`, observed
+    /// `durations`, and the state of the `parent` (whether the player's Pokémon was fully
+    /// paralyzed).
+    pub fn attacking(
+        action: Action,
+        duration: Duration,
+        parent: Optional(bool),
+    ) []const Optional(Observation) {
+        if (parent == .true) return &OBS_NONE;
+        _ = action;
+        _ = duration;
+        return &OBS_NONE; // TODO
+    }
+
+    /// Returns a slice with a range of values for binding given the `action`, observed `durations`,
+    /// and the state of the `parent` (whether the player's Pokémon was fully paralyzed).
+    pub fn binding(
+        action: Action,
+        duration: Duration,
+        parent: Optional(bool),
+    ) []const Optional(Observation) {
+        if (parent == .true) return &OBS_NONE;
+        _ = action;
+        _ = duration;
+        return &OBS_NONE; // TODO
+    }
+
     const BOOL_NONE = [_]Optional(bool){.None};
     const BOOLS = [_]Optional(bool){ .false, .true };
 
@@ -675,9 +728,11 @@ pub const Rolls = struct {
         return @min(255, roll + ((254 - ((@as(u32, dmg.base) * roll) % 255)) / dmg.base));
     }
 
-    /// Returns a slice with the correct range of values for confused.
-    pub fn confused(action: Action) []const Optional(bool) {
-        return if (action.confused == .None) &BOOL_NONE else &BOOLS;
+    /// Returns a slice with the correct range of values for confused given the `action` state and
+    /// the state of the `parent` (observation of the player's Pokémon confusion status).
+    pub fn confused(action: Action, parent: Optional(Confusion)) []const Optional(bool) {
+        const done = parent == .None or parent == .ended;
+        return if (done or action.confused == .None) &BOOL_NONE else &BOOLS;
     }
 
     /// Returns a slice with the correct range of values for paralysis given the `action` state
@@ -752,6 +807,18 @@ test "Rolls.disable" {
     return error.SkipZigTest; // TODO
 }
 
+test "Rolls.confusion" {
+    return error.SkipZigTest; // TODO
+}
+
+test "Rolls.atacking" {
+    return error.SkipZigTest; // TODO
+}
+
+test "Rolls.binding" {
+    return error.SkipZigTest; // TODO
+}
+
 test "Rolls.damage" {
     const actions: Actions = .{ .p2 = .{ .damage = 221 } };
     try expectEqual(Rolls.Range{ .min = 0, .max = 1 }, Rolls.damage(actions.p1, .None));
@@ -801,8 +868,9 @@ test "Rolls.criticalHit" {
 
 test "Rolls.confused" {
     const actions: Actions = .{ .p2 = .{ .confused = .true } };
-    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p1));
-    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.confused(actions.p2));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p1, .None));
+    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.confused(actions.p2, .continuing));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p2, .ended));
 }
 
 test "Rolls.paralyzed" {
