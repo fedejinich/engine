@@ -537,7 +537,6 @@ pub fn Chance(comptime Rational: type) type {
             comptime field: Action.Field,
             player: Player,
             obs: Optional(Confusion),
-            override: bool,
         ) void {
             if (!enabled) return;
 
@@ -561,7 +560,7 @@ pub fn Chance(comptime Rational: type) type {
                     }
                 },
                 .started => {
-                    assert(override or val == .None or val == .ended);
+                    assert(val == .None or val == .ended);
                     assert(switch (field) {
                         .confusion => a.duration > 0 or self.actions.get(player.foe()).duration > 0,
                         .sleep, .disable => self.actions.get(player.foe()).duration > 0,
