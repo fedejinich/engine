@@ -591,8 +591,8 @@ fn beforeMove(
                 volatiles.Binding = false;
                 volatiles.Invulnerable = false;
 
-                options.chance.observe(.attacking, player, .None);
-                options.chance.observe(.binding, player, .None);
+                options.chance.observe(.attacking, player, .None, false);
+                options.chance.observe(.binding, player, .None, false);
                 {
                     // This feels (and is) disgusting but the cartridge literally just overwrites
                     // the opponent's defense with the user's defense and resets it after. As a
@@ -632,8 +632,8 @@ fn beforeMove(
         volatiles.Charging = false;
         volatiles.Binding = false;
 
-        options.chance.observe(.attacking, player, .None);
-        options.chance.observe(.binding, player, .None);
+        options.chance.observe(.attacking, player, .None, false);
+        options.chance.observe(.binding, player, .None, false);
 
         // GLITCH: Invulnerable is not cleared, resulting in permanent Fly/Dig invulnerability
         try log.cant(.{ ident, .Paralysis });
@@ -704,7 +704,8 @@ fn beforeMove(
             // can be expected to recognize this pattern and pass the information only to the
             // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
-            options.chance.observe(.confusion, player, if (overwritten) .overwritten else .started);
+            options.chance.observe(
+                .confusion, player, if (overwritten) .overwritten else .started, false);
         }
 
         // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
@@ -1472,7 +1473,7 @@ fn moveHit(
     if (!showdown or !foe.active.volatiles.Invulnerable) battle.last_damage = 0;
 
     side.active.volatiles.Binding = false;
-    options.chance.observe(.binding, player, .None);
+    options.chance.observe(.binding, player, .None, false);
 
     return false;
 }
@@ -1800,7 +1801,9 @@ pub const Effects = struct {
 
         side.active.volatiles.state = 0;
         side.active.volatiles.attacks = Rolls.attackingDuration(battle, player, options);
-        options.chance.observe(.attacking, player, .started);
+        const override =
+            (options.calc.overridden(player.foe(), .attacking) orelse .None) == .started;
+        options.chance.observe(.attacking, player, .started, override);
 
         try options.log.start(.{ battle.active(player), .Bide });
     }
@@ -1864,11 +1867,13 @@ pub const Effects = struct {
             }
         }
 
-        if (foe.active.volatiles.Confusion) return;
+        const override =
+            (options.calc.overridden(player.foe(), .confusion) orelse .None) == .started;
+        if (!override and foe.active.volatiles.Confusion) return;
         foe.active.volatiles.Confusion = true;
 
         foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, options);
-        options.chance.observe(.confusion, player.foe(), .started);
+        options.chance.observe(.confusion, player.foe(), .started, override);
 
         try options.log.start(.{ battle.active(player.foe()), .Confusion });
     }
@@ -1898,7 +1903,8 @@ pub const Effects = struct {
         // Pokémon Showdown handles hit/miss earlier in doMove
         if (!showdown and !try checkHit(battle, player, move, options)) return null;
 
-        if (volatiles.disable_move != 0) {
+        const override = (options.calc.overridden(player.foe(), .disable) orelse .None) == .started;
+        if (!override and volatiles.disable_move != 0) {
             try options.log.fail(.{ foe_ident, .None });
             return null;
         }
@@ -1926,7 +1932,7 @@ pub const Effects = struct {
         volatiles.disable_move =
             @intCast(try Rolls.moveSlot(battle, player, &foe.active.moves, n, options));
         volatiles.disable_duration = Rolls.disableDuration(battle, player, options);
-        options.chance.observe(.disable, player.foe(), .started);
+        options.chance.observe(.disable, player.foe(), .started, override);
 
         const id = foe.active.move(volatiles.disable_move).id;
         try options.log.start(.{ foe_ident, .Disable, id });
@@ -2033,7 +2039,7 @@ pub const Effects = struct {
                 if (p != player and Status.any(s.stored().status)) {
                     try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                     s.stored().status = 0;
-                    options.chance.observe(.sleep, p, .None);
+                    options.chance.observe(.sleep, p, .None, false);
                 } else if (showdown and s.stored().status == Status.TOX) {
                     s.stored().status = Status.init(.PSN);
                     try log.status(.{ battle.active(p), s.stored().status, .None });
@@ -2044,7 +2050,7 @@ pub const Effects = struct {
             if (Status.any(foe_stored.status)) {
                 if (Status.is(foe_stored.status, .FRZ) or Status.is(foe_stored.status, .SLP)) {
                     foe.last_selected_move = .SKIP_TURN;
-                    options.chance.observe(.sleep, player.foe(), .None);
+                    options.chance.observe(.sleep, player.foe(), .None, false);
                 }
                 try log.curestatus(.{ foe_ident, foe_stored.status, .Silent });
                 foe_stored.status = 0;
@@ -2322,12 +2328,15 @@ pub const Effects = struct {
         var foe_stored = foe.stored();
         const foe_ident = battle.active(player.foe());
 
+        const override = (options.calc.overridden(player.foe(), .sleep) orelse .None) == .started;
         if (foe.active.volatiles.Recharging) {
             // Hit test not applied if the target is recharging (bypass)
             // The volatile itself actually gets cleared below since on Pokémon Showdown
             // the Sleep Clause Mod might activate, causing us to not actually bypass
         } else {
-            if (Status.any(foe_stored.status)) {
+            if (Status.any(foe_stored.status) and
+                !(override and Status.is(foe_stored.status, .SLP)))
+            {
                 return options.log.fail(.{
                     foe_ident,
                     if (Status.is(foe_stored.status, .SLP)) Fail.Sleep else Fail.None,
@@ -2346,7 +2355,7 @@ pub const Effects = struct {
         foe.active.volatiles.Recharging = false;
 
         foe_stored.status = Status.slp(Rolls.sleepDuration(battle, player, options));
-        options.chance.observe(.sleep, player.foe(), .started);
+        options.chance.observe(.sleep, player.foe(), .started, override);
 
         const last = battle.side(player).last_selected_move;
         try options.log.status(.{ foe_ident, foe_stored.status, .From, last });
@@ -2399,13 +2408,15 @@ pub const Effects = struct {
 
     fn thrashing(battle: anytype, player: Player, options: anytype) void {
         var volatiles = &battle.side(player).active.volatiles;
-        assert(!volatiles.Thrashing);
+        const override =
+            (options.calc.overridden(player.foe(), .attacking) orelse .None) == .started;
+        assert(override or !volatiles.Thrashing);
         assert(!volatiles.Bide);
 
         volatiles.Thrashing = true;
         volatiles.attacks = Rolls.attackingDuration(battle, player, options);
 
-        options.chance.observe(.attacking, player, .started);
+        options.chance.observe(.attacking, player, .started, override);
     }
 
     fn transform(battle: anytype, player: Player, options: anytype) !void {
@@ -2441,7 +2452,8 @@ pub const Effects = struct {
         var side = battle.side(player);
         var foe = battle.foe(player);
 
-        if (side.active.volatiles.Binding) return;
+        const override = (options.calc.overridden(player.foe(), .binding) orelse .None) == .started;
+        if (!override and side.active.volatiles.Binding) return;
         side.active.volatiles.Binding = true;
         // GLITCH: Hyper Beam automatic selection glitch if Recharging gets cleared on miss
         // (Pokémon Showdown unitentionally patches this glitch, preventing automatic selection)
@@ -2451,7 +2463,7 @@ pub const Effects = struct {
 
         side.active.volatiles.attacks =
             try Rolls.distribution(battle, .Binding, player, options) - 1;
-        options.chance.observe(.binding, player, .started);
+        options.chance.observe(.binding, player, .started, override);
     }
 
     fn boost(battle: anytype, player: Player, move: Move.Data, options: anytype) !void {
@@ -2690,13 +2702,13 @@ fn clearVolatiles(battle: anytype, who: Player, options: anytype) !void {
     if (volatiles.disable_move != 0) {
         volatiles.disable_move = 0;
         volatiles.disable_duration = 0;
-        options.chance.observe(.disable, who, .None);
+        options.chance.observe(.disable, who, .None, false);
         try log.end(.{ ident, .DisableSilent });
     }
     if (volatiles.Confusion) {
         // volatiles.confusion is left unchanged
         volatiles.Confusion = false;
-        options.chance.observe(.confusion, who, .None);
+        options.chance.observe(.confusion, who, .None, false);
         try log.end(.{ ident, .ConfusionSilent });
     }
     if (volatiles.Mist) {
