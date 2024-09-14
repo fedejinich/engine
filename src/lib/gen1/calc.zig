@@ -226,6 +226,7 @@ pub fn transitions(
     assert(frontier.items.len == 1);
     while (i < frontier.items.len) : (i += 1) {
         const f = frontier.items[i];
+        const saved = stats.saved;
 
         try debug(writer, f, .{
             .shape = true,
@@ -376,6 +377,7 @@ pub fn transitions(
 
         }}}}}}}}}}}}}}}}}}}}}}}}}}}}
 
+        assert(stats.saved > saved);
         if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
             try writer.print(
