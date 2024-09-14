@@ -644,7 +644,6 @@ pub const Rolls = struct {
         };
     }
 
-    // FIXME overwritten?
     const CFZ_NONE = [_]Optional(Confusion){.None};
     const CFZ_STARTED = [_]Optional(Confusion){.started};
     const CFZ_CONTINUING = [_]Optional(Confusion){.continuing};
@@ -663,7 +662,6 @@ pub const Rolls = struct {
         return switch (action.confusion) {
             .None => &CFZ_NONE,
             .started => &CFZ_STARTED,
-            .overwritten => unreachable, // FIXME
             else => if (duration.confusion >= 5)
                 &CFZ_ENDED
             else if (duration.confusion < 2)
