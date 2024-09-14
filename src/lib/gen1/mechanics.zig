@@ -341,6 +341,7 @@ fn doTurn(
         player_choice,
         player_rewrap,
         player_skip,
+        true,
         &residual,
         options,
     )) |r| return r;
@@ -363,6 +364,7 @@ fn doTurn(
         foe_choice,
         foe_rewrap,
         foe_skip,
+        false,
         &residual,
         options,
     )) |r| return r;
@@ -390,6 +392,7 @@ fn executeMove(
     choice: Choice,
     rewrap: bool,
     skip: bool,
+    first: bool,
     residual: *bool,
     options: anytype,
 ) !?Result {
@@ -449,7 +452,7 @@ fn executeMove(
 
     var skip_can = false;
     var skip_pp = false;
-    switch (try beforeMove(battle, player, skip, residual, options)) {
+    switch (try beforeMove(battle, player, skip, first, residual, options)) {
         .done => return null,
         .skip_can => skip_can = true,
         .skip_pp => skip_pp = true,
@@ -470,6 +473,7 @@ fn beforeMove(
     battle: anytype,
     player: Player,
     skip: bool,
+    first: bool,
     residual: *bool,
     options: anytype,
 ) !BeforeMove {
@@ -562,7 +566,7 @@ fn beforeMove(
         assert(volatiles.confusion > 0);
         if (options.calc.overridden(player, .confusion)) |obs| switch (obs) {
             .started => {
-                if ((options.calc.overridden(player, .confused) orelse .None) != .None) {
+                if (!first or (options.calc.overridden(player, .confused) orelse .None) != .None) {
                     volatiles.confusion -= 1;
                 } else {
                     volatiles.confusion = 0;
