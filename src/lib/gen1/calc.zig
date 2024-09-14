@@ -378,7 +378,8 @@ pub fn transitions(
         }}}}}}}}}}}}}}}}}}}}}}}}}}}}
 
         assert(stats.saved > saved);
-        if (@TypeOf(writer) != @TypeOf(std.io.null_writer)) {
+        const old = @hasDecl(std.fmt, "formatFloatDecimal");
+        if (!old and @TypeOf(writer) != @TypeOf(std.io.null_writer)) {
             p.reduce();
             try writer.print(
                 "  = {s} ({d:.2}%)\n\n",
