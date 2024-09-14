@@ -268,10 +268,12 @@ fn durations(m: Move) bool {
     return switch (Move.get(m).effect) {
         .Confusion,
         .Bide,
+        .Sleep,
         .Rage,
         .Binding,
         .Thrashing,
         .ConfusionChance,
+        .Disable,
         .Metronome,
         => true,
         else => false,
