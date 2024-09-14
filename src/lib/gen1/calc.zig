@@ -299,7 +299,7 @@ pub fn transitions(
                     try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
 
                 if (opts.chance.actions.matches(f)) {
-                    if (!opts.chance.actions.eql(a)) {
+                    if (!map(opts.chance.actions).eql(a)) {
                         if (!summary) {
                             try debug(writer, opts.chance.actions, .{
                                 .p1_max = p1_max,
@@ -510,6 +510,13 @@ fn unfix(actual: anytype) data.Battle(data.PRNG) {
                 .{ 123, 234, 56, 78, 9, 101, 112, 131, 4 },
         } },
     };
+}
+
+fn map(actions: Actions) Actions {
+    var a = actions;
+    if (a.p1.confusion == .overwritten) a.p1.confusion = .continuing;
+    if (a.p2.confusion == .overwritten) a.p2.confusion = .continuing;
+    return a;
 }
 
 fn matches(actions: Actions, i: usize, frontier: []Actions) bool {
