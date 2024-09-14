@@ -561,7 +561,13 @@ fn beforeMove(
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
         if (options.calc.overridden(player, .confusion)) |obs| switch (obs) {
-            .started => volatiles.confusion -= 1,
+            .started => {
+                if ((options.calc.overridden(player, .confused) orelse .None) != .None) {
+                    volatiles.confusion -= 1;
+                } else {
+                    volatiles.confusion = 0;
+                }
+            },
             .continuing => if (volatiles.confusion > 1) {
                 volatiles.confusion -= 1;
             },
