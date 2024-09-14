@@ -513,6 +513,7 @@ fn unfix(actual: anytype) data.Battle(data.PRNG) {
 }
 
 fn map(actions: Actions) Actions {
+    if (!pkmn.options.overwrite) return actions;
     var a = actions;
     if (a.p1.confusion == .overwritten) a.p1.confusion = .continuing;
     if (a.p2.confusion == .overwritten) a.p2.confusion = .continuing;

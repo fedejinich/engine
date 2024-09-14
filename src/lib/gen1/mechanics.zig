@@ -693,7 +693,7 @@ fn beforeMove(
         try options.chance.attacking(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks == 0) {
-            const overwritten = volatiles.Confusion;
+            const overwritten = pkmn.options.overwrite and volatiles.Confusion;
 
             volatiles.Thrashing = false;
             volatiles.Confusion = true;

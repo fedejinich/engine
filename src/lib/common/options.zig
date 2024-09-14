@@ -11,6 +11,7 @@ pub const Options = struct {
     ebc: ?bool = null,
     key: ?bool = null,
     miss: ?bool = null,
+    overwrite: ?bool = null,
     internal: ?bool = null,
 };
 
@@ -27,6 +28,7 @@ pub const advance = get("advance", true);
 pub const ebc = get("ebc", true);
 pub const key = get("key", false);
 pub const miss = get("miss", true);
+pub const overwrite = get("overwrite", true);
 pub const internal = get("internal", false);
 
 fn get(comptime name: []const u8, default: bool) bool {
