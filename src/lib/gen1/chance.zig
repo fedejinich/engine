@@ -656,6 +656,7 @@ pub fn Chance(comptime Rational: type) type {
             var d = self.durations.get(player);
             const n = d.attacking;
             if (obs == .ended) {
+                // "3-4 turns" includes the turn for the initial attack *plus* the forced attacks
                 assert(n >= 2 and n <= 3);
                 if (n != 3) try self.probability.update(1, 4 - @as(u4, n));
                 d.attacking = 0;
@@ -682,6 +683,7 @@ pub fn Chance(comptime Rational: type) type {
             const q: u4 = if (n < 3) 8 - ((n - 1) * p) else 2;
 
             if (obs == .ended) {
+                // "2-5 turns" includes the turn for the initial attack *plus* the forced attacks
                 assert(n >= 1 and n <= 4);
                 if (n != 4) try self.probability.update(p, q);
                 d.binding = 0;

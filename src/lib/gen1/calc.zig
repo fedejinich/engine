@@ -614,6 +614,7 @@ pub const Rolls = struct {
 
     const OBS_NONE = [_]Optional(Observation){.None};
     const OBS_STARTED = [_]Optional(Observation){.started};
+    const OBS_CONTINUING = [_]Optional(Observation){.continuing};
     const OBS_ENDED = [_]Optional(Observation){.ended};
     const OBS = [_]Optional(Observation){ .continuing, .ended };
 
@@ -634,17 +635,19 @@ pub const Rolls = struct {
         duration: Duration,
         parent: Optional(Observation),
     ) []const Optional(Observation) {
-        if (parent != .None and parent != .ended) return &OBS_NONE;
+        // if (parent == .started or parent == .continuing) return &OBS_NONE;
+        _ = parent; // FIXME
         return switch (action.disable) {
             .None => &OBS_NONE,
             .started => &OBS_STARTED,
-            else => if (Sleeps.get(duration.sleeps, 0) >= 8) &OBS_ENDED else &OBS,
+            else => if (duration.disable >= 8) &OBS_ENDED else &OBS,
         };
     }
 
     // FIXME overwritten?
     const CFZ_NONE = [_]Optional(Confusion){.None};
     const CFZ_STARTED = [_]Optional(Confusion){.started};
+    const CFZ_CONTINUING = [_]Optional(Confusion){.continuing};
     const CFZ_ENDED = [_]Optional(Confusion){.ended};
     const CFZ = [_]Optional(Confusion){ .continuing, .ended };
 
@@ -655,10 +658,19 @@ pub const Rolls = struct {
         duration: Duration,
         parent: Optional(Observation),
     ) []const Optional(Confusion) {
-        if (parent != .None and parent != .ended) return &CFZ_NONE;
-        _ = action;
-        _ = duration;
-        return &CFZ_NONE; // TODO
+        // if (parent == .started or parent == .continuing) return &CFZ_NONE;
+        _ = parent; // FIXME
+        return switch (action.confusion) {
+            .None => &CFZ_NONE,
+            .started => &CFZ_STARTED,
+            .overwritten => unreachable, // FIXME
+            else => if (duration.confusion >= 5)
+                &CFZ_ENDED
+            else if (duration.confusion < 2)
+                &CFZ_CONTINUING
+            else
+                &CFZ,
+        };
     }
 
     /// Returns a slice with a range of values for attacking given the `action`, observed
@@ -670,9 +682,16 @@ pub const Rolls = struct {
         parent: Optional(bool),
     ) []const Optional(Observation) {
         if (parent == .true) return &OBS_NONE;
-        _ = action;
-        _ = duration;
-        return &OBS_NONE; // TODO
+        return switch (action.attacking) {
+            .None => &OBS_NONE,
+            .started => &OBS_STARTED,
+            else => if (duration.attacking >= 3)
+                &OBS_ENDED
+            else if (duration.attacking < 2)
+                &OBS_CONTINUING
+            else
+                &OBS,
+        };
     }
 
     /// Returns a slice with a range of values for binding given the `action`, observed `durations`,
@@ -683,9 +702,11 @@ pub const Rolls = struct {
         parent: Optional(bool),
     ) []const Optional(Observation) {
         if (parent == .true) return &OBS_NONE;
-        _ = action;
-        _ = duration;
-        return &OBS_NONE; // TODO
+        return switch (action.binding) {
+            .None => &OBS_NONE,
+            .started => &OBS_STARTED,
+            else => if (duration.binding >= 4) &OBS_ENDED else &OBS,
+        };
     }
 
     const BOOL_NONE = [_]Optional(bool){.None};
@@ -739,7 +760,8 @@ pub const Rolls = struct {
     /// Returns a slice with the correct range of values for confused given the `action` state and
     /// the state of the `parent` (observation of the player's Pokémon confusion status).
     pub fn confused(action: Action, parent: Optional(Confusion)) []const Optional(bool) {
-        const done = parent == .None or parent == .ended;
+        const done = false; // parent == .None or parent == .ended;
+        _ = parent; // FIXME
         return if (done or action.confused == .None) &BOOL_NONE else &BOOLS;
     }
 
