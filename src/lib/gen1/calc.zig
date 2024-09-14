@@ -248,7 +248,7 @@ pub fn transitions(
         for (Rolls.confusion(f.p1, durations.p1, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
         for (Rolls.confusion(f.p2, durations.p2, p1_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
         for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
-        for (Rolls.confused(f.p2, p1_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
+        for (Rolls.confused(f.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(f.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
         for (Rolls.attacking(f.p1, durations.p1, p1_par)) |p1_atk| { a.p1.attacking = p1_atk;
