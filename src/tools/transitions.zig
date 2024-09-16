@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 
 const pkmn = @import("pkmn");
@@ -8,6 +9,8 @@ const swtch = pkmn.gen1.helpers.swtch;
 pub const pkmn_options = pkmn.Options{ .internal = true };
 
 const debug = false; // DEBUG
+
+const SIZES = [_]usize{@sizeOf(pkmn.gen1.Battle(pkmn.gen1.PRNG))};
 
 pub fn main() !void {
     std.debug.assert(pkmn.options.calc and pkmn.options.chance);
@@ -20,65 +23,100 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     if (args.len < 2 or args.len > 3) usageAndExit(args[0]);
 
+    var buf: [pkmn.LOGS_SIZE]u8 = undefined;
+    var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
+
+    const out = std.io.getStdOut().writer();
+    // const out = std.io.null_writer;
+
     const gen = std.fmt.parseUnsigned(u8, args[1], 10) catch
         errorAndExit("gen", args[1], args[0]);
     if (gen < 1 or gen > 9) errorAndExit("gen", args[1], args[0]);
 
-    const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
+    if (args.len > 2) {
+        const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
-    var battle = switch (gen) {
-        1 => pkmn.gen1.helpers.Battle.init(
-            seed,
-            // ALREADY PARALYZED
-            &.{.{ .species = .Dratini, .moves = &.{ .Spore, .Teleport } }},
-            &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
+        var battle = switch (gen) {
+            1 => pkmn.gen1.helpers.Battle.init(
+                seed,
+                // ALREADY PARALYZED
+                &.{.{ .species = .Dratini, .moves = &.{ .Spore, .Teleport } }},
+                &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
 
-            // ONE DAMAGE
-            // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
-            // &.{.{ .species = .Rhyhorn, .moves = &.{.Flamethrower} }},
+                // ONE DAMAGE
+                // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
+                // &.{.{ .species = .Rhyhorn, .moves = &.{.Flamethrower} }},
 
-            // MAX_FRONTIER
-            // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
-            // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
-        ),
-        else => unreachable,
-    };
+                // MAX_FRONTIER
+                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
+                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
+            ),
+            else => unreachable,
+        };
 
-    var buf: [pkmn.LOGS_SIZE]u8 = undefined;
-    var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
-    var options = switch (gen) {
-        1 => options: {
-            var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
-            break :options pkmn.battle.options(
-                pkmn.protocol.FixedLog{ .writer = stream.writer() },
-                &chance,
-                pkmn.gen1.calc.NULL,
-            );
-        },
-        else => unreachable,
-    };
-    _ = try battle.update(.{}, .{}, &options);
-    format(gen, &stream);
-    options.chance.reset();
+        var options = switch (gen) {
+            1 => options: {
+                var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
+                break :options pkmn.battle.options(
+                    pkmn.protocol.FixedLog{ .writer = stream.writer() },
+                    &chance,
+                    pkmn.gen1.calc.NULL,
+                );
+            },
+            else => unreachable,
+        };
 
-    _ = try battle.update(move(1), move(1), &options);
-    format(gen, &stream);
-    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
-        options.chance.actions,
-        options.chance.durations,
-    });
-    options.chance.reset();
+        _ = try battle.update(.{}, .{}, &options);
+        format(gen, &stream);
+        options.chance.reset();
 
-    const out = std.io.getStdOut().writer();
-    // const out = std.io.null_writer;
-    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(
-        @intFromBool(pkmn.options.showdown),
-    ), allocator, out, .{
-        .durations = options.chance.durations,
-        .cap = true,
-        .seed = seed,
-    });
-    try out.print("{}\n", .{stats.?});
+        // _ = try battle.update(move(1), move(1), &options);
+        // format(gen, &stream);
+        // std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
+        //     options.chance.actions,
+        //     options.chance.durations,
+        // });
+        // options.chance.reset();
+
+        const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(1), allocator, out, .{
+            .durations = options.chance.durations,
+            .cap = true,
+            .seed = seed,
+        });
+        try out.print("{}\n", .{stats.?});
+    } else {
+        const stdin = std.io.getStdIn();
+        var reader = std.io.bufferedReader(stdin.reader());
+        var r = reader.reader();
+
+        const battle = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
+            else => unreachable,
+        };
+        const result = try r.readStruct(pkmn.Result);
+        const c1 = try r.readStruct(pkmn.Choice);
+        const c2 = try r.readStruct(pkmn.Choice);
+
+        std.debug.print("{}\n", .{ result});
+
+        const options = switch (gen) {
+            1 => options: {
+                var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
+                break :options pkmn.battle.options(
+                    pkmn.protocol.FixedLog{ .writer = stream.writer() },
+                    &chance,
+                    pkmn.gen1.calc.NULL,
+                );
+            },
+            else => unreachable,
+        };
+
+        const stats = try pkmn.gen1.calc.transitions(battle, c1, c2, allocator, out, .{
+            .durations = options.chance.durations,
+            .cap = true,
+        });
+        try out.print("{}\n", .{stats.?});
+    }
 }
 
 fn format(gen: u8, stream: *pkmn.protocol.ByteStream) void {
