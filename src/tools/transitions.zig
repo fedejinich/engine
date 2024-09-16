@@ -36,10 +36,10 @@ pub fn main() !void {
     if (args.len > 2) {
         const seed = if (args.len > 2) try std.fmt.parseUnsigned(u64, args[2], 0) else 0x1234568;
 
+        // const PAR = pkmn.gen1.Status.init(.PAR);
         var battle = switch (gen) {
             1 => pkmn.gen1.helpers.Battle.init(
                 seed,
-                // ALREADY PARALYZED
                 &.{.{ .species = .Onix, .moves = &.{.DreamEater } }},
                 &.{.{ .species = .Onix, .moves = &.{.Hypnosis} }},
 
@@ -48,8 +48,14 @@ pub fn main() !void {
                 // &.{.{ .species = .Rhyhorn, .moves = &.{.Flamethrower} }},
 
                 // MAX_FRONTIER
-                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
-                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{.RollingKick} }},
+                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{
+                //     .RollingKick,
+                //     .ConfuseRay,
+                // } }},
+                // &.{.{ .species = .Hitmonlee, .hp = 118, .status = PAR, .moves = &.{
+                //     .RollingKick,
+                //     .ConfuseRay,
+                // } }},
             ),
             else => unreachable,
         };
@@ -70,7 +76,7 @@ pub fn main() !void {
         format(gen, &stream);
         options.chance.reset();
 
-        // _ = try battle.update(move(1), move(1), &options);
+        // _ = try battle.update(move(2), move(2), &options);
         // format(gen, &stream);
         // std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
         //     options.chance.actions,
