@@ -77,3 +77,24 @@ fn inspect(value: anytype) void {
         }
     }
 }
+
+const showdown = @import("./options.zig").showdown;
+const Result = @import("./data.zig").Result;
+const Choice = @import("./data.zig").Choice;
+
+pub fn dump(gen: u8, battle: anytype, frame: ?struct { Result, Choice, Choice }) void {
+    const file = std.fs.cwd().createFile("logs/dump.bin", .{}) catch return;
+    defer file.close();
+    var w = file.writer();
+    w.writeByte(@intFromBool(showdown)) catch return;
+    w.writeByte(gen) catch return;
+    w.writeInt(u16, 0, .little) catch return;
+    w.writeStruct(battle) catch return;
+    w.writeByte(0) catch return;
+    w.writeStruct(battle) catch return;
+    if (frame) |f| {
+        w.writeStruct(f[0]) catch return;
+        w.writeStruct(f[1]) catch return;
+        w.writeStruct(f[2]) catch return;
+    }
+}
