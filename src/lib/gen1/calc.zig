@@ -619,13 +619,16 @@ pub const Rolls = struct {
     const OBS_STARTED = [_]Optional(Observation){.started};
     const OBS_CONTINUING = [_]Optional(Observation){.continuing};
     const OBS_ENDED = [_]Optional(Observation){.ended};
+    const OBS_ALL = [_]Optional(Observation){ .started, .continuing, .ended };
     const OBS = [_]Optional(Observation){ .continuing, .ended };
 
     /// Returns a slice with a range of values for sleep given the `action` state and observed
     /// `durations`.
     pub fn sleep(action: Action, duration: Duration) []const Optional(Observation) {
-        return switch (action.sleep) {
-            .None => &OBS_NONE,
+        if (action.sleep == .None) return &OBS_NONE;
+        return if (Sleeps.get(duration.sleeps, 0) == 0 and action.speed_tie != .None)
+            &OBS_ALL
+        else switch (action.sleep) {
             .started => &OBS_STARTED,
             else => if (Sleeps.get(duration.sleeps, 0) >= 7) &OBS_ENDED else &OBS,
         };
@@ -640,8 +643,10 @@ pub const Rolls = struct {
     ) []const Optional(Observation) {
         // if (parent == .started or parent == .continuing) return &OBS_NONE;
         _ = parent; // FIXME
-        return switch (action.disable) {
-            .None => &OBS_NONE,
+        if (action.disable == .None) return &OBS_NONE;
+        return if (duration.disable == 0 and action.speed_tie != .None)
+            &OBS_ALL
+        else switch (action.disable) {
             .started => &OBS_STARTED,
             else => if (duration.disable >= 8) &OBS_ENDED else &OBS,
         };

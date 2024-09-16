@@ -40,8 +40,8 @@ pub fn main() !void {
             1 => pkmn.gen1.helpers.Battle.init(
                 seed,
                 // ALREADY PARALYZED
-                &.{.{ .species = .Dratini, .moves = &.{ .Spore, .Teleport } }},
-                &.{.{ .species = .Koffing, .moves = &.{.Teleport} }},
+                &.{.{ .species = .Onix, .moves = &.{.DreamEater } }},
+                &.{.{ .species = .Onix, .moves = &.{.Hypnosis} }},
 
                 // ONE DAMAGE
                 // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -78,7 +78,7 @@ pub fn main() !void {
         // });
         // options.chance.reset();
 
-        const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(1), allocator, out, .{
+        const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
             .durations = options.chance.durations,
             .cap = true,
             .seed = seed,
@@ -93,11 +93,9 @@ pub fn main() !void {
             1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
             else => unreachable,
         };
-        const result = try r.readStruct(pkmn.Result);
+        _ = try r.readStruct(pkmn.Result);
         const c1 = try r.readStruct(pkmn.Choice);
         const c2 = try r.readStruct(pkmn.Choice);
-
-        std.debug.print("{}\n", .{ result});
 
         const options = switch (gen) {
             1 => options: {
