@@ -40,8 +40,8 @@ pub fn main() !void {
         var battle = switch (gen) {
             1 => pkmn.gen1.helpers.Battle.init(
                 seed,
-                &.{.{ .species = .Onix, .moves = &.{.DreamEater } }},
-                &.{.{ .species = .Onix, .moves = &.{.Hypnosis} }},
+                &.{.{ .species = .Poliwrath, .moves = &.{ .Psybeam, .Teleport } }},
+                &.{.{ .species = .Tangela, .moves = &.{ .Bide, .Substitute } }},
 
                 // ONE DAMAGE
                 // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -76,13 +76,13 @@ pub fn main() !void {
         format(gen, &stream);
         options.chance.reset();
 
-        // _ = try battle.update(move(2), move(2), &options);
-        // format(gen, &stream);
-        // std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
-        //     options.chance.actions,
-        //     options.chance.durations,
-        // });
-        // options.chance.reset();
+        _ = try battle.update(move(2), move(2), &options);
+        format(gen, &stream);
+        std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
+            options.chance.actions,
+            options.chance.durations,
+        });
+        options.chance.reset();
 
         const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(1), allocator, out, .{
             .durations = options.chance.durations,
