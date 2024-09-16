@@ -51,6 +51,8 @@ export async function run(
       if (e.code !== 'EEXIST') throw e;
     }
 
+    fs.writeFileSync(path.join(dir, 'dump.bin'), stdout);
+
     seed = LE ? stdout.readBigUInt64LE(0) : stdout.readBigUInt64BE(0);
     const hex = `0x${seed.toString(16).toUpperCase()}`;
     const file = path.join(dir, `${hex}.fuzz.html`);
