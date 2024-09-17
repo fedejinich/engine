@@ -1042,22 +1042,20 @@ fn doMove(
             try Effects.poison(battle, player, Move.get(.PoisonSting), options);
         }
         try log.hitcount(.{ battle.active(player.foe()), hit });
-    } else if (showdown) {
+    } else if (showdown and move.effect == .Binding) {
         // This should be handled much earlier but Pokémon Showdown does it here... ¯\_(ツ)_/¯
-        if (move.effect == .Binding) {
-            try Effects.binding(battle, player, rewrap, options);
-            if (immune) {
-                battle.last_damage = 0;
-                assert(foe.stored().hp > 0);
-                // Pokémon Showdown logs |-damage| here instead of |-immune| because logic...
-                if (sub) {
-                    try log.activate(.{ battle.active(player.foe()), .Substitute });
-                } else {
-                    try log.damage(.{ battle.active(player.foe()), foe.stored(), .None });
-                    try buildRage(battle, player.foe(), options);
-                }
-                return null;
+        try Effects.binding(battle, player, rewrap, options);
+        if (immune) {
+            battle.last_damage = 0;
+            assert(foe.stored().hp > 0);
+            // Pokémon Showdown logs |-damage| here instead of |-immune| because logic...
+            if (sub) {
+                try log.activate(.{ battle.active(player.foe()), .Substitute });
+            } else {
+                try log.damage(.{ battle.active(player.foe()), foe.stored(), .None });
+                try buildRage(battle, player.foe(), options);
             }
+            return null;
         }
     }
 
