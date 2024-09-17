@@ -646,7 +646,7 @@ pub const Rolls = struct {
             &OBS_ALL
         else switch (action.disable) {
             .started => &OBS_STARTED,
-            else =>  if (duration.disable >= 8)
+            else => if (duration.disable >= 8)
                 &OBS_ENDED
             else if (parent != .None and parent != .started)
                 &OBS_CONTINUING
@@ -729,7 +729,7 @@ pub const Rolls = struct {
     /// Returns a slice with the correct range of values for critical hits given the `action` state
     /// and the state of the `parent` (whether the player's Pokémon's move hit).
     pub fn criticalHit(action: Action, parent: Optional(bool)) []const Optional(bool) {
-        if (parent == .false) return &BOOL_NONE;
+        if (pkmn.options.showdown and parent == .false) return &BOOL_NONE;
         return if (action.critical_hit == .None) &BOOL_NONE else &BOOLS;
     }
 
@@ -898,7 +898,11 @@ test "Rolls.criticalHit" {
         &.{ .false, .true },
         Rolls.criticalHit(actions.p1, .None),
     );
-    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p1, .false));
+    try expectEqualSlices(
+        Optional(bool),
+        if (pkmn.options.showdown) &.{.None} else &.{ .false, .true },
+        Rolls.criticalHit(actions.p1, .false),
+    );
     try expectEqualSlices(Optional(bool), &.{.None}, Rolls.criticalHit(actions.p2, .None));
 }
 
