@@ -8,7 +8,7 @@ const swtch = pkmn.gen1.helpers.swtch;
 
 pub const pkmn_options = pkmn.Options{ .internal = true };
 
-const debug = true; // DEBUG
+const debug = false; // DEBUG
 
 const SIZES = [_]usize{@sizeOf(pkmn.gen1.Battle(pkmn.gen1.PRNG))};
 

@@ -302,7 +302,6 @@ pub fn transitions(
                 if (opts.chance.actions.matches(f)) {
                     if (!map(opts.chance.actions).eql(a)) {
                         if (!summary) {
-                            // DEBUG(a);
                             try debug(writer, opts.chance.actions, .{
                                 .p1_max = p1_max,
                                 .p2_max = p2_max,
@@ -450,10 +449,7 @@ pub fn update(
         if (try transitions(unfix(original), c1, c2, allocator, writer, .{
             .durations = durations,
             .cap = true,
-        })) |stats| {
-            if (stats.frontier > MAX_FRONTIER) DEBUG(stats.frontier);
-            try expect(stats.frontier <= MAX_FRONTIER);
-        }
+        })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
     }
 
     // Demonstrate that we can produce the same state by forcing the RNG to behave the

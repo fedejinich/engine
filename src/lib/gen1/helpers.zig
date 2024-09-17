@@ -266,8 +266,14 @@ fn blocked(m: Move) bool {
 fn durations(m: Move) bool {
     // Any moves that have effects that result in duration tracking with -Dchance
     return switch (Move.get(m).effect) {
+        .Confusion,
+        .Bide,
+        .Sleep,
+        .Rage,
+        .Binding,
         .Thrashing,
-        .Haze,
+        .ConfusionChance,
+        .Disable,
         .Metronome,
         => true,
         else => false,
