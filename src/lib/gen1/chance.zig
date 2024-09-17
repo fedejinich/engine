@@ -375,7 +375,7 @@ pub fn Chance(comptime Rational: type) type {
 
             // If the move actually lands we can commit any past critical hit / damage rolls. Note
             // we can't rely on the presence or absence of a damage roll to determine whether a
-            // "critical hit" was spurious or not as moves that do 1 or less damage don't rol for
+            // "critical hit" was spurious or not as moves that do 1 or less damage don't roll for
             // damage but can still crit (instead, whether or not a roll is deemed to be a no-op is
             // passed to the critical hit helper).
             //
