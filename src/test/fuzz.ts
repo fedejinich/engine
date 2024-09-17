@@ -8,7 +8,7 @@ import {promisify} from 'util';
 import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 
-import {LAYOUT, LE} from '../pkg/data';
+import {LE} from '../pkg/data';
 import * as debug from '../tools/debug';
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -50,9 +50,6 @@ export async function run(
     } catch (e: any) {
       if (e.code !== 'EEXIST') throw e;
     }
-
-    const size = LAYOUT[+gen - 1].sizes.Battle + 3;
-    fs.writeFileSync(path.join(dir, 'dump.bin'), stdout.subarray(stdout.byteLength - size));
 
     seed = LE ? stdout.readBigUInt64LE(0) : stdout.readBigUInt64BE(0);
     const hex = `0x${seed.toString(16).toUpperCase()}`;

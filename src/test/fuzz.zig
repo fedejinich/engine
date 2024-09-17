@@ -223,19 +223,34 @@ fn dump() !void {
         try w.writeInt(u16, 0, endian);
         try w.writeAll(initial);
 
-        if (frames) |frame| {
-            for (frame.items) |d| {
-                try w.writeAll(d.log);
-                try w.writeAll(d.state);
-                try w.writeStruct(d.result);
-                try w.writeStruct(d.c1);
-                try w.writeStruct(d.c2);
+        if (frames) |fs| {
+            for (fs.items) |f| {
+                try w.writeAll(f.log);
+                try w.writeAll(f.state);
+                try w.writeStruct(f.result);
+                try w.writeStruct(f.c1);
+                try w.writeStruct(f.c2);
             }
         }
         if (buf) |b| try w.writeAll(b.items);
     }
 
     try bw.flush();
+
+    if (frames) |fs| {
+        if (fs.items.len > 0) {
+            // Write the last state information to the logs/ directory if it exists
+            // so that it can be trivially reproduced via the transitions tool
+            const file = std.fs.cwd().createFile("logs/dump.bin", .{}) catch return;
+            defer file.close();
+            var fw = file.writer();
+            const f = fs.items[fs.items.len - 1];
+            try fw.writeAll(f.state);
+            try fw.writeStruct(f.result);
+            try fw.writeStruct(f.c1);
+            try fw.writeStruct(f.c2);
+        }
+    }
 }
 
 pub fn panic(
