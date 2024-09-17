@@ -646,10 +646,10 @@ pub const Rolls = struct {
             &OBS_ALL
         else switch (action.disable) {
             .started => &OBS_STARTED,
-            else => if (parent != .None and parent != .started)
-                &OBS_CONTINUING
-            else if (duration.disable >= 8)
+            else =>  if (duration.disable >= 8)
                 &OBS_ENDED
+            else if (parent != .None and parent != .started)
+                &OBS_CONTINUING
             else
                 &OBS,
         };
@@ -671,10 +671,10 @@ pub const Rolls = struct {
         return switch (action.confusion) {
             .None => &CFZ_NONE,
             .started => &CFZ_STARTED,
-            else => if ((parent != .None and parent != .started) or duration.confusion < 2)
-                &CFZ_CONTINUING
-            else if (duration.confusion >= 5)
+            else => if (duration.confusion >= 5)
                 &CFZ_ENDED
+            else if ((parent != .None and parent != .started) or duration.confusion < 2)
+                &CFZ_CONTINUING
             else
                 &CFZ,
         };
