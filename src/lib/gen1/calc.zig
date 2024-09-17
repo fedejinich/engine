@@ -247,7 +247,7 @@ pub fn transitions(
         for (Rolls.disable(f.p1, durations.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
         for (Rolls.disable(f.p2, durations.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
         for (Rolls.confusion(f.p1, durations.p1, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
-        for (Rolls.confusion(f.p2, durations.p2, p1_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
+        for (Rolls.confusion(f.p2, durations.p2, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
         for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(f.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
@@ -302,6 +302,7 @@ pub fn transitions(
                 if (opts.chance.actions.matches(f)) {
                     if (!map(opts.chance.actions).eql(a)) {
                         if (!summary) {
+                            // DEBUG(a);
                             try debug(writer, opts.chance.actions, .{
                                 .p1_max = p1_max,
                                 .p2_max = p2_max,
@@ -449,7 +450,10 @@ pub fn update(
         if (try transitions(unfix(original), c1, c2, allocator, writer, .{
             .durations = durations,
             .cap = true,
-        })) |stats| try expect(stats.frontier <= MAX_FRONTIER);
+        })) |stats| {
+            if (stats.frontier > MAX_FRONTIER) DEBUG(stats.frontier);
+            try expect(stats.frontier <= MAX_FRONTIER);
+        }
     }
 
     // Demonstrate that we can produce the same state by forcing the RNG to behave the
@@ -641,14 +645,17 @@ pub const Rolls = struct {
         duration: Duration,
         parent: Optional(Observation),
     ) []const Optional(Observation) {
-        // if (parent == .started or parent == .continuing) return &OBS_NONE;
-        _ = parent; // FIXME
         if (action.disable == .None) return &OBS_NONE;
         return if (duration.disable == 0 and action.speed_tie != .None)
             &OBS_ALL
         else switch (action.disable) {
             .started => &OBS_STARTED,
-            else => if (duration.disable >= 8) &OBS_ENDED else &OBS,
+            else => if (parent != .None and parent != .started)
+                &OBS_CONTINUING
+            else if (duration.disable >= 8)
+                &OBS_ENDED
+            else
+                &OBS,
         };
     }
 
@@ -665,15 +672,13 @@ pub const Rolls = struct {
         duration: Duration,
         parent: Optional(Observation),
     ) []const Optional(Confusion) {
-        // if (parent == .started or parent == .continuing) return &CFZ_NONE;
-        _ = parent; // FIXME
         return switch (action.confusion) {
             .None => &CFZ_NONE,
             .started => &CFZ_STARTED,
-            else => if (duration.confusion >= 5)
-                &CFZ_ENDED
-            else if (duration.confusion < 2)
+            else => if ((parent != .None and parent != .started) or duration.confusion < 2)
                 &CFZ_CONTINUING
+            else if (duration.confusion >= 5)
+                &CFZ_ENDED
             else
                 &CFZ,
         };
@@ -766,8 +771,7 @@ pub const Rolls = struct {
     /// Returns a slice with the correct range of values for confused given the `action` state and
     /// the state of the `parent` (observation of the player's Pokémon confusion status).
     pub fn confused(action: Action, parent: Optional(Confusion)) []const Optional(bool) {
-        const done = false; // parent == .None or parent == .ended;
-        _ = parent; // FIXME
+        const done = parent == .None or parent == .ended;
         return if (done or action.confused == .None) &BOOL_NONE else &BOOLS;
     }
 
@@ -906,7 +910,7 @@ test "Rolls.confused" {
     const actions: Actions = .{ .p2 = .{ .confused = .true } };
     try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p1, .None));
     try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.confused(actions.p2, .continuing));
-    // FIXME try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p2, .ended));
+    try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p2, .ended));
 }
 
 test "Rolls.paralyzed" {
