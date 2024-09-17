@@ -2949,9 +2949,10 @@ pub const Rolls = struct {
     }
 
     fn sleepDuration(battle: anytype, player: Player, options: anytype) u3 {
-        const duration: u3 = if (options.calc.overridden(player, .duration)) |val|
-            @intCast(val)
-        else if (@hasDecl(@TypeOf(battle.rng), "sleepDuration"))
+        const duration: u3 = (if (options.calc.overridden(player, .duration)) |val|
+            if (val >= 1 and val <= 7) @as(u3, @intCast(val)) else null
+        else
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "sleepDuration"))
             battle.rng.sleepDuration(player)
         else if (showdown)
             battle.rng.range(u3, 1, 8)
@@ -2968,9 +2969,10 @@ pub const Rolls = struct {
     }
 
     fn disableDuration(battle: anytype, player: Player, options: anytype) u4 {
-        const duration: u4 = if (options.calc.overridden(player, .duration)) |val|
-            val
-        else if (@hasDecl(@TypeOf(battle.rng), "disableDuration"))
+        const duration: u4 = (if (options.calc.overridden(player, .duration)) |val|
+            if (val >= 1 and val <= 8) val else null
+        else
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "disableDuration"))
             battle.rng.disableDuration(player)
         else if (showdown)
             battle.rng.range(u4, 1, 9)
@@ -2983,9 +2985,10 @@ pub const Rolls = struct {
     }
 
     fn confusionDuration(battle: anytype, player: Player, options: anytype) u3 {
-        const duration: u3 = if (options.calc.overridden(player, .duration)) |val|
-            @intCast(val)
-        else if (@hasDecl(@TypeOf(battle.rng), "confusionDuration"))
+        const duration: u3 = (if (options.calc.overridden(player, .duration)) |val|
+            if (val >= 2 and val <= 5) @as(u3, @intCast(val)) else null
+        else
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "confusionDuration"))
             battle.rng.confusionDuration(player)
         else if (showdown)
             battle.rng.range(u3, 2, 6)
@@ -2998,9 +3001,10 @@ pub const Rolls = struct {
     }
 
     fn attackingDuration(battle: anytype, player: Player, options: anytype) u3 {
-        const duration: u3 = if (options.calc.overridden(player, .duration)) |val|
-            @intCast(val)
-        else if (@hasDecl(@TypeOf(battle.rng), "attackingDuration"))
+        const duration: u3 = (if (options.calc.overridden(player, .duration)) |val|
+            if (val >= 2 and val <= 3) @as(u3, @intCast(val)) else null
+        else
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "attackingDuration"))
             battle.rng.attackingDuration(player)
         else if (showdown)
             battle.rng.range(u3, 2, 4)
@@ -3021,9 +3025,10 @@ pub const Rolls = struct {
         options: anytype,
     ) !u3 {
         const roll = if (effect == .Binding) .duration else .multi_hit;
-        const n: u3 = if (options.calc.overridden(player, roll)) |val|
-            @intCast(val)
-        else if (@hasDecl(@TypeOf(battle.rng), "distribution"))
+        const n: u3 = (if (options.calc.overridden(player, roll)) |val|
+            if (val >= 2 and val <= 5) @as(u3, @intCast(val)) else null
+        else
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "distribution"))
             battle.rng.distribution(player)
         else if (showdown)
             DISTRIBUTION[battle.rng.range(u3, 0, DISTRIBUTION.len)]
@@ -3049,15 +3054,13 @@ pub const Rolls = struct {
         options: anytype,
     ) !u4 {
         // TODO: consider throwing error instead of rerolling?
-        const overridden = if (options.calc.overridden(player, .move_slot)) |val|
+        const slot: u4 = (if (options.calc.overridden(player, .move_slot)) |val|
             if (moves[val - 1].id != .None and (check_pp == 0 or moves[val - 1].pp > 0))
                 val
             else
                 null
         else
-            null;
-
-        const slot: u4 = overridden orelse if (@hasDecl(@TypeOf(battle.rng), "moveSlot"))
+            null) orelse if (@hasDecl(@TypeOf(battle.rng), "moveSlot"))
             battle.rng.moveSlot(player, moves, check_pp)
         else slot: {
             if (showdown) {
