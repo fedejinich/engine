@@ -341,7 +341,6 @@ fn doTurn(
         player_choice,
         player_rewrap,
         player_skip,
-        true,
         &residual,
         options,
     )) |r| return r;
@@ -364,7 +363,6 @@ fn doTurn(
         foe_choice,
         foe_rewrap,
         foe_skip,
-        false,
         &residual,
         options,
     )) |r| return r;
@@ -392,7 +390,6 @@ fn executeMove(
     choice: Choice,
     rewrap: bool,
     skip: bool,
-    first: bool,
     residual: *bool,
     options: anytype,
 ) !?Result {
@@ -452,7 +449,7 @@ fn executeMove(
 
     var skip_can = false;
     var skip_pp = false;
-    switch (try beforeMove(battle, player, skip, first, residual, options)) {
+    switch (try beforeMove(battle, player, skip, residual, options)) {
         .done => return null,
         .skip_can => skip_can = true,
         .skip_pp => skip_pp = true,
@@ -473,7 +470,6 @@ fn beforeMove(
     battle: anytype,
     player: Player,
     skip: bool,
-    first: bool,
     residual: *bool,
     options: anytype,
 ) !BeforeMove {
@@ -565,17 +561,10 @@ fn beforeMove(
     if (volatiles.Confusion) {
         assert(volatiles.confusion > 0);
         if (options.calc.overridden(player, .confusion)) |obs| switch (obs) {
-            .started => {
-                if (!first or (options.calc.overridden(player, .confused) orelse .None) != .None) {
-                    volatiles.confusion -= 1;
-                } else {
-                    volatiles.confusion = 0;
-                }
-            },
+            .started, .ended => volatiles.confusion = 0,
             .continuing => if (volatiles.confusion > 1) {
                 volatiles.confusion -= 1;
             },
-            .ended => volatiles.confusion = 0,
             .overwritten => {},
             else => unreachable,
         } else {
@@ -703,7 +692,7 @@ fn beforeMove(
         try options.chance.attacking(player, if (volatiles.attacks == 0) .ended else .continuing);
 
         if (volatiles.attacks == 0) {
-            const overwritten = pkmn.options.overwrite and volatiles.Confusion;
+            const overwritten = volatiles.Confusion;
 
             volatiles.Thrashing = false;
             volatiles.Confusion = true;
@@ -714,7 +703,11 @@ fn beforeMove(
             // can be expected to recognize this pattern and pass the information only to the
             // correct player)
             try log.start(.{ battle.active(player), .ConfusionSilent });
-            options.chance.observe(.confusion, player, if (overwritten) .overwritten else .started);
+            options.chance.observe(.confusion, player, if (overwritten)
+                if (pkmn.options.overwrite) .overwritten else .continuing
+            else
+                .started);
+            if (!overwritten) options.calc.confusion(player);
         }
 
         // This shouldn't actually set last_used_move, but Pokémon Showdown sets last
@@ -1877,6 +1870,7 @@ pub const Effects = struct {
 
         foe.active.volatiles.confusion = Rolls.confusionDuration(battle, player, options);
         options.chance.observe(.confusion, player.foe(), .started);
+        options.calc.confusion(player.foe());
 
         try options.log.start(.{ battle.active(player.foe()), .Confusion });
     }

@@ -38,8 +38,8 @@ pub fn main() !void {
     var battle = switch (gen) {
         1 => pkmn.gen1.helpers.Battle.init(
             seed,
-            &.{.{ .species = .Haunter, .moves = &.{ .Sing, .FireSpin } }},
-            &.{.{ .species = .Arcanine, .moves = &.{ .Teleport, .MirrorMove } }},
+            &.{.{ .species = .Zapdos, .moves = &.{ .ConfuseRay, .Teleport } }},
+            &.{.{ .species = .Mew, .moves = &.{ .Thrash, .Teleport } }},
 
             // ONE DAMAGE
             // &.{.{ .species = .Wartortle, .level = 33, .moves = &.{.Scratch} }},
@@ -82,9 +82,25 @@ pub fn main() !void {
     });
     options.chance.reset();
 
+    _ = try battle.update(move(1), move(0), &options);
+    format(gen, &stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
+        options.chance.actions,
+        options.chance.durations,
+    });
+    options.chance.reset();
+
+    _ = try battle.update(move(1), move(0), &options);
+    format(gen, &stream);
+    std.debug.print("\x1b[41m{} {}\x1b[K\x1b[0m\n", .{
+        options.chance.actions,
+        options.chance.durations,
+    });
+    options.chance.reset();
+
     const out = std.io.getStdOut().writer();
     // const out = std.io.null_writer;
-    const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(2), allocator, out, .{
+    const stats = try pkmn.gen1.calc.transitions(battle, move(1), move(0), allocator, out, .{
         .durations = options.chance.durations,
         .cap = true,
         .seed = seed,

@@ -77,14 +77,14 @@ pub fn main() !void {
         if (gen < 1 or gen > 9) errorAndExit("gen", gen, args[0]);
 
         const size = try r.readInt(i16, endian);
-        if (size != -1) errorAndExit("log size", size, args[0]);
+        if (size != -1 and size != 0) errorAndExit("log size", size, args[0]);
 
         _ = try r.readInt(i32, endian);
         _ = try switch (gen) {
             1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
             else => unreachable,
         };
-        _ = try r.readByte();
+        if (size != 0) _ = try r.readByte();
 
         const durations = try switch (gen) {
             1 => r.readStruct(pkmn.gen1.chance.Durations),

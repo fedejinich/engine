@@ -119,6 +119,14 @@ pub const Calc = struct {
         }) val else null;
     }
 
+    pub fn confusion(self: *Calc, player: Player) void {
+        if (!enabled) return;
+
+        if (self.overrides.get(player).confusion == .started) {
+            self.overrides.get(player).confusion = .None;
+        }
+    }
+
     pub fn base(self: *Calc, player: Player, val: u16) void {
         if (!enabled) return;
 
@@ -150,6 +158,10 @@ const Null = struct {
     ) ?std.meta.FieldType(Action, field) {
         _ = .{ self, player };
         return null;
+    }
+
+    pub fn confusion(self: Null, player: Player) void {
+        _ = .{ self, player };
     }
 
     pub fn base(self: Null, player: Player, val: u16) void {
