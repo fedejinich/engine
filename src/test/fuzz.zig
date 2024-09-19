@@ -14,7 +14,7 @@ const Frame = struct {
 };
 
 var gen: u8 = 0;
-var last: u64 = 0;
+var last: ?u64 = null;
 var initial: []u8 = &.{};
 var buf: ?std.ArrayList(u8) = null;
 var frames: ?std.ArrayList(Frame) = null;
@@ -76,17 +76,20 @@ pub fn main() !void {
         gen = try r.readByte();
         if (gen < 1 or gen > 9) errorAndExit("gen", gen, args[0]);
 
-        var zero = try r.readInt(u16, endian);
-        if (zero != 0) errorAndExit("log size", zero, args[0]);
+        const size = try r.readInt(i16, endian);
+        if (size != -1) errorAndExit("log size", size, args[0]);
 
-        _ = try r.readInt(u32, endian);
-
+        _ = try r.readInt(i32, endian);
         _ = try switch (gen) {
             1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
             else => unreachable,
         };
-        zero = try r.readByte();
-        if (zero != 0) errorAndExit("log data", zero, args[0]);
+        _ = try r.readByte();
+
+        const durations = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.chance.Durations),
+            else => unreachable,
+        };
         var battle = try switch (gen) {
             1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
             else => unreachable,
@@ -94,10 +97,6 @@ pub fn main() !void {
         _ = try r.readStruct(pkmn.Result);
         const c1 = try r.readStruct(pkmn.Choice);
         const c2 = try r.readStruct(pkmn.Choice);
-        const durations = try switch (gen) {
-            1 => r.readStruct(pkmn.gen1.chance.Durations),
-            else => unreachable,
-        };
 
         switch (gen) {
             1 => {
@@ -269,24 +268,23 @@ fn deinit(allocator: std.mem.Allocator) void {
     buf.?.deinit();
 }
 
-fn dump() !void {
+fn dump(seed: u64) !void {
     const out = std.io.getStdOut();
     var bw = std.io.bufferedWriter(out.writer());
     var w = bw.writer();
     if (out.isTty() or builtin.mode != .Debug) {
-        try w.print("0x{X}\n", .{last});
+        try w.print("0x{X}\n", .{seed});
     } else {
-        try w.writeInt(u64, last, endian);
+        try w.writeInt(u64, seed, endian);
         try display(&w, false);
     }
     try bw.flush();
 
-    // Write the last state information to the logs/ directory if it exists
-    // so that it can easily be turned into a regression testcase
-
+    // Write the last state information to the logs/ directory if it
+    // exists so that it can easily be turned into a regression testcase
     var n: [1024]u8 = undefined;
     const ext = if (showdown) "showdown" else "pkmn";
-    const name = try std.fmt.bufPrint(&n, "logs/0x{X}.{s}.bin", .{ last, ext });
+    const name = try std.fmt.bufPrint(&n, "logs/0x{X}.{s}.bin", .{ seed, ext });
 
     const dir = std.fs.cwd();
     const file = dir.createFile(name, .{}) catch return;
@@ -302,11 +300,11 @@ fn dump() !void {
 fn display(w: anytype, final: bool) !void {
     try w.writeByte(@intFromBool(showdown));
     try w.writeByte(gen);
-    try w.writeInt(u16, 0, endian);
-    try w.writeInt(u32, if (final) switch (gen) {
-        1 => @as(u32, @intCast(@sizeOf(pkmn.gen1.chance.Durations))),
+    try w.writeInt(i16, -1, endian);
+    try w.writeInt(i32, if (final) switch (gen) {
+        1 => @as(i32, @intCast(@sizeOf(pkmn.gen1.chance.Durations))),
         else => unreachable,
-    } else @as(u32, 0), endian);
+    } else @as(i32, 0), endian);
     try w.writeAll(initial);
 
     if (frames) |fs| {
@@ -314,11 +312,11 @@ fn display(w: anytype, final: bool) !void {
             if (fs.items.len == 0) return;
             const f = fs.items[fs.items.len - 1];
             try w.writeByte(0);
+            try w.writeAll(f.extra);
             try w.writeAll(f.state);
             try w.writeStruct(f.result);
             try w.writeStruct(f.c1);
             try w.writeStruct(f.c2);
-            try w.writeAll(f.extra);
         } else {
             for (fs.items) |f| {
                 try w.writeAll(f.log);
@@ -326,7 +324,6 @@ fn display(w: anytype, final: bool) !void {
                 try w.writeStruct(f.result);
                 try w.writeStruct(f.c1);
                 try w.writeStruct(f.c2);
-                try w.writeByte(0);
             }
         }
     }
@@ -338,6 +335,6 @@ pub fn panic(
     error_return_trace: ?*std.builtin.StackTrace,
     ret_addr: ?usize,
 ) noreturn {
-    dump() catch unreachable;
+    if (last) |seed| dump(seed) catch unreachable;
     std.builtin.default_panic(msg, error_return_trace, ret_addr);
 }

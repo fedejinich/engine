@@ -50,27 +50,28 @@ compatibility mode was enabled, a byte indicating the
 [generation](https://bulbapedia.bulbagarden.net/wiki/Generation), and the initial battle state:
 
 
-| Start | End | Description                                                                                                       |
-| ----- | --- | ----------------------------------------------------------------------------------------------------------------- |
-| 0     | 1   | Whether Pokémon Showdown compatibility is enabled                                                                 |
-| 1     | 2   | A number denoting the Pokémon generation                                                                          |
-| 2     | 4   | Two native-endian bytes encoding $N$, the fixed size of each log buffer, or 0 if each log buffer is variable size |
-| 4     | 8   | Four native-endian bytes encoding $X$, the fixed size of an extra data buffer, or 0 if the data is variable size  |
-| 8     | B+8 | The $B$ serialized bytes of the initial battle state as defined by its respective layout                          |
+| Start | End | Description                                                                                                                        |
+| ----- | --- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | 1   | Whether Pokémon Showdown compatibility is enabled                                                                                  |
+| 1     | 2   | A number denoting the Pokémon generation                                                                                           |
+| 2     | 4   | Two native-endian signed bytes encoding $N$, the fixed size of each log buffer, with negative numbers implying variable size       |
+| 4     | 8   | Four native-endian signed bytes encoding $X$, the fixed size of an extra data buffer, with negative numbers implying variable size |
+| 8     | B+8 | The $B$ serialized bytes of the initial battle state as defined by its respective layout                                           |
 
 #### Frame
 
 Following the header there maybe be any number of "frames", the last of which may be only partially
 complete:
 
-| Start | End     | Description                                                                                                                    |
-| ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 0     | N       | $N$ bytes of log message protocol that are terminated by `0x00` or [EOF](https://en.wikipedia.org/wiki/End-of-file) if $N = 0$ |
-| N+1   | N+B+1   | The $B$ serialized bytes of the updated battle state as defined by its respective layout                                       |
-| N+B+2 | N+B+3   | The [result](#result) of updating the battle                                                                                   |
-| N+B+3 | N+B+4   | The next [choice](#choice) for Player 1                                                                                        |
-| N+B+4 | N+B+5   | The next [choice](#choice) for Player 2                                                                                        |
-| N+B+5 | N+B+5+X | $X$ bytes of optional extra data or a variable number of bytes that are terminated by `0x00` or EOF if $X = 0$                 |
+| Start   | End     | Description                                                                                                                    |
+| ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 0       | N       | $N$ bytes of log message protocol that are terminated by `0x00` or [EOF](https://en.wikipedia.org/wiki/End-of-file) if $N < 0$ |
+| N       | N+X     | $X$ bytes of optional extra data or a variable number of bytes that are terminated by `0x00` or EOF if $X < 0$                 |
+| N+X+1   | N+X+B+1 | The $B$ serialized bytes of the updated battle state as defined by its respective layout                                       |
+| N+X+B+2 | N+X+B+3 | The [result](#result) of updating the battle                                                                                   |
+| N+X+B+3 | N+X+B+4 | The next [choice](#choice) for Player 1                                                                                        |
+| N+X+B+4 | N+X+B+5 | The next [choice](#choice) for Player 2                                                                                        |
+
 
 It's important to note that by convention the debug logs start with the protocol logs that are
 produced **after** first battle update (i.e. both sides `|switch|`-ing in their first Pokémon) -

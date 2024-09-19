@@ -40,9 +40,9 @@ const App = ({gen, data, error, seed}: {
   let offset = 0;
   const showdown = !!data.getUint8(offset);
   offset += 2;
-  const N = data.getUint16(offset, LE);
+  const N = data.getInt16(offset, LE);
   offset += 2;
-  const X = data.getUint32(offset, LE);
+  const X = data.getInt32(offset, LE);
   offset += 4;
 
   const lookup = engine.Lookup.get(gen);
@@ -63,13 +63,23 @@ const App = ({gen, data, error, seed}: {
   const frames: JSX.Element[] = [];
   while (offset < data.byteLength) {
     partial = {parsed: []};
-    const it = log.parse(windowed(data, offset))[Symbol.iterator]();
-    let r = it.next();
-    while (!r.done) {
-      partial.parsed!.push(r.value);
-      r = it.next();
+
+    if (N !== 0) {
+      const it = log.parse(windowed(data, offset))[Symbol.iterator]();
+      let r = it.next();
+      while (!r.done) {
+        partial.parsed!.push(r.value);
+        r = it.next();
+      }
+      offset += N > 0 ? N : r.value;
+      if (offset >= data.byteLength) break;
     }
-    offset += N || r.value;
+
+    if (X < 0) {
+      while (offset < data.byteLength && data.getUint8(offset++));
+    } else {
+      offset += X;
+    }
     if (offset >= data.byteLength) break;
 
     partial.battle = deserialize(windowed(data, offset, offset += size));
@@ -82,12 +92,6 @@ const App = ({gen, data, error, seed}: {
     if (offset >= data.byteLength) break;
 
     partial.c2 = engine.Choice.decode(data.getUint8(offset++));
-
-    if (X) {
-      offset += X;
-    } else {
-      while (data.getUint8(offset++));
-    }
 
     frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
     last = partial.battle;
