@@ -28,9 +28,6 @@ pub fn main() !void {
     var buf: [pkmn.LOGS_SIZE]u8 = undefined;
     var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
 
-    const out = std.io.getStdOut().writer();
-    // const out = std.io.null_writer;
-
     const gen = std.fmt.parseUnsigned(u8, args[1], 10) catch
         errorAndExit("gen", args[1], args[0]);
     if (gen < 1 or gen > 9) errorAndExit("gen", args[1], args[0]);
@@ -85,6 +82,8 @@ pub fn main() !void {
     });
     options.chance.reset();
 
+    const out = std.io.getStdOut().writer();
+    // const out = std.io.null_writer;
     const stats = try pkmn.gen1.calc.transitions(battle, move(2), move(2), allocator, out, .{
         .durations = options.chance.durations,
         .cap = true,
