@@ -306,11 +306,11 @@ fn display(w: anytype, final: bool) !void {
         1 => @as(i32, @intCast(@sizeOf(pkmn.gen1.chance.Durations))),
         else => unreachable,
     } else @as(i32, 0), endian);
-    try w.writeAll(initial);
 
     if (frames) |fs| {
         if (final) {
             if (fs.items.len == 0) return;
+            try w.writeAll(if (fs.items.len == 1) initial else fs.items[fs.items.len - 2].state);
             const f = fs.items[fs.items.len - 1];
             try w.writeByte(0);
             try w.writeAll(f.extra);
@@ -319,6 +319,7 @@ fn display(w: anytype, final: bool) !void {
             try w.writeStruct(f.c1);
             try w.writeStruct(f.c2);
         } else {
+            try w.writeAll(initial);
             for (fs.items) |f| {
                 try w.writeAll(f.log);
                 try w.writeAll(f.state);

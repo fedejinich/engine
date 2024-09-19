@@ -59,7 +59,7 @@ const App = ({gen, data, error, seed}: {
   const log = new engine.Log(gen, lookup, names);
 
   let partial: Partial<util.Frame> | undefined = undefined;
-  let last: engine.Data<engine.Battle> | undefined = undefined;
+  let last: engine.Data<engine.Battle> = battle;
   const frames: JSX.Element[] = [];
   while (offset < data.byteLength) {
     partial = {parsed: []};
