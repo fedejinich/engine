@@ -88,9 +88,9 @@ pub fn dump(gen: u8, battle: anytype, frame: ?struct { Result, Choice, Choice })
     var w = file.writer();
     w.writeByte(@intFromBool(showdown)) catch return;
     w.writeByte(gen) catch return;
-    w.writeInt(u16, 0, .little) catch return;
+    w.writeInt(i16, 0, .little) catch return;
+    w.writeInt(i32, 0, .little) catch return;
     w.writeStruct(battle) catch return;
-    w.writeByte(0) catch return;
     w.writeStruct(battle) catch return;
     if (frame) |f| {
         w.writeStruct(f[0]) catch return;
