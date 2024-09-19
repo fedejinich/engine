@@ -211,19 +211,48 @@ fn dump() !void {
     const out = std.io.getStdOut();
     var bw = std.io.bufferedWriter(out.writer());
     var w = bw.writer();
-
     if (out.isTty() or builtin.mode != .Debug) {
         try w.print("0x{X}\n", .{last});
     } else {
-        const endian = builtin.cpu.arch.endian();
-        try w.writeInt(u64, last, endian);
+        try w.writeInt(u64, last, builtin.cpu.arch.endian());
+        try display(&w, false);
+    }
+    try bw.flush();
 
-        try w.writeByte(@intFromBool(showdown));
-        try w.writeByte(gen);
-        try w.writeInt(u16, 0, endian);
-        try w.writeAll(initial);
+    // Write the last state information to the logs/ directory if it exists
+    // so that it can easily be turned into a regression testcase
 
-        if (frames) |fs| {
+    var n: [1024]u8 = undefined;
+    const ext = if (showdown) "showdown" else "pkmn";
+    const name = try std.fmt.bufPrint(&n, "logs/0x{X}.{s}.bin", .{ last, ext });
+
+    const dir = std.fs.cwd();
+    const file = dir.createFile(name, .{}) catch return;
+    defer file.close();
+    try display(&file.writer(), true);
+
+    var p: [1024]u8 = undefined;
+    const path = try dir.realpath(name, &p);
+    dir.deleteFile("logs/dump.bin") catch {};
+    dir.symLink(path, "logs/dump.bin", .{}) catch return;
+}
+
+fn display(w: anytype, final: bool) !void {
+    try w.writeByte(@intFromBool(showdown));
+    try w.writeByte(gen);
+    try w.writeInt(u16, 0, builtin.cpu.arch.endian());
+    try w.writeAll(initial);
+
+    if (frames) |fs| {
+        if (final) {
+            if (fs.items.len == 0) return;
+            const f = fs.items[fs.items.len - 1];
+            try w.writeByte(0);
+            try w.writeAll(f.state);
+            try w.writeStruct(f.result);
+            try w.writeStruct(f.c1);
+            try w.writeStruct(f.c2);
+        } else {
             for (fs.items) |f| {
                 try w.writeAll(f.log);
                 try w.writeAll(f.state);
@@ -232,25 +261,8 @@ fn dump() !void {
                 try w.writeStruct(f.c2);
             }
         }
-        if (buf) |b| try w.writeAll(b.items);
     }
-
-    try bw.flush();
-
-    if (frames) |fs| {
-        if (fs.items.len > 0) {
-            // Write the last state information to the logs/ directory if it exists
-            // so that it can be trivially reproduced via the transitions tool
-            const file = std.fs.cwd().createFile("logs/dump.bin", .{}) catch return;
-            defer file.close();
-            var fw = file.writer();
-            const f = fs.items[fs.items.len - 1];
-            try fw.writeAll(f.state);
-            try fw.writeStruct(f.result);
-            try fw.writeStruct(f.c1);
-            try fw.writeStruct(f.c2);
-        }
-    }
+    if (buf) |b| try w.writeAll(b.items);
 }
 
 pub fn panic(
