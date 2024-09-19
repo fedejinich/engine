@@ -19,7 +19,7 @@ var initial: []u8 = &.{};
 var buf: ?std.ArrayList(u8) = null;
 var frames: ?std.ArrayList(Frame) = null;
 
-const transitions = false; // DEBUG
+const transitions = true; // DEBUG
 
 const showdown = pkmn.options.showdown;
 const chance = pkmn.options.chance;
@@ -128,7 +128,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
     while (elapsed.read() < duration) {
         last = random.src.seed;
 
-        const opt = .{ .cleric = showdown, .block = false, .durations = false };
+        const opt = .{ .cleric = showdown, .block = false, .durations = true };
         var battle = switch (gen) {
             1 => pkmn.gen1.helpers.Battle.random(&random, opt),
             else => unreachable,

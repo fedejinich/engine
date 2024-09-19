@@ -391,7 +391,7 @@ pub fn Chance(comptime Rational: type) type {
                 action.critical_hit = if (self.pending.crit) .true else .false;
             } else assert(!self.pending.glitch);
 
-            if (self.pending.damage_roll > 0 and !self.pending.glitch) {
+            if (self.pending.damage_roll > 0 and (!self.pending.glitch or self.pending.hit)) {
                 try self.probability.update(1, 39);
                 action.damage = self.pending.damage_roll;
             }
