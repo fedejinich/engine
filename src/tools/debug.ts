@@ -38,7 +38,7 @@ export function render(
   if (gen.num !== num) {
     throw new Error(`Require generation ${num} but was passed generation ${gen.num}`);
   }
-  offset += 2;
+  offset += 6;
 
   const lookup = data.Lookup.get(gen);
   const size = data.LAYOUT[gen.num - 1].sizes.Battle;

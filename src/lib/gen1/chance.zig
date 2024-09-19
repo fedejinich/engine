@@ -224,7 +224,7 @@ pub const Action = packed struct(u64) {
 };
 
 /// TODO
-pub const Durations = struct {
+pub const Durations = extern struct {
     /// TODO
     p1: Duration = .{},
     /// TODO

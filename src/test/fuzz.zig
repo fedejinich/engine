@@ -10,6 +10,7 @@ const Frame = struct {
     result: pkmn.Result = pkmn.Result.Default,
     c1: pkmn.Choice = .{},
     c2: pkmn.Choice = .{},
+    extra: []u8,
 };
 
 var gen: u8 = 0;
@@ -23,6 +24,8 @@ const transitions = false; // DEBUG
 const showdown = pkmn.options.showdown;
 const chance = pkmn.options.chance;
 
+const endian = builtin.cpu.arch.endian();
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(gpa.deinit() == .ok);
@@ -30,34 +33,89 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len < 3 or args.len > 5) usageAndExit(args[0]);
+    if (args.len != 1 and (args.len < 3 or args.len > 5)) usageAndExit(args[0]);
 
-    gen = std.fmt.parseUnsigned(u8, args[1], 10) catch
-        errorAndExit("gen", args[1], args[0]);
-    if (gen < 1 or gen > 9) errorAndExit("gen", args[1], args[0]);
+    if (args.len > 1) {
+        gen = std.fmt.parseUnsigned(u8, args[1], 10) catch
+            errorAndExit("gen", args[1], args[0]);
+        if (gen < 1 or gen > 9) errorAndExit("gen", args[1], args[0]);
 
-    const end = args[2].len - 1;
-    const mod: usize = switch (args[2][end]) {
-        's' => 1,
-        'm' => std.time.s_per_min,
-        'h' => std.time.s_per_hour,
-        'd' => std.time.s_per_day,
-        else => errorAndExit("duration", args[2], args[0]),
-    };
-    const duration = mod * (std.fmt.parseUnsigned(usize, args[2][0..end], 10) catch
-        errorAndExit("duration", args[2], args[0])) * std.time.ns_per_s;
+        const end = args[2].len - 1;
+        const mod: usize = switch (args[2][end]) {
+            's' => 1,
+            'm' => std.time.s_per_min,
+            'h' => std.time.s_per_hour,
+            'd' => std.time.s_per_day,
+            else => errorAndExit("duration", args[2], args[0]),
+        };
+        const duration = mod * (std.fmt.parseUnsigned(usize, args[2][0..end], 10) catch
+            errorAndExit("duration", args[2], args[0])) * std.time.ns_per_s;
 
-    const seed = if (args.len > 3) std.fmt.parseUnsigned(u64, args[3], 0) catch
-        errorAndExit("seed", args[3], args[0]) else seed: {
-        const Random = if (@hasDecl(std, "Random")) std.Random else std.rand;
-        var secret: [Random.DefaultCsprng.secret_seed_length]u8 = undefined;
-        std.crypto.random.bytes(&secret);
-        var csprng = Random.DefaultCsprng.init(secret);
-        const random = csprng.random();
-        break :seed random.int(usize);
-    };
+        const seed = if (args.len > 3) std.fmt.parseUnsigned(u64, args[3], 0) catch
+            errorAndExit("seed", args[3], args[0]) else seed: {
+            const Random = if (@hasDecl(std, "Random")) std.Random else std.rand;
+            var secret: [Random.DefaultCsprng.secret_seed_length]u8 = undefined;
+            std.crypto.random.bytes(&secret);
+            var csprng = Random.DefaultCsprng.init(secret);
+            const random = csprng.random();
+            break :seed random.int(usize);
+        };
 
-    try fuzz(allocator, seed, duration);
+        try fuzz(allocator, seed, duration);
+    } else {
+        const stdin = std.io.getStdIn();
+        var reader = std.io.bufferedReader(stdin.reader());
+        var r = reader.reader();
+
+        if (try r.readByte() != @intFromBool(showdown)) {
+            const err = std.io.getStdErr().writer();
+            err.print("Cannot process frame from -Dshowdown={}\n", .{!showdown}) catch {};
+            usageAndExit(args[0]);
+        }
+
+        gen = try r.readByte();
+        if (gen < 1 or gen > 9) errorAndExit("gen", gen, args[0]);
+
+        var zero = try r.readInt(u16, endian);
+        if (zero != 0) errorAndExit("log size", zero, args[0]);
+
+        _ = try r.readInt(u32, endian);
+
+        _ = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
+            else => unreachable,
+        };
+        zero = try r.readByte();
+        if (zero != 0) errorAndExit("log data", zero, args[0]);
+        var battle = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
+            else => unreachable,
+        };
+        _ = try r.readStruct(pkmn.Result);
+        const c1 = try r.readStruct(pkmn.Choice);
+        const c2 = try r.readStruct(pkmn.Choice);
+        const durations = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.chance.Durations),
+            else => unreachable,
+        };
+
+        switch (gen) {
+            1 => {
+                var chance_ = if (chance) pkmn.gen1.Chance(pkmn.Rational(u128)){
+                    .probability = .{},
+                    .durations = durations,
+                } else pkmn.gen1.chance.NULL;
+                const options = pkmn.battle.options(
+                    pkmn.protocol.NULL,
+                    &chance_,
+                    pkmn.gen1.calc.NULL,
+                );
+                const result = update(&battle, c1, c2, &options, allocator);
+                std.debug.assert(!showdown or result.type != .Error);
+            },
+            else => unreachable,
+        }
+    }
 }
 
 pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
@@ -160,6 +218,10 @@ fn run(
                 .c2 = c2,
                 .state = try allocator.dupe(u8, std.mem.toBytes(battle.*)[0..]),
                 .log = try buf.?.toOwnedSlice(),
+                .extra = if (chance)
+                    try allocator.dupe(u8, std.mem.toBytes(options.chance.durations)[0..])
+                else
+                    &.{},
             });
         }
     }
@@ -183,9 +245,9 @@ pub fn update(
     } catch unreachable;
 }
 
-fn errorAndExit(msg: []const u8, arg: []const u8, cmd: []const u8) noreturn {
+fn errorAndExit(msg: []const u8, arg: anytype, cmd: []const u8) noreturn {
     const err = std.io.getStdErr().writer();
-    err.print("Invalid {s}: {s}\n", .{ msg, arg }) catch {};
+    err.print("Invalid {s}: {any}\n", .{ msg, arg }) catch {};
     usageAndExit(cmd);
 }
 
@@ -214,7 +276,7 @@ fn dump() !void {
     if (out.isTty() or builtin.mode != .Debug) {
         try w.print("0x{X}\n", .{last});
     } else {
-        try w.writeInt(u64, last, builtin.cpu.arch.endian());
+        try w.writeInt(u64, last, endian);
         try display(&w, false);
     }
     try bw.flush();
@@ -240,7 +302,11 @@ fn dump() !void {
 fn display(w: anytype, final: bool) !void {
     try w.writeByte(@intFromBool(showdown));
     try w.writeByte(gen);
-    try w.writeInt(u16, 0, builtin.cpu.arch.endian());
+    try w.writeInt(u16, 0, endian);
+    try w.writeInt(u32, if (final) switch (gen) {
+        1 => @as(u32, @intCast(@sizeOf(pkmn.gen1.chance.Durations))),
+        else => unreachable,
+    } else @as(u32, 0), endian);
     try w.writeAll(initial);
 
     if (frames) |fs| {
@@ -252,6 +318,7 @@ fn display(w: anytype, final: bool) !void {
             try w.writeStruct(f.result);
             try w.writeStruct(f.c1);
             try w.writeStruct(f.c2);
+            try w.writeAll(f.extra);
         } else {
             for (fs.items) |f| {
                 try w.writeAll(f.log);
@@ -259,6 +326,7 @@ fn display(w: anytype, final: bool) !void {
                 try w.writeStruct(f.result);
                 try w.writeStruct(f.c1);
                 try w.writeStruct(f.c2);
+                try w.writeByte(0);
             }
         }
     }

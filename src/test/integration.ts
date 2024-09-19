@@ -402,6 +402,8 @@ function convert(gen: Generation, frames: Frame['pkmn'][], partial: Partial<Fram
   data.setUint8(offset++, gen.num);
   data.setUint16(offset, sizes.log, LE);
   offset += 2;
+  data.setUint32(offset, 0, LE);
+  offset += 4;
   // Not actually the initial battle state (initial switches have happened), but doesn't matter
   offset += concat(data, frames[0].battle, offset);
 
@@ -411,6 +413,7 @@ function convert(gen: Generation, frames: Frame['pkmn'][], partial: Partial<Fram
     data.setUint8(offset++, engine.Result.encode(frame.result));
     data.setUint8(offset++, engine.Choice.encode(frame.c1));
     data.setUint8(offset++, engine.Choice.encode(frame.c2));
+    data.setUint8(offset++, 0);
   }
 
   if (partial.log) offset += concat(data, partial.log, offset);

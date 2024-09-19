@@ -3,6 +3,8 @@ const std = @import("std");
 
 const pkmn = @import("pkmn");
 
+const endian = builtin.cpu.arch.endian();
+
 const showdown = pkmn.options.showdown;
 
 const move = pkmn.gen1.helpers.move;
@@ -104,8 +106,10 @@ pub fn main() !void {
         const gen = try r.readByte();
         if (gen < 1 or gen > 9) errorAndExit("gen", gen, args[0]);
 
-        var zero = try r.readInt(u16, builtin.cpu.arch.endian());
+        var zero = try r.readInt(u16, endian);
         if (zero != 0) errorAndExit("log size", zero, args[0]);
+
+        _ = try r.readInt(u32, endian);
 
         _ = try switch (gen) {
             1 => r.readStruct(pkmn.gen1.Battle(pkmn.gen1.PRNG)),
@@ -120,10 +124,17 @@ pub fn main() !void {
         _ = try r.readStruct(pkmn.Result);
         const c1 = try r.readStruct(pkmn.Choice);
         const c2 = try r.readStruct(pkmn.Choice);
+        const durations = try switch (gen) {
+            1 => r.readStruct(pkmn.gen1.chance.Durations),
+            else => unreachable,
+        };
 
         const options = switch (gen) {
             1 => options: {
-                var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){ .probability = .{} };
+                var chance = pkmn.gen1.Chance(pkmn.Rational(u128)){
+                    .probability = .{},
+                    .durations = durations,
+                };
                 break :options pkmn.battle.options(
                     pkmn.protocol.FixedLog{ .writer = stream.writer() },
                     &chance,

@@ -42,6 +42,8 @@ const App = ({gen, data, error, seed}: {
   offset += 2;
   const N = data.getUint16(offset, LE);
   offset += 2;
+  const X = data.getUint32(offset, LE);
+  offset += 4;
 
   const lookup = engine.Lookup.get(gen);
   const size = LAYOUT[gen.num - 1].sizes.Battle;
@@ -80,6 +82,12 @@ const App = ({gen, data, error, seed}: {
     if (offset >= data.byteLength) break;
 
     partial.c2 = engine.Choice.decode(data.getUint8(offset++));
+
+    if (X) {
+      offset += X;
+    } else {
+      while (data.getUint8(offset++));
+    }
 
     frames.push(<Frame frame={partial} gen={gen} showdown={showdown} last={last} />);
     last = partial.battle;
