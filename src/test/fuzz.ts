@@ -3,7 +3,6 @@ import 'source-map-support/register';
 import {execFile} from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import {promisify} from 'util';
 
 import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
@@ -12,7 +11,6 @@ import {LE} from '../pkg/data';
 import * as debug from '../tools/debug';
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const sh = promisify(execFile);
 
 const usage = (msg?: string): void => {
   if (msg) console.error(msg);
@@ -24,17 +22,32 @@ export async function run(
   gens: Generations,
   gen: number | string,
   showdown: boolean,
-  duration: string,
-  seed?: bigint,
   testing?: boolean,
+  duration?: string,
+  seed?: bigint
 ) {
   const args = ['build', '--summary', 'failures', 'fuzz', '-Dlog', '-Dchance', '-Dcalc'];
   if (showdown) args.push('-Dshowdown');
-  args.push('--', gen.toString(), duration);
-  if (seed) args.push(seed.toString());
+
+  let input = undefined;
+  if (typeof duration !== 'undefined') {
+    args.push('--', gen.toString(), duration);
+    if (seed) args.push(seed.toString());
+  } else {
+    input = fs.readFileSync(gen);
+  }
 
   try {
-    await sh('zig', args, {encoding: 'buffer'});
+    await new Promise<void>((resolve, reject) => {
+      const child = execFile('zig', args, {encoding: 'buffer'}, (error, stdout, stderr) => {
+        if (error) return reject({error, stdout, stderr});
+        resolve();
+      });
+      if (child.stdin && input) {
+        child.stdin.write(input);
+        child.stdin.end();
+      }
+    });
     return true;
   } catch (err: any) {
     const {stdout, stderr} = err as {stdout: Buffer; stderr: Buffer};
@@ -73,7 +86,7 @@ if (require.main === module) {
     }
     const gens = new Generations(Dex as any);
     const seed = process.argv.length > 5 ? BigInt(process.argv[5]) : undefined;
-    await run(gens, process.argv[3], mode === 'showdown', process.argv[4], seed);
+    await run(gens, process.argv[3], mode === 'showdown', false, process.argv[4], seed);
   })().catch(err => {
     console.error(err);
     process.exit(1);

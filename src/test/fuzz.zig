@@ -262,6 +262,7 @@ fn deinit(allocator: std.mem.Allocator) void {
     for (frames.?.items) |frame| {
         allocator.free(frame.state);
         allocator.free(frame.log);
+        allocator.free(frame.extra);
     }
     frames.?.deinit();
     std.debug.assert(buf != null);

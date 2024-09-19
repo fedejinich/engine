@@ -10,7 +10,7 @@ for (const gen of gens) {
   for (const showdown of [false, true]) {
     describe(`Gen ${gen.num} (${showdown ? 'showdown' : 'pkmn'})`, () => {
       test('run', () =>
-        expect(run(gens, gen.num, showdown, '1s', 123456789n, true)).resolves.toBe(true),
+        expect(run(gens, gen.num, showdown, true, '1s', 123456789n)).resolves.toBe(true),
       60 * 1000);
     });
   }

@@ -3,6 +3,9 @@
 *.zig text=auto eol=lf
 *.zon text=auto eol=lf
 
+# Binary
+*.bin binary
+
 # GitHub
 src/data/* linguist-generated=true
 src/lib/gen1/data/* linguist-generated=true
