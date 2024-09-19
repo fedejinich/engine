@@ -233,6 +233,9 @@ th, td {
   text-align: center;
   width: 100%;
 }
+.boosts {
+  margin: 0 5px;
+}
 .types {
   display: inherit;
 }
@@ -278,9 +281,6 @@ th, td {
     justify-content: center;
     padding: 0;
   }
-  .boosts {
-    margin-left: 5px;
-  }
   .moves ul {
     grid-template-columns: repeat(2, auto);
   }
@@ -320,7 +320,7 @@ th, td {
   .boosts {
     display: flex;
     justify-content: space-between;
-    margin-top: 0.5em;
+    margin: 0.5em 0 0 0;
   }
 }
 @media(max-width: 550px) {

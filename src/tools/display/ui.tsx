@@ -197,9 +197,9 @@ export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
 
   const boosts = active ? <div className='boosts'>
     {!!pokemon.boosts.accuracy &&
-      <div><strong>Accuracy:</strong><Boost value={pokemon.boosts.accuracy} /></div>}
+      <div><strong>Accuracy:</strong> <Boost value={pokemon.boosts.accuracy} /></div>}
     {!!pokemon.boosts.evasion &&
-      <div><strong>Evasion:</strong><Boost value={pokemon.boosts.evasion} /></div>}
+      <div><strong>Evasion:</strong> <Boost value={pokemon.boosts.evasion} /></div>}
   </div> : '';
 
   const lis = [];
@@ -311,14 +311,14 @@ export const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
 };
 
 export const Stat = ({value, boost}: {value: number; boost: number}) => {
-  if (!boost) return value.toString();
-  if (boost > 0) return <span className='good'>{value} (+{boost})</span>;
-  return <span className='bad'>{value} ({boost})</span>;
+  if (!boost) return <span className='stat'>{value}</span>;
+  if (boost > 0) return <span className='stat good'>{value}&nbsp;(+{boost})</span>;
+  return <span className='stat bad'>{value}&nbsp;({boost})</span>;
 };
 
 export const Boost = ({value}: {value: number}) => {
-  if (value > 0) return <span className='good'>+{value}</span>;
-  return <span className='bad'>{value}</span>;
+  if (value > 0) return <span className='boost good'>+{value}</span>;
+  return <span className='boost bad'>{value}</span>;
 };
 
 export const PokemonIcon = ({pokemon, side}: {pokemon: engine.Pokemon; side: 'p1' | 'p2'}) => {
