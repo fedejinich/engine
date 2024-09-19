@@ -103,7 +103,9 @@
     "@types/node": "^22.5.3",
     "@types/react": "^18.2.45",
     "@types/semver": "^7.5.8",
+    "@types/vscode": "^1.93.0",
     "@vitest/coverage-v8": "^2.0.5",
+    "@vscode/vsce": "^3.1.0",
     "binaryen": "^118.0.0",
     "esbuild": "^0.23.1",
     "eslint": "<=8",
@@ -132,11 +134,12 @@
     "release": "npm run compile && node build/tools/release",
     "benchmark": "npm run compile && node build/test/benchmark",
     "integration": "npm run compile && node build/test/integration",
+    "extension": "npm -C src/tools/vscode run build",
     "postinstall": "node src/bin/install-pkmn-engine"
   },
   "eslintConfig": {
     "extends": "@pkmn",
-    "ignorePatterns": ["dist/", "node_modules/", "examples/zig", "build/"],
+    "ignorePatterns": ["dist/", "node_modules/", "examples/zig", "build/", "extension.js"],
     "env": {"es6": true, "node": true, "browser": true},
     "overrides": [{
       "files": ["**/*.ts"],

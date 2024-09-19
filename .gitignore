@@ -29,3 +29,5 @@ examples/c/example
 examples/zig/zig-cache
 logs/
 release/
+src/tools/vscode/extension.js
+*.vsix
