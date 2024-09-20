@@ -258,8 +258,8 @@ pub fn transitions(
         for (Rolls.sleep(f.p2, d.p2)) |p2_slp| { a.p2.sleep = p2_slp;
         for (Rolls.disable(f.p1, d.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
         for (Rolls.disable(f.p2, d.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
-        for (Rolls.attacking(f.p1, d.p1)) |p1_atk| { a.p1.attacking = p1_atk;
-        for (Rolls.attacking(f.p2, d.p2)) |p2_atk| { a.p2.attacking = p2_atk;
+        for (Rolls.attacking(f.p1, d.p1, p1_slp)) |p1_atk| { a.p1.attacking = p1_atk;
+        for (Rolls.attacking(f.p2, d.p2, p2_slp)) |p2_atk| { a.p2.attacking = p2_atk;
         for (Rolls.confusion(f.p1, d.p1, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
         for (Rolls.confusion(f.p2, d.p2, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
         for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
@@ -667,6 +667,24 @@ pub const Rolls = struct {
         };
     }
 
+    /// FIXME
+    pub fn attacking(
+        action: Action,
+        duration: Duration,
+        parent: Optional(Observation),
+    ) []const Optional(Observation) {
+        return switch (action.attacking) {
+            .None => &OBS_NONE,
+            .started => &OBS_STARTED,
+            else => if (duration.attacking >= 3)
+                &OBS_ENDED
+            else if ((parent == .continuing and parent == .ended) or duration.attacking < 2)
+                &OBS_CONTINUING
+            else
+                &OBS,
+        };
+    }
+
     const CFZ_NONE = [_]Optional(Confusion){.None};
     const CFZ_STARTED = [_]Optional(Confusion){.started};
     const CFZ_OVERWRITTEN = [_]Optional(Confusion){ .started, .overwritten };
@@ -689,24 +707,10 @@ pub const Rolls = struct {
                 &CFZ_STARTED,
             else => if (duration.confusion >= 5)
                 &CFZ_ENDED
-            else if ((parent != .None and parent != .started) or duration.confusion < 2)
+            else if ((parent == .continuing and parent == .ended) or duration.confusion < 2)
                 &CFZ_CONTINUING
             else
                 &CFZ,
-        };
-    }
-
-    /// FIXME
-    pub fn attacking(action: Action, duration: Duration) []const Optional(Observation) {
-        return switch (action.attacking) {
-            .None => &OBS_NONE,
-            .started => &OBS_STARTED,
-            else => if (duration.attacking >= 3)
-                &OBS_ENDED
-            else if (duration.attacking < 2)
-                &OBS_CONTINUING
-            else
-                &OBS,
         };
     }
 
