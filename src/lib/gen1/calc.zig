@@ -191,7 +191,7 @@ pub const Options = struct {
     metronome: bool = false,
 };
 
-pub const MAX_FRONTIER = 49;
+pub const MAX_FRONTIER = 67;
 
 pub fn transitions(
     battle: anytype,
