@@ -258,14 +258,14 @@ pub fn transitions(
         for (Rolls.sleep(f.p2, durations.p2)) |p2_slp| { a.p2.sleep = p2_slp;
         for (Rolls.disable(f.p1, durations.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
         for (Rolls.disable(f.p2, durations.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
-        for (Rolls.confusion(f.p1, durations.p1, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
-        for (Rolls.confusion(f.p2, durations.p2, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
+        for (Rolls.attacking(f.p1, durations.p1)) |p1_atk| { a.p1.attacking = p1_atk;
+        for (Rolls.attacking(f.p2, durations.p2)) |p2_atk| { a.p2.attacking = p2_atk;
+        for (Rolls.confusion(f.p1, durations.p1, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
+        for (Rolls.confusion(f.p2, durations.p2, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
         for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(f.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(f.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.attacking(f.p1, durations.p1, p1_par)) |p1_atk| { a.p1.attacking = p1_atk;
-        for (Rolls.attacking(f.p2, durations.p2, p2_par)) |p2_atk| { a.p2.attacking = p2_atk;
         for (Rolls.binding(f.p1, durations.p1, p1_par)) |p1_bind| { a.p1.binding = p1_bind;
         for (Rolls.binding(f.p2, durations.p2, p2_par)) |p2_bind| { a.p2.binding = p2_bind;
         for (Rolls.hit(f.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
@@ -669,20 +669,24 @@ pub const Rolls = struct {
 
     const CFZ_NONE = [_]Optional(Confusion){.None};
     const CFZ_STARTED = [_]Optional(Confusion){.started};
+    const CFZ_OVERWRITTEN = [_]Optional(Confusion){ .started, .overwritten };
     const CFZ_CONTINUING = [_]Optional(Confusion){.continuing};
     const CFZ_ENDED = [_]Optional(Confusion){.ended};
     const CFZ = [_]Optional(Confusion){ .continuing, .ended };
 
-    /// Returns a slice with a range of values for confusion given the `action`, observed `durations`,
-    /// and the state of the `parent` (observation of the player's Pokémon sleep status).
+    /// FIXME
     pub fn confusion(
         action: Action,
         duration: Duration,
+        sibling: Optional(Observation),
         parent: Optional(Observation),
     ) []const Optional(Confusion) {
         return switch (action.confusion) {
             .None => &CFZ_NONE,
-            .started => &CFZ_STARTED,
+            .started => if (sibling == .ended)
+                &CFZ_OVERWRITTEN
+            else
+                &CFZ_STARTED,
             else => if (duration.confusion >= 5)
                 &CFZ_ENDED
             else if ((parent != .None and parent != .started) or duration.confusion < 2)
@@ -692,15 +696,8 @@ pub const Rolls = struct {
         };
     }
 
-    /// Returns a slice with a range of values for attacking given the `action`, observed
-    /// `durations`, and the state of the `parent` (whether the player's Pokémon was fully
-    /// paralyzed).
-    pub fn attacking(
-        action: Action,
-        duration: Duration,
-        parent: Optional(bool),
-    ) []const Optional(Observation) {
-        if (parent == .true) return &OBS_NONE;
+    /// FIXME
+    pub fn attacking(action: Action, duration: Duration) []const Optional(Observation) {
         return switch (action.attacking) {
             .None => &OBS_NONE,
             .started => &OBS_STARTED,
@@ -921,7 +918,11 @@ test "Rolls.criticalHit" {
 test "Rolls.confused" {
     const actions: Actions = .{ .p2 = .{ .confused = .true } };
     try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p1, .None));
-    try expectEqualSlices(Optional(bool), &.{ .false, .true }, Rolls.confused(actions.p2, .continuing));
+    try expectEqualSlices(
+        Optional(bool),
+        &.{ .false, .true },
+        Rolls.confused(actions.p2, .continuing),
+    );
     try expectEqualSlices(Optional(bool), &.{.None}, Rolls.confused(actions.p2, .ended));
 }
 
