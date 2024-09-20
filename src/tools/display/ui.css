@@ -1,3 +1,11 @@
+body {
+  background: white;
+  color: black;
+}
+code {
+  background: white;
+  color: black;
+}
 #content {
   font-family: "Roboto", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   margin: 4em auto;
