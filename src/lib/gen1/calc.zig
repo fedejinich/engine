@@ -210,11 +210,11 @@ pub fn transitions(
     var frontier = std.ArrayList(Actions).init(allocator);
     defer frontier.deinit();
 
-    const durations = options.durations;
+    const d = options.durations;
 
     var opts = pkmn.battle.options(
         protocol.NULL,
-        Chance(Rational(u128)){ .probability = .{}, .durations = durations },
+        Chance(Rational(u128)){ .probability = .{}, .durations = d },
         Calc{},
     );
 
@@ -254,20 +254,20 @@ pub fn transitions(
         };
 
         for (Rolls.speedTie(f.p1)) |tie| { a.p1.speed_tie = tie; a.p2.speed_tie = tie;
-        for (Rolls.sleep(f.p1, durations.p1)) |p1_slp| { a.p1.sleep = p1_slp;
-        for (Rolls.sleep(f.p2, durations.p2)) |p2_slp| { a.p2.sleep = p2_slp;
-        for (Rolls.disable(f.p1, durations.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
-        for (Rolls.disable(f.p2, durations.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
-        for (Rolls.attacking(f.p1, durations.p1)) |p1_atk| { a.p1.attacking = p1_atk;
-        for (Rolls.attacking(f.p2, durations.p2)) |p2_atk| { a.p2.attacking = p2_atk;
-        for (Rolls.confusion(f.p1, durations.p1, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
-        for (Rolls.confusion(f.p2, durations.p2, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
+        for (Rolls.sleep(f.p1, d.p1)) |p1_slp| { a.p1.sleep = p1_slp;
+        for (Rolls.sleep(f.p2, d.p2)) |p2_slp| { a.p2.sleep = p2_slp;
+        for (Rolls.disable(f.p1, d.p1, p1_slp)) |p1_dis| { a.p1.disable = p1_dis;
+        for (Rolls.disable(f.p2, d.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
+        for (Rolls.attacking(f.p1, d.p1)) |p1_atk| { a.p1.attacking = p1_atk;
+        for (Rolls.attacking(f.p2, d.p2)) |p2_atk| { a.p2.attacking = p2_atk;
+        for (Rolls.confusion(f.p1, d.p1, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
+        for (Rolls.confusion(f.p2, d.p2, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
         for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
         for (Rolls.confused(f.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
         for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
         for (Rolls.paralyzed(f.p2, p2_cfzd)) |p2_par| { a.p2.paralyzed = p2_par;
-        for (Rolls.binding(f.p1, durations.p1, p1_par)) |p1_bind| { a.p1.binding = p1_bind;
-        for (Rolls.binding(f.p2, durations.p2, p2_par)) |p2_bind| { a.p2.binding = p2_bind;
+        for (Rolls.binding(f.p1, d.p1, p1_par)) |p1_bind| { a.p1.binding = p1_bind;
+        for (Rolls.binding(f.p2, d.p2, p2_par)) |p2_bind| { a.p2.binding = p2_bind;
         for (Rolls.hit(f.p1, p1_par)) |p1_hit| { a.p1.hit = p1_hit;
         for (Rolls.hit(f.p2, p2_par)) |p2_hit| { a.p2.hit = p2_hit;
         for (Rolls.psywave(f.p1, p1, p1_hit)) |p1_psywave| { a.p1.psywave = p1_psywave;
@@ -295,7 +295,7 @@ pub fn transitions(
 
                 opts.calc.overrides = a;
                 opts.calc.summaries = .{};
-                opts.chance = .{ .probability = .{}, .durations = durations };
+                opts.chance = .{ .probability = .{}, .durations = d };
                 const q = &opts.chance.probability;
 
                 b = battle;

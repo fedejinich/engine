@@ -36,8 +36,7 @@ generate:
 
 .PHONY: zig-lint
 zig-lint:
-	ziglint --exclude src/lib/gen1/calc.zig,\
-	examples/zig/example.zig,\
+	ziglint --exclude examples/zig/example.zig,\
 	examples/zig/legacy/example.zig,\
 	examples/zig/modern/example.zig
 
