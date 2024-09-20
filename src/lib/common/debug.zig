@@ -4,13 +4,18 @@ const debug = std.debug;
 const io = std.io;
 
 const Array = if (@hasField(std.builtin.Type, "array")) .array else .Array;
+const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 const Optional = if (@hasField(std.builtin.Type, "optional")) .optional else .Optional;
 const Pointer = if (@hasField(std.builtin.Type, "pointer")) .pointer else .Pointer;
 const Struct = if (@hasField(std.builtin.Type, "struct")) .@"struct" else .Struct;
+const Union = if (@hasField(std.builtin.Type, "union")) .@"union" else .Union;
 
 pub fn print(value: anytype) void {
-    debug.lockStdErr();
-    defer debug.unlockStdErr();
+    if (@hasDecl(debug, "lockStdErr")) debug.lockStdErr() else debug.getStderrMutex().lock();
+    defer if (@hasDecl(debug, "unlockStdErr"))
+        debug.unlockStdErr()
+    else
+        debug.getStderrMutex().unlock();
     const stderr = io.getStdErr().writer();
 
     nosuspend {
@@ -53,11 +58,11 @@ fn inspect(value: anytype) void {
             },
             Pointer => |ptr_info| switch (ptr_info.size) {
                 .One => switch (@typeInfo(ptr_info.child)) {
-                    .Array => |info| {
+                    Array => |info| {
                         if (info.child == u8) return stderr.print("{s}", .{value}) catch return;
                         @compileError(err);
                     },
-                    .Enum, .Union, .Struct => return inspect(value.*),
+                    Enum, Union, Struct => return inspect(value.*),
                     else => @compileError(err),
                 },
                 .Many, .C => {
