@@ -683,7 +683,7 @@ pub const Rolls = struct {
     ) []const Optional(Confusion) {
         return switch (action.confusion) {
             .None => &CFZ_NONE,
-            .started => if (pkmn.options.overwrite and sibling == .ended)
+            .started => if (pkmn.options.overwrite and sibling == .ended and duration.confusion < 5)
                 &CFZ_OVERWRITTEN
             else
                 &CFZ_STARTED,
