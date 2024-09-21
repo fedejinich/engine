@@ -346,10 +346,13 @@ pub fn transitions(
                             }
                         }
                     }
-
                     if (p1_max != p1_min) try q.update(p1_max - p1_min + 1, 1);
                     if (p2_max != p2_dmg.min) try q.update(p2_max - p2_dmg.min + 1, 1);
+
+                    q.reduce();
                     try p.add(q);
+                    p.reduce();
+
                     stats.saved += 1;
 
                     if (p.q < p.p) {

@@ -15,7 +15,9 @@ const ComptimeFloat =
 
 /// Specialization of a rational number used by the engine to compute probabilties.
 /// For performance reasons the rational is only reduced lazily and thus `reduce` must be
-/// invoked explicitly before reading.
+/// invoked explicitly before reading. Note that this laziness means that this implementation
+/// sometimes overflows in places where an eager reduced implementation would not - to achieve
+/// the same behavior as an eager implementation simply call `reduce` after each operation.
 pub fn Rational(comptime T: type) type {
     return extern struct {
         const Self = @This();
@@ -25,10 +27,10 @@ pub fn Rational(comptime T: type) type {
         /// Denominator. Must always be >= 1. Not guaranteed to be reduced in all cases.
         q: T = 1,
 
-        // With floats we can't rely on an overflow bit to let us know when to reduce, so we instead
-        // start reducing when we get sufficiently close to the limit of the mantissa (in our domain
-        // we expect updates to involve numbers < 2**10, so we should be safe not reducing before we
-        // are 2**10 away from "overflowing" the mantissa)
+        // With floats we can't rely on an overflow bit to let us know when to reduce, so we
+        // instead start reducing when we get sufficiently close to the limit of the mantissa
+        // (in our domain we expect updates to involve numbers < 2**10, so we should be safe
+        // not reducing before we are 2**10 away from "overflowing" the mantissa)
         const REDUCE = if (@typeInfo(T) == Float)
             std.math.pow(T, 2, std.math.floatMantissaBits(T) - 10)
         else
