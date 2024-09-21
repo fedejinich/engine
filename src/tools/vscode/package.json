@@ -5,11 +5,11 @@
   "repository": "github:pkmn/engine",
   "main": "extension.js",
   "files": ["extension.js", "LICENSE"],
-  "engines": {"vscode": "^1.93.0"},
-  "activationEvents": [],
   "scripts": {
     "build": "esbuild extension.ts --format=cjs --outfile=extension.js && vsce package"
   },
+  "engines": {"vscode": "^1.93.0"},
+  "activationEvents": [],
   "contributes": {
     "customEditors": [{
         "viewType": "pkmn-debug",
