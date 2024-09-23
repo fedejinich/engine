@@ -131,73 +131,7 @@ pub fn build(b: *std.Build) !void {
         // rename the file ourself in install-pkmn-engine
         b.installArtifact(lib);
     } else if (wasm) {
-        const entry = @hasDecl(Step.Compile, "Entry");
-        const mode = switch (optimize) {
-            .ReleaseFast, .ReleaseSafe => .ReleaseSmall,
-            else => optimize,
-        };
-        const freestanding = if (@hasDecl(std.Build, "resolveTargetQuery"))
-            b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding })
-        else
-            ResolvedTarget{ .cpu_arch = .wasm32, .os_tag = .freestanding };
-        const path = if (has_path) .{ .path = "src/lib/wasm.zig" } else b.path("src/lib/wasm.zig");
-        const bin = if (entry) bin: {
-            const exe = b.addExecutable(if (force_pic) .{
-                .name = name,
-                .root_source_file = path,
-                .optimize = mode,
-                .target = freestanding,
-            } else .{
-                .name = name,
-                .root_source_file = path,
-                .optimize = mode,
-                .target = freestanding,
-                .strip = strip,
-                .pic = pic,
-            });
-            (if (root_module) exe.root_module else exe).export_symbol_names = &[_][]const u8{
-                "SHOWDOWN",
-                "LOG",
-                "CHANCE",
-                "CALC",
-                "GEN1_CHOICES_SIZE",
-                "GEN1_LOGS_SIZE",
-            };
-            exe.entry = .disabled;
-            break :bin exe;
-        } else bin: {
-            const lib = b.addSharedLibrary(.{
-                .name = name,
-                .root_source_file = path,
-                .optimize = mode,
-                .target = freestanding,
-            });
-            lib.rdynamic = true;
-            break :bin lib;
-        };
-        bin.stack_size = wasm_stack_size;
-        if (@hasDecl(@TypeOf(bin.*), "strip")) bin.strip = strip orelse false;
-        if (force_pic and pic orelse false) bin.force_pic = pic;
-        (if (root_module) bin.root_module else bin).addOptions("build_options", options);
-
-        const opt = b.findProgram(&.{"wasm-opt"}, &.{"./node_modules/.bin"}) catch null;
-        if (optimize != .Debug and opt != null) {
-            const out = b.fmt("build/lib/{s}.wasm", .{name});
-            const sh = b.addSystemCommand(&.{ opt.?, "-O4" });
-            sh.addArtifactArg(bin);
-            sh.addArg("-o");
-            if (@hasDecl(@TypeOf(sh.*), "addFileSourceArg")) {
-                sh.addFileSourceArg(if (has_path) .{ .path = out } else b.path(out));
-            } else {
-                sh.addFileArg(if (has_path) .{ .path = out } else b.path(out));
-            }
-            b.getInstallStep().dependOn(&sh.step);
-            if (!entry) b.installArtifact(bin);
-        } else if (entry) {
-            b.getInstallStep().dependOn(&b.addInstallArtifact(bin, .{
-                .dest_dir = .{ .override = std.Build.InstallDir{ .lib = {} } },
-            }).step);
-        }
+        buildWasm(b, name, "src/lib/wasm.zig", optimize, strip, pic, wasm_stack_size, options);
     } else if (dynamic) {
         const path = if (has_path) .{ .path = "src/lib/c.zig" } else b.path("src/lib/c.zig");
         const lib = b.addSharedLibrary(if (force_pic) .{
@@ -347,6 +281,85 @@ pub fn build(b: *std.Build) !void {
     b.step("tools", "Install tools").dependOn(&ToolsStep.create(b, &exes).step);
     if (transitions) |t| {
         b.step("transitions", "Visualize transitions algorithm search").dependOn(&t.step);
+    }
+}
+
+fn buildWasm(
+    b: *std.Build,
+    name: []const u8,
+    root_src_file: []const u8,
+    optimize: std.builtin.OptimizeMode,
+    strip: ?bool,
+    pic: ?bool,
+    wasm_stack_size: u64,
+    options: anytype,
+) void {
+    const entry = @hasDecl(Step.Compile, "Entry");
+    const mode = switch (optimize) {
+        .ReleaseFast, .ReleaseSafe => .ReleaseSmall,
+        else => optimize,
+    };
+    const freestanding = if (@hasDecl(std.Build, "resolveTargetQuery"))
+        b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding })
+    else
+        ResolvedTarget{ .cpu_arch = .wasm32, .os_tag = .freestanding };
+    const path = if (has_path) .{ .path = root_src_file } else b.path(root_src_file);
+    const bin = if (entry) bin: {
+        const exe = b.addExecutable(if (force_pic) .{
+            .name = name,
+            .root_source_file = path,
+            .optimize = mode,
+            .target = freestanding,
+        } else .{
+            .name = name,
+            .root_source_file = path,
+            .optimize = mode,
+            .target = freestanding,
+            .strip = strip,
+            .pic = pic,
+        });
+        (if (root_module) exe.root_module else exe).export_symbol_names = &[_][]const u8{
+            "SHOWDOWN",
+            "LOG",
+            "CHANCE",
+            "CALC",
+            "GEN1_CHOICES_SIZE",
+            "GEN1_LOGS_SIZE",
+        };
+        exe.entry = .disabled;
+        break :bin exe;
+    } else bin: {
+        const lib = b.addSharedLibrary(.{
+            .name = name,
+            .root_source_file = path,
+            .optimize = mode,
+            .target = freestanding,
+        });
+        lib.rdynamic = true;
+        break :bin lib;
+    };
+    bin.stack_size = wasm_stack_size;
+    if (@hasDecl(@TypeOf(bin.*), "strip")) bin.strip = strip orelse false;
+    if (force_pic and pic orelse false) bin.force_pic = pic;
+    (if (root_module) bin.root_module else bin).addOptions("build_options", options);
+
+    const opt = b.findProgram(&.{"wasm-opt"}, &.{"./node_modules/.bin"}) catch null;
+    if (optimize != .Debug and opt != null) {
+        const out = b.fmt("build/lib/{s}.wasm", .{name});
+        const sh = b.addSystemCommand(&.{ opt.?, "-O4" });
+        sh.addArtifactArg(bin);
+        sh.addArg("-o");
+        if (@hasDecl(@TypeOf(sh.*), "addFileSourceArg")) {
+            sh.addFileSourceArg(if (has_path) .{ .path = out } else b.path(out));
+        } else {
+            sh.addFileArg(if (has_path) .{ .path = out } else b.path(out));
+        }
+        b.getInstallStep().dependOn(&sh.step);
+        if (!entry) b.installArtifact(bin);
+    } else if (entry) {
+        b.getInstallStep().dependOn(&b.addInstallArtifact(bin, .{
+            .dest_dir = .{ .override = std.Build.InstallDir{ .lib = {} } },
+        }).step);
     }
 }
 
