@@ -131,7 +131,7 @@ pub fn build(b: *std.Build) !void {
         // rename the file ourself in install-pkmn-engine
         b.installArtifact(lib);
     } else if (wasm) {
-        buildWasm(b, name, "src/lib/wasm.zig", optimize, strip, pic, wasm_stack_size, options);
+        try buildWasm(b, name, "src/lib/wasm.zig", optimize, strip, pic, wasm_stack_size, options);
     } else if (dynamic) {
         const path = if (has_path) .{ .path = "src/lib/c.zig" } else b.path("src/lib/c.zig");
         const lib = b.addSharedLibrary(if (force_pic) .{
@@ -293,7 +293,7 @@ fn buildWasm(
     pic: ?bool,
     wasm_stack_size: u64,
     options: anytype,
-) void {
+) !void {
     const entry = @hasDecl(Step.Compile, "Entry");
     const mode = switch (optimize) {
         .ReleaseFast, .ReleaseSafe => .ReleaseSmall,
@@ -318,14 +318,7 @@ fn buildWasm(
             .strip = strip,
             .pic = pic,
         });
-        (if (root_module) exe.root_module else exe).export_symbol_names = &[_][]const u8{
-            "SHOWDOWN",
-            "LOG",
-            "CHANCE",
-            "CALC",
-            "GEN1_CHOICES_SIZE",
-            "GEN1_LOGS_SIZE",
-        };
+        (if (root_module) exe.root_module else exe).export_symbol_names = try exports(b);
         exe.entry = .disabled;
         break :bin exe;
     } else bin: {
@@ -506,4 +499,19 @@ const ToolsStep = struct {
 fn detect(target: anytype) std.Target {
     if (@hasField(@TypeOf(target), "result")) return target.result;
     return (std.zig.system.NativeTargetInfo.detect(target) catch unreachable).target;
+}
+
+const WASM = @embedFile("src/lib/wasm.zig");
+
+fn exports(b: *std.Build) ![][]const u8 {
+    var symbols = std.ArrayList([]const u8).init(b.allocator);
+
+    var it = std.mem.splitSequence(u8, WASM, "export const ");
+    _ = it.next();
+    while (it.next()) |s| {
+        const i = std.mem.indexOf(u8, s, " ").?;
+        try symbols.append(s[0..i]);
+    }
+
+    return symbols.items;
 }
