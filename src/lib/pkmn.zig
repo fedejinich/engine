@@ -96,6 +96,10 @@ pub const gen1 = struct {
         /// though damage calculator support should additionally be turned off
         /// entirely via `options.calc`.
         pub const NULL = @import("gen1/calc.zig").NULL;
+        /// TODO
+        pub const MAX_FRONTIER = @import("gen1/calc.zig").MAX_FRONTIER;
+        /// TODO
+        pub const Rolls = @import("gen1/calc.zig").Rolls;
     };
     /// Provides helpers for initializing Generation I Pokémon battles.
     pub const helpers = @import("gen1/helpers.zig");
