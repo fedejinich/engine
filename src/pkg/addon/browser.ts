@@ -1,5 +1,6 @@
 
 import type {Argument} from '../addon';
+import {toBindings} from '../binding';
 
 export async function load(showdown: boolean, addon?: Argument) {
   if (typeof addon === 'string' && addon !== 'wasm') {
@@ -31,7 +32,7 @@ export async function load(showdown: boolean, addon?: Argument) {
     }
   }
 
-  return wasm.exports;
+  return toBindings(wasm.exports);
 }
 
 export function loadSync() {

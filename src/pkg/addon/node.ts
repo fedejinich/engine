@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import type {Argument} from '../addon';
+import {toBindings} from '../binding';
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 const LIB = path.join(ROOT, 'build', 'lib');
@@ -48,7 +49,7 @@ export async function load(showdown: boolean, addon?: Argument) {
     }
   }
 
-  return wasm.exports;
+  return toBindings(wasm.exports);
 }
 
 export function loadSync(showdown: boolean) {
