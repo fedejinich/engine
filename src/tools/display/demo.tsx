@@ -5,7 +5,7 @@ console.log(FuzzySearch);
 import * as engine from '../../pkg';
 import * as gen1 from '../../pkg/gen1';
 
-import {AutoComplete} from './autocomplete';
+// import {AutoComplete} from './autocomplete';
 import {Battle, Gen, Generation, adapt} from './ui';
 
 const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: boolean}) => {
@@ -45,35 +45,35 @@ for (let i = 0; i < species.length; i++) {
 
 console.debug(order);
 
-// const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
-// document.getElementById('content')!.appendChild(<App
-//   gen={GEN}
-//   data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
-//   showdown={json.showdown}
-// />);
+const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
+document.getElementById('content')!.appendChild(<App
+  gen={GEN}
+  data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
+  showdown={json.showdown}
+/>);
 
-const SpeciesSelect = () => {
-  // const options = Array.from(gen.species).map(s => <option value={s.id}>{s.name}</option>);
-  // return <select name="species" id="species">{options}</select>;
+// const SpeciesSelect = () => {
+//   // const options = Array.from(gen.species).map(s => <option value={s.id}>{s.name}</option>);
+//   // return <select name="species" id="species">{options}</select>;
 
-  const searcher = new FuzzySearch({
-    source: order.species,
-    token_field_min_length: 1,
-    sorter: (a: any, b: any) => b.score - a.score,
-  });
+//   const searcher = new FuzzySearch({
+//     source: order.species,
+//     token_field_min_length: 1,
+//     sorter: (a: any, b: any) => b.score - a.score,
+//   });
 
-  const input = <input type="text" name="q" placeholder="Tauros" ></input>;
-  const _ = new AutoComplete(input,
-    function (term, suggest) {
-      suggest(searcher.search(term));
-    }, {
-      minChars: 1,
-      renderItem(item: string) {
-        return '<div class="autocomplete-suggestion" data-val="' + item + '">' +
-        searcher.highlight(item) + '</div>';
-      },
-    });
-  return input;
-};
+//   const input = <input type="text" name="q" placeholder="Tauros" ></input>;
+//   const _ = new AutoComplete(input,
+//     function (term, suggest) {
+//       suggest(searcher.search(term));
+//     }, {
+//       minChars: 1,
+//       renderItem(item: string) {
+//         return '<div class="autocomplete-suggestion" data-val="' + item + '">' +
+//         searcher.highlight(item) + '</div>';
+//       },
+//     });
+//   return input;
+// };
 
-document.getElementById('content')!.appendChild(<SpeciesSelect />);
+// document.getElementById('content')!.appendChild(<SpeciesSelect />);
