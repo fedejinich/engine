@@ -3,7 +3,7 @@ export interface Bindings<T extends boolean> {
    * The compile-time options the bindings were built with. showdown is special
    * cased because it changes the name of addon.
    */
-  options: {showdown: T; log: boolean}; // TODO: {chance: boolean; calc: boolean; }
+  options: {showdown: T; log: boolean; chance: boolean; calc: boolean};
   /** Bindings are per-generation, Generation I is index 0. */
   bindings: Binding[];
 }
@@ -20,8 +20,8 @@ export function toBindings<T extends boolean>(w: WebAssembly.Exports): Bindings<
     options: {
       showdown: w.SHOWDOWN.valueOf(),
       log: w.LOG.valueOf(),
-      // chance: w.CHANCE.valueOf(),
-      // calc: w.CALC.valueOf(),
+      chance: w.CHANCE.valueOf(),
+      calc: w.CALC.valueOf(),
     },
     bindings: [toBinding('GEN1', w)],
   };
