@@ -18,23 +18,6 @@ const smogon = new Smogon(fetch);
 
 const gen = gens.get(process.argv[2]);
 const lookup = Lookup.get(gen);
-const TAUROS = {
-  species: 'Tauros',
-  moves: ['Body Slam', 'Hyper Beam', 'Blizzard', 'Earthquake'],
-} as PokemonSet;
-const [p1, p2] = (() => {
-  switch (gen.num) {
-    case 1: return [TAUROS, TAUROS];
-    default: throw new Error(`Unsupported gen: ${gen.num}`);
-  }
-})();
-const options = {
-  p1: {name: 'Player A', team: [p1]},
-  p2: {name: 'Player B', team: [p2]},
-  seed: [1, 2, 3, 4],
-  showdown,
-  log: false,
-};
 
 const SKIP = ['gen1lc'] as ID[];
 
@@ -50,12 +33,19 @@ const SKIP = ['gen1lc'] as ID[];
     moves: {[id: string]: Move};
   } = {num: gen.num, species: {}, moves: {}};
 
+  let p1: PokemonSet | undefined = undefined;
+  let p2: PokemonSet | undefined = undefined;
   for (const id in order.global.species) {
     const s = gen.species.get(id)!;
     data.species[s.id] = pruneSpecies(gen, s);
     let usage: string[];
+    if (!p1) {
+      p1 = (await smogon.sets(gen, s))[0] as PokemonSet;
+    } else if (!p2) {
+      p2 = (await smogon.sets(gen, s))[0] as PokemonSet;
+    }
     try {
-      if (SKIP.includes(Smogon.format(gen, s)!)) throw new Error();
+      if (SKIP.includes(Smogon.format(gen, s) as ID)) throw new Error();
       const stats = await smogon.stats(gen, s);
       usage = Object.keys(stats!.moves).filter(m => m !== 'Nothing');
     } catch {
@@ -72,7 +62,9 @@ const SKIP = ['gen1lc'] as ID[];
   }
   for (const m of gen.moves) data.moves[m.id] = pruneMove(gen, m);
 
-  const battle = Battle.create(gen, options);
+  const battle = Battle.create(gen, {
+    p1: {team: [p1!]}, p2: {team: [p2!]}, seed: [1, 2, 3, 4], showdown, log: false,
+  });
   battle.update(Choice.pass, Choice.pass);
   process.stdout.write(render(path.join(ROOT, 'build', 'tools', 'display', 'demo.jsx'), {
     order: {
