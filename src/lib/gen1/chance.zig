@@ -85,6 +85,15 @@ pub const Actions = extern struct {
         return false;
     }
 
+    /// TODO
+    pub fn relax(actions: Actions) Actions {
+        if (!options.overwrite) return actions;
+        var a = actions;
+        if (a.p1.confusion == .overwritten) a.p1.confusion = .continuing;
+        if (a.p2.confusion == .overwritten) a.p2.confusion = .continuing;
+        return a;
+    }
+
     pub fn fmt(self: Actions, writer: anytype, shape: bool) !void {
         try writer.writeAll("<P1 = ");
         try self.p1.fmt(writer, shape);
