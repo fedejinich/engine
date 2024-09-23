@@ -38,29 +38,37 @@ const SKIP = ['gen1lc'] as ID[];
   for (const id in order.global.species) {
     const s = gen.species.get(id)!;
     data.species[s.id] = pruneSpecies(gen, s);
-    let usage: string[];
+
     if (!p1) {
       p1 = (await smogon.sets(gen, s))[0] as PokemonSet;
+      if (p1.moves.includes('Metronome')) throw new Error(`${s.name} set contains Metronome`);
     } else if (!p2) {
       p2 = (await smogon.sets(gen, s))[0] as PokemonSet;
+      if (p2.moves.includes('Metronome')) throw new Error(`${s.name} set contains Metronome`);
     }
+
+    let usage: string[];
     try {
       if (SKIP.includes(Smogon.format(gen, s) as ID)) throw new Error();
       const stats = await smogon.stats(gen, s);
-      usage = Object.keys(stats!.moves).filter(m => m !== 'Nothing');
+      usage = Object.keys(stats!.moves).filter(m => m !== 'Nothing' && m !== 'Metronome');
     } catch {
       usage = (await smogon.sets(gen, s))[0]?.moves ?? [];
+      if (usage.includes('Metronome')) throw new Error(`${s.name} set contains Metronome`);
     }
 
-    const learnset = [];
+    const learnset: ID[] = [];
     for (const move in (await gen.learnsets.learnable(s.name))!) {
-      if (!usage.includes(move)) learnset.push(move);
+      if (!usage.includes(move) && move !== 'metronome') learnset.push(move as ID);
     }
     learnset.sort((a, b) => order.global.moves[b] - order.global.moves[a]);
 
     order.local.push(...([...usage, ...learnset]).map(m => lookup.moveByID(toID(m))), 0);
   }
-  for (const m of gen.moves) data.moves[m.id] = pruneMove(gen, m);
+  for (const m of gen.moves) {
+    if (m.id === 'metronome') continue;
+    data.moves[m.id] = pruneMove(gen, m);
+  }
 
   const battle = Battle.create(gen, {
     p1: {team: [p1!]}, p2: {team: [p2!]}, seed: [1, 2, 3, 4], showdown, log: false,
