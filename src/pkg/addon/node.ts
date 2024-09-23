@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import type {Argument} from '../addon';
-import {toBindings} from '../binding';
+
+import {toBindings} from './wasm';
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 const LIB = path.join(ROOT, 'build', 'lib');

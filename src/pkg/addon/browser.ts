@@ -1,6 +1,7 @@
 
 import type {Argument} from '../addon';
-import {toBindings} from '../binding';
+
+import {toBindings} from './wasm';
 
 export async function load(showdown: boolean, addon?: Argument) {
   if (typeof addon === 'string' && addon !== 'wasm') {
