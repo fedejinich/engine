@@ -75,6 +75,16 @@ pub const Actions = extern struct {
         return true;
     }
 
+    /// TODO
+    pub fn matchesAny(a: Actions, bs: []Actions, i: usize) bool {
+        for (bs, 0..) |b, j| {
+            // TODO: is skipping this redundant check worth it?
+            if (i == j) continue;
+            if (b.matches(a)) return true;
+        }
+        return false;
+    }
+
     pub fn fmt(self: Actions, writer: anytype, shape: bool) !void {
         try writer.writeAll("<P1 = ");
         try self.p1.fmt(writer, shape);

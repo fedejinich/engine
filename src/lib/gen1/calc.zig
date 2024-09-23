@@ -360,7 +360,7 @@ pub fn transitions(
                         return error.TestUnexpectedResult;
                     }
                 } else {
-                    if (!matches(opts.chance.actions, i, frontier.items)) {
+                    if (!opts.chance.actions.matchesAny(frontier.items, i)) {
                         try frontier.append(opts.chance.actions);
 
                         try debug(writer, opts.chance.actions, .{
@@ -536,15 +536,6 @@ fn map(actions: Actions) Actions {
     if (a.p1.confusion == .overwritten) a.p1.confusion = .continuing;
     if (a.p2.confusion == .overwritten) a.p2.confusion = .continuing;
     return a;
-}
-
-fn matches(actions: Actions, i: usize, frontier: []Actions) bool {
-    for (frontier, 0..) |f, j| {
-        // TODO: is skipping this redundant check worth it?
-        if (i == j) continue;
-        if (f.matches(actions)) return true;
-    }
-    return false;
 }
 
 fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
