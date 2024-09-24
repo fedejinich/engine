@@ -1,7 +1,7 @@
 /** @license MIT modified from Pixabay's https://github.com/Pixabay/JavaScript-autoComplete */
 
 const FRAME_MS = 20;
-const DELAY_MS = 150;
+// const DELAY_MS = 150;
 const HIDE_MS = 350;
 
 export const Select = ({options, unmount, placeholder, render}: {
@@ -18,18 +18,19 @@ export const Select = ({options, unmount, placeholder, render}: {
   const container = <div className='select options' />;
 
   render ||= option => input.value
-    ? <span dangerouslySetInnerHTML={{__html: searcher.highlight(option)}}></span>
+    // ? <span dangerouslySetInnerHTML={{__html: searcher.highlight(option)}}></span>
+    ? <>{option}</>
     : <>{option}</>;
 
   let maxHeight = 0;
   let offsetHeight = 0;
   let last = '';
 
-  const searcher = new FuzzySearch({
-    source: options,
-    token_field_min_length: 1,
-    sorter: (a: any, b: any) => b.score - a.score,
-  });
+  // const searcher = new FuzzySearch({
+  //   source: options,
+  //   token_field_min_length: 1,
+  //   sorter: (a: any, b: any) => b.score - a.score,
+  // });
 
   const onResize = () => {
     console.debug('onResize');
@@ -184,7 +185,7 @@ export const Select = ({options, unmount, placeholder, render}: {
         last = val;
         clearTimeout(timer);
         if (cache) if (val in cache) return suggest(cache[val]);
-        timer = setTimeout(() => suggest(searcher.search(val)), DELAY_MS) as any as number;
+        // timer = setTimeout(() => suggest(searcher.search(val)), DELAY_MS) as any as number;
       }
     }
   });

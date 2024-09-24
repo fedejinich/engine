@@ -1,5 +1,6 @@
 import 'source-map-support/register';
 
+import {promises as fs} from 'fs';
 import * as path from 'path';
 
 import {Generations, ID, PokemonSet, toID} from '@pkmn/data';
@@ -15,7 +16,6 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const showdown = true;
 const gens = new Generations(Dex as any);
 
-import {promises as fs} from 'fs';
 const URL = 'https://data.pkmn.cc/';
 const fetch = async (url: string) => {
   if (!url.startsWith(URL)) throw new Error(`Invalid url: '${url}'`);
