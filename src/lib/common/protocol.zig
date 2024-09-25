@@ -1,18 +1,14 @@
-const std = @import("std");
 const builtin = @import("builtin");
-
-const pkmn = @import("../pkmn.zig");
-
 const data = @import("data.zig");
 const options = @import("options.zig");
+const pkmn = @import("../pkmn.zig");
+const std = @import("std");
 
 const assert = std.debug.assert;
-const print = std.debug.print;
-
 const enabled = options.log;
-
-const Player = data.Player;
 const ID = data.ID;
+const Player = data.Player;
+const print = std.debug.print;
 
 const endian = builtin.cpu.arch.endian();
 const Endian = std.builtin.Endian;

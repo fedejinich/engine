@@ -1,6 +1,5 @@
-const std = @import("std");
-
 const pkmn = @import("pkmn.zig");
+const std = @import("std");
 
 export const SHOWDOWN = pkmn.options.showdown;
 export const LOG = pkmn.options.log;

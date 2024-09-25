@@ -1,25 +1,18 @@
-const std = @import("std");
-
 const common = @import("../common/data.zig");
+const data = @import("data.zig");
+const gen1 = @import("../gen1/data.zig");
 const options = @import("../common/options.zig");
 const rng = @import("../common/rng.zig");
-
-const gen1 = @import("../gen1/data.zig");
-
-const data = @import("data.zig");
+const std = @import("std");
 
 const assert = std.debug.assert;
-
 const Choice = common.Choice;
-
-const showdown = options.showdown;
-
-const PSRNG = rng.PSRNG;
-
 const DVs = data.DVs;
 const Item = data.Item;
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
+const PSRNG = rng.PSRNG;
+const showdown = options.showdown;
 const Species = data.Species;
 const Stats = data.Stats;
 

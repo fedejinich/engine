@@ -1,57 +1,45 @@
-const std = @import("std");
-
-const pkmn = @import("../pkmn.zig");
-
-const common = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
-const protocol = @import("../common/protocol.zig");
-const rational = @import("../common/rational.zig");
-const rng = @import("../common/rng.zig");
 
 const calc = @import("calc.zig");
 const chance = @import("chance.zig");
+const common = @import("../common/data.zig");
 const data = @import("data.zig");
 const helpers = @import("helpers.zig");
+const pkmn = @import("../pkmn.zig");
+const protocol = @import("../common/protocol.zig");
+const rational = @import("../common/rational.zig");
+const rng = @import("../common/rng.zig");
+const std = @import("std");
 
 const ArrayList = std.ArrayList;
-
 const assert = std.debug.assert;
-const print = std.debug.print;
-
+const Battle = helpers.Battle;
+const ByteStream = protocol.ByteStream;
+const Calc = calc.Calc;
+const Chance = chance.Chance;
+const Choice = common.Choice;
+const Durations = chance.Durations;
+const EXP = helpers.EXP;
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectEqualSlices = std.testing.expectEqualSlices;
-
-const showdown = pkmn.options.showdown;
-const log = pkmn.options.log;
-
-const Choice = common.Choice;
-const ID = common.ID;
-const Player = common.Player;
-const Result = common.Result;
-
-const ByteStream = protocol.ByteStream;
 const FixedLog = protocol.FixedLog;
+const ID = common.ID;
+const log = pkmn.options.log;
 const Log = protocol.Log;
-
-const Rational = rational.Rational;
-
-const Calc = calc.Calc;
-
-const Chance = chance.Chance;
-const Durations = chance.Durations;
-
 const Move = data.Move;
+const move = helpers.move;
+const NULL = data.NULL;
+const Player = common.Player;
+const Pokemon = helpers.Pokemon;
+const print = std.debug.print;
+const Rational = rational.Rational;
+const Result = common.Result;
+const showdown = pkmn.options.showdown;
 const Species = data.Species;
 const Status = data.Status;
-const Types = data.Types;
-const NULL = data.NULL;
-
-const Battle = helpers.Battle;
-const EXP = helpers.EXP;
-const move = helpers.move;
-const Pokemon = helpers.Pokemon;
 const swtch = helpers.swtch;
+const Types = data.Types;
 
 const CHOICES_SIZE = data.CHOICES_SIZE;
 

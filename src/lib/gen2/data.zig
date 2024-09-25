@@ -1,24 +1,20 @@
-const std = @import("std");
-const builtin = @import("builtin");
-
-const pkmn = @import("../pkmn.zig");
-
-const data = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
-const protocol = @import("../common/protocol.zig");
-const rng = @import("../common/rng.zig");
-const util = @import("../common/util.zig");
 
-const items = @import("data/items.zig");
-const moves = @import("data/moves.zig");
-const species = @import("data/species.zig");
-const types = @import("data/types.zig");
-
-const gen1 = @import("../gen1/data.zig");
-
+const builtin = @import("builtin");
 const calc = @import("calc.zig");
 const chance = @import("chance.zig");
+const data = @import("../common/data.zig");
+const gen1 = @import("../gen1/data.zig");
+const items = @import("data/items.zig");
 const mechanics = @import("mechanics.zig");
+const moves = @import("data/moves.zig");
+const pkmn = @import("../pkmn.zig");
+const protocol = @import("../common/protocol.zig");
+const rng = @import("../common/rng.zig");
+const species = @import("data/species.zig");
+const std = @import("std");
+const types = @import("data/types.zig");
+const util = @import("../common/util.zig");
 
 const assert = std.debug.assert;
 const expectEqual = std.testing.expectEqual;

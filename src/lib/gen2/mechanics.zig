@@ -1,44 +1,36 @@
-const std = @import("std");
-
-const pkmn = @import("../pkmn.zig");
+const DEBUG = @import("../common/debug.zig").print;
 
 const common = @import("../common/data.zig");
-const DEBUG = @import("../common/debug.zig").print;
-const protocol = @import("../common/protocol.zig");
-const rng = @import("../common/rng.zig");
-
 const data = @import("data.zig");
 const generated = @import("generated.zig");
+const pkmn = @import("../pkmn.zig");
+const protocol = @import("../common/protocol.zig");
+const rng = @import("../common/rng.zig");
+const std = @import("std");
 
+const Activate = protocol.Activate;
+const ActivePokemon = data.ActivePokemon;
 const assert = std.debug.assert;
-
+const Boost = protocol.Boost;
+const Boosts = data.Boosts;
+const Choice = common.Choice;
+const Damage = protocol.Damage;
+const Effectiveness = data.Effectiveness;
+const End = protocol.End;
 const expectEqual = std.testing.expectEqual;
 const expectEqualSlices = std.testing.expectEqualSlices;
 const expectEqualStrings = std.testing.expectEqualStrings;
-
-const showdown = pkmn.options.showdown;
-
-const Choice = common.Choice;
-const ID = common.ID;
-const Player = common.Player;
-const Result = common.Result;
-
-const Activate = protocol.Activate;
-const Boost = protocol.Boost;
-const Damage = protocol.Damage;
-const End = protocol.End;
 const Fail = protocol.Fail;
-const Heal = protocol.Heal;
-const Start = protocol.Start;
-
 const Gen12 = rng.Gen12;
-
-const ActivePokemon = data.ActivePokemon;
-const Boosts = data.Boosts;
-const Effectiveness = data.Effectiveness;
+const Heal = protocol.Heal;
+const ID = common.ID;
 const Item = data.Item;
 const Move = data.Move;
+const Player = common.Player;
+const Result = common.Result;
+const showdown = pkmn.options.showdown;
 const Side = data.Side;
+const Start = protocol.Start;
 const Stats = data.Stats;
 const Status = data.Status;
 const TriAttack = data.TriAttack;

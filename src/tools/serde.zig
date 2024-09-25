@@ -1,6 +1,5 @@
-const std = @import("std");
-
 const pkmn = @import("pkmn");
+const std = @import("std");
 
 const gen1 = pkmn.gen1.helpers;
 

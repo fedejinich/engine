@@ -1,10 +1,8 @@
-const std = @import("std");
-
 const options = @import("options.zig");
+const std = @import("std");
 
 const assert = std.debug.assert;
 const expectEqual = std.testing.expectEqual;
-
 const showdown = options.showdown;
 
 pub fn PRNG(comptime gen: comptime_int) type {

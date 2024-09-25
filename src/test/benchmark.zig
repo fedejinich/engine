@@ -1,5 +1,5 @@
-const std = @import("std");
 const pkmn = @import("pkmn");
+const std = @import("std");
 
 const showdown = pkmn.options.showdown;
 

@@ -1,6 +1,6 @@
 const builtin = @import("builtin");
-const std = @import("std");
 const pkmn = @import("pkmn");
+const std = @import("std");
 
 pub const pkmn_options = pkmn.Options{ .internal = true };
 

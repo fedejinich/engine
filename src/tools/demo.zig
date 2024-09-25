@@ -1,10 +1,8 @@
-const std = @import("std");
-
 const pkmn = @import("pkmn");
+const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
-
 const Choice = pkmn.Choice;
 const protocol = pkmn.protocol;
 const Rational = pkmn.Rational;
@@ -12,12 +10,12 @@ const Rational = pkmn.Rational;
 pub const pkmn_options = pkmn.Options{ .advance = false, .ebc = false, .key = true };
 
 const gen1 = struct {
-    const Battle = pkmn.gen1.data.Battle;
-    const PRNG = pkmn.gen1.data.PRNG;
     const Actions = pkmn.gen1.chance.Actions;
-    const Durations = pkmn.gen1.chance.Durations;
-    const Chance = pkmn.gen1.Chance;
+    const Battle = pkmn.gen1.data.Battle;
     const Calc = pkmn.gen1.Calc;
+    const Chance = pkmn.gen1.Chance;
+    const Durations = pkmn.gen1.chance.Durations;
+    const PRNG = pkmn.gen1.data.PRNG;
     const Rolls = pkmn.gen1.calc.Rolls;
 
     pub fn transitions(

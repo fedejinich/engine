@@ -1,5 +1,5 @@
-const std = @import("std");
 const builtin = @import("builtin");
+const std = @import("std");
 
 pub fn main() !void {
     const version = try std.SemanticVersion.parse("0.12.0-dev.2036+fc79b22a9");

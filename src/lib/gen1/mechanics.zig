@@ -1,36 +1,28 @@
-const std = @import("std");
-
-const pkmn = @import("../pkmn.zig");
-
-const common = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
+
+const chance = @import("chance.zig");
+const common = @import("../common/data.zig");
+const data = @import("data.zig");
+const pkmn = @import("../pkmn.zig");
 const protocol = @import("../common/protocol.zig");
 const rng = @import("../common/rng.zig");
-
-const data = @import("data.zig");
-const chance = @import("chance.zig");
+const std = @import("std");
 
 const assert = std.debug.assert;
-
-const expectEqual = std.testing.expectEqual;
-
-const showdown = pkmn.options.showdown;
-
-const Choice = common.Choice;
-const ID = common.ID;
-const Player = common.Player;
-const Result = common.Result;
-
 const Boost = protocol.Boost;
+const Choice = common.Choice;
 const Damage = protocol.Damage;
-const Fail = protocol.Fail;
-const Heal = protocol.Heal;
-
-const Gen12 = rng.Gen12;
-
 const Effectiveness = data.Effectiveness;
+const expectEqual = std.testing.expectEqual;
+const Fail = protocol.Fail;
+const Gen12 = rng.Gen12;
+const Heal = protocol.Heal;
+const ID = common.ID;
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
+const Player = common.Player;
+const Result = common.Result;
+const showdown = pkmn.options.showdown;
 const Side = data.Side;
 const Species = data.Species;
 const Stats = data.Stats;

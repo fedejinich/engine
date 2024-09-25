@@ -1,30 +1,27 @@
-const std = @import("std");
-
-const assert = std.debug.assert;
-const print = std.debug.print;
-
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
-
 const DEBUG = @import("../common/debug.zig").print;
+
+const array = @import("../common/array.zig");
+const common = @import("../common/data.zig");
+const data = @import("data.zig");
+const optional = @import("../common/optional.zig");
 const options = @import("../common/options.zig");
 const rational = @import("../common/rational.zig");
+const std = @import("std");
 const util = @import("../common/util.zig");
 
-const Array = @import("../common/array.zig").Array;
-const Player = @import("../common/data.zig").Player;
-const Optional = @import("../common/optional.zig").Optional;
-
-const data = @import("data.zig");
-
+const Array = array.Array;
+const assert = std.debug.assert;
 const enabled = options.chance;
-const showdown = options.showdown;
-
-const PointerType = util.PointerType;
+const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
 const isPointerTo = util.isPointerTo;
-
 const Move = data.Move;
 const MoveSlot = data.MoveSlot;
+const Optional = optional.Optional;
+const Player = common.Player;
+const PointerType = util.PointerType;
+const print = std.debug.print;
+const showdown = options.showdown;
 
 const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
 const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;

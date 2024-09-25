@@ -1,27 +1,19 @@
-const std = @import("std");
-
-const pkmn = @import("../pkmn.zig");
-
+const chance = @import("chance.zig");
 const common = @import("../common/data.zig");
+const Optional = @import("../common/optional.zig").Optional;
+const pkmn = @import("../pkmn.zig");
+const std = @import("std");
 const util = @import("../common/util.zig");
 
-const Optional = @import("../common/optional.zig").Optional;
-
-const chance = @import("chance.zig");
-
-const assert = std.debug.assert;
-
-const enabled = pkmn.options.calc;
-
-const Player = common.Player;
-
-const PointerType = util.PointerType;
-const isPointerTo = util.isPointerTo;
-
-const Actions = chance.Actions;
 const Action = chance.Action;
+const Actions = chance.Actions;
+const assert = std.debug.assert;
 const Criticals = chance.Criticals;
 const Damages = chance.Damages;
+const enabled = pkmn.options.calc;
+const isPointerTo = util.isPointerTo;
+const Player = common.Player;
+const PointerType = util.PointerType;
 
 const Int = if (@hasField(std.builtin.Type, "int")) .int else .Int;
 const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;

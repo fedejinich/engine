@@ -1,44 +1,35 @@
-const std = @import("std");
-
-const pkmn = @import("../pkmn.zig");
-
-const common = @import("../common/data.zig");
 const DEBUG = @import("../common/debug.zig").print;
-const optional = @import("../common/optional.zig");
-const protocol = @import("../common/protocol.zig");
-const rational = @import("../common/rational.zig");
-const util = @import("../common/util.zig");
 
 const chance = @import("chance.zig");
+const common = @import("../common/data.zig");
 const data = @import("data.zig");
 const helpers = @import("helpers.zig");
+const optional = @import("../common/optional.zig");
+const pkmn = @import("../pkmn.zig");
+const protocol = @import("../common/protocol.zig");
+const rational = @import("../common/rational.zig");
+const std = @import("std");
+const util = @import("../common/util.zig");
 
-const assert = std.debug.assert;
-
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
-const expectEqualSlices = std.testing.expectEqualSlices;
-
-const enabled = pkmn.options.calc;
-
-const Player = common.Player;
-const Result = common.Result;
-const Choice = common.Choice;
-
-const Optional = optional.Optional;
-
-const Rational = rational.Rational;
-
-const PointerType = util.PointerType;
-const isPointerTo = util.isPointerTo;
-
-const Actions = chance.Actions;
 const Action = chance.Action;
+const Actions = chance.Actions;
+const assert = std.debug.assert;
 const Chance = chance.Chance;
+const Choice = common.Choice;
 const Confusion = chance.Confusion;
 const Duration = chance.Duration;
 const Durations = chance.Durations;
+const enabled = pkmn.options.calc;
+const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
+const expectEqualSlices = std.testing.expectEqualSlices;
+const isPointerTo = util.isPointerTo;
 const Observation = chance.Observation;
+const Optional = optional.Optional;
+const Player = common.Player;
+const PointerType = util.PointerType;
+const Rational = rational.Rational;
+const Result = common.Result;
 const Sleeps = chance.Sleeps;
 
 const tty = true; // DEBUG
