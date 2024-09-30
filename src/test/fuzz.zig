@@ -331,11 +331,38 @@ fn display(w: anytype, final: bool) !void {
     if (buf) |b| try w.writeAll(b.items);
 }
 
-pub fn panic(
-    msg: []const u8,
-    error_return_trace: ?*std.builtin.StackTrace,
-    ret_addr: ?usize,
-) noreturn {
-    if (last) |seed| dump(seed) catch unreachable;
-    std.builtin.default_panic(msg, error_return_trace, ret_addr);
-}
+pub const panic = Panic.call;
+pub const Panic = struct {
+    pub fn call(msg: []const u8, ert: ?*std.builtin.StackTrace, ra: ?usize) noreturn {
+        if (last) |seed| dump(seed) catch unreachable;
+        if (@hasDecl(std.builtin, "Panic")) {
+            std.debug.FormattedPanic.call(msg, ert, ra);
+        } else {
+            std.builtin.default_panic(msg, ert, ra);
+        }
+    }
+
+    pub fn sentinelMismatch(expected: anytype, _: @TypeOf(expected)) noreturn {
+        call("sentinel mismatch", null, null);
+    }
+
+    pub fn unwrapError(_: ?*std.builtin.StackTrace, _: anyerror) noreturn {
+        call("attempt to unwrap error", null, null);
+    }
+
+    pub fn outOfBounds(_: usize, _: usize) noreturn {
+        call("index out of bounds", null, null);
+    }
+
+    pub fn startGreaterThanEnd(_: usize, _: usize) noreturn {
+        call("start index is larger than end index", null, null);
+    }
+
+    pub fn inactiveUnionField(active: anytype, _: @TypeOf(active)) noreturn {
+        call("access of inactive union field", null, null);
+    }
+
+    pub const messages = if (@hasDecl(std.builtin, "Panic"))
+        std.debug.FormattedPanic.messages
+    else {};
+};
