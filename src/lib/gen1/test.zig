@@ -8596,7 +8596,7 @@ test "Hyper Beam automatic selection glitch" {
     {
         // zig fmt: off
         var t = Test((if (showdown)
-            .{ ~HIT, HIT, ~CRIT, MIN_DMG, ~HIT }
+            .{ ~HIT, HIT, ~CRIT, MIN_DMG, ~HIT, HIT, ~CRIT, MIN_DMG }
         else
             .{ MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT,
                 MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT })).init(
@@ -8624,24 +8624,16 @@ test "Hyper Beam automatic selection glitch" {
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
         try t.log.expected.miss(.{P2.ident(1)});
-        if (showdown) {
-            try t.log.expected.cant(.{ P1.ident(1), .Recharge });
-        } else {
-            try t.log.expected.move(.{ P1.ident(1), Move.HyperBeam, P2.ident(1) });
-            t.expected.p2.get(1).hp -= 105;
-            try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
-            try t.log.expected.mustrecharge(.{P1.ident(1)});
-        }
+        try t.log.expected.move(.{ P1.ident(1), Move.HyperBeam, P2.ident(1) });
+        t.expected.p2.get(1).hp -= 105;
+        try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
+        try t.log.expected.mustrecharge(.{P1.ident(1)});
         try t.log.expected.turn(.{3});
 
         // Missing should cause Hyper Beam to be automatically selected and underflow
         try expectEqual(Result.Default, try t.update(forced, move(1)));
-        if (showdown) {
-            try t.expectProbability(5, 32); // (40/256)
-        } else {
-            try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        }
-        try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(1).pp);
+        try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
+        try expectEqual(@as(u8, 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();
     }
@@ -8650,7 +8642,7 @@ test "Hyper Beam automatic selection glitch" {
         const hyper_beam = comptime metronome(.HyperBeam);
         // zig fmt: off
         var t = Test((if (showdown)
-            .{ ~HIT, hyper_beam, HIT, ~CRIT, MIN_DMG, ~HIT }
+            .{ ~HIT, hyper_beam, HIT, ~CRIT, MIN_DMG, ~HIT, HIT, ~CRIT, MIN_DMG }
         else
             .{ MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, hyper_beam, ~CRIT, MIN_DMG, HIT,
                 MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT })).init(
@@ -8680,23 +8672,15 @@ test "Hyper Beam automatic selection glitch" {
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
         try t.log.expected.miss(.{P2.ident(1)});
-        if (showdown) {
-            try t.log.expected.cant(.{ P1.ident(1), .Recharge });
-        } else {
-            try t.log.expected.move(.{ P1.ident(1), Move.HyperBeam, P2.ident(1) });
-            t.expected.p2.get(1).hp -= 105;
-            try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
-            try t.log.expected.mustrecharge(.{P1.ident(1)});
-        }
+        try t.log.expected.move(.{ P1.ident(1), Move.HyperBeam, P2.ident(1) });
+        t.expected.p2.get(1).hp -= 105;
+        try t.log.expected.damage(.{ P2.ident(1), t.expected.p2.get(1), .None });
+        try t.log.expected.mustrecharge(.{P1.ident(1)});
         try t.log.expected.turn(.{3});
 
         // Missing should cause Hyper Beam to be automatically selected and underflow
         try expectEqual(Result.Default, try t.update(forced, move(1)));
-        if (showdown) {
-            try t.expectProbability(5, 32); // (40/256)
-        } else {
-            try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        }
+        try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
         try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(1).pp);
 
         try t.verify();

@@ -605,10 +605,11 @@ engine, but the following moves have their broken behavior preserved in `-Dshowd
   incorrectly saves arbitrary moves with its choice selection semantics). Furthermore, thrashing
   volatiles shouldn't be cleared if the user misses a turn due to freeze / sleep.
 - **Hyper Beam**: due to improperly implemented selection mechanics, the [Hyper Beam
-  automatic-selection glitch](https://glitchcity.wiki/Hyper_Beam_automatic_selection_glitch) does
-  not exist on Pokémon Showdown. Additionally, Hyper Beam being able to cause [Freeze permanent
+  automatic-selection glitch](https://glitchcity.wiki/Hyper_Beam_automatic_selection_glitch) doesn't
+  correctly deduct PP when Hyper Beam is proced via Metronome / Mirror Move. Additionally, Hyper
+  Beam being able to cause [Freeze permanent
   helplessness](https://pkmn.cc/bulba-glitch-1#Hyper_Beam_.2B_Freeze_permanent_helplessness) isn't
-  implement by Pokémon Showdown.
+  implemented by Pokémon Showdown.
 - **Roar** / **Whirlwind**: these moves can miss on Pokémon Showdown (and advance the RNG when
   checking) which is incorrect (these moves should always fail, but don't check accuracy or advance
   the RNG). More importantly, these moves should *not* cause the tracked last battle damage to be

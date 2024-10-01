@@ -12,20 +12,20 @@ const choices = Choices.get(gen);
 const startBattle = createStartBattle(gen);
 
 const {HIT, MISS, CRIT, NO_CRIT, MIN_DMG, MAX_DMG, TIE} = ROLLS.basic({
-  hit: 'data/mods/gen1/scripts.ts:418:42',
-  crit: 'data/mods/gen1/scripts.ts:817:27',
-  dmg: 'data/mods/gen1/scripts.ts:938:27',
+  hit: 'data/mods/gen1/scripts.ts:433:42',
+  crit: 'data/mods/gen1/scripts.ts:832:27',
+  dmg: 'data/mods/gen1/scripts.ts:953:27',
 });
 
-const SECONDARY = (value: number) => ({key: 'data/mods/gen1/scripts.ts:706:25', value});
+const SECONDARY = (value: number) => ({key: 'data/mods/gen1/scripts.ts:721:25', value});
 const SLP = (n: number) =>
   ({key: 'data/mods/gen1/conditions.ts:63:38', value: ranged(n, 8 - 1)});
 const DISABLE_MOVE = (m: number, n = 4) =>
-  ({key: 'data/mods/gen1/moves.ts:250:27', value: ranged(m, n) - 1});
+  ({key: 'data/mods/gen1/moves.ts:260:27', value: ranged(m, n) - 1});
 const DISABLE_DURATION = (n: number) =>
-  ({key: 'data/mods/gen1/moves.ts:254:34', value: ranged(n, 9 - 1) - 1});
+  ({key: 'data/mods/gen1/moves.ts:264:34', value: ranged(n, 9 - 1) - 1});
 const MIMIC = (m: number, n = 4) =>
-  ({key: 'data/mods/gen1/moves.ts:495:24', value: ranged(m, n) - 1});
+  ({key: 'data/mods/gen1/moves.ts:510:24', value: ranged(m, n) - 1});
 const BIDE = (n: 2 | 3) =>
   ({key: 'data/mods/gen1/moves.ts:40:34', value: ranged(n - 2, 4 - 2)});
 const NO_PAR = SECONDARY(MAX);
@@ -40,7 +40,7 @@ const THRASH = (n: 3 | 4) =>
   ({key: 'data/mods/gen1/conditions.ts:227:33', value: ranged(n - 2, 4 - 2) - 1});
 const MIN_WRAP = {key: 'data/mods/gen1/conditions.ts:199:26', value: MIN};
 const MAX_WRAP = {...MIN_WRAP, value: MAX};
-const REWRAP = {key: 'data/mods/gen1/scripts.ts:232:38', value: MIN};
+const REWRAP = {key: 'data/mods/gen1/scripts.ts:247:38', value: MIN};
 const METRONOME = ROLLS.metronome(gen, ['Metronome', 'Struggle']);
 
 const evs = {hp: 255, atk: 255, def: 255, spa: 255, spd: 255, spe: 255};
@@ -904,7 +904,7 @@ describe('Gen 1', () => {
   });
 
   test('MultiHit effect', () => {
-    const hit3 = {key: 'data/mods/gen1/scripts.ts:433:27', value: 0x60000000};
+    const hit3 = {key: 'data/mods/gen1/scripts.ts:448:27', value: 0x60000000};
     const hit5 = {...hit3, value: MAX};
     const battle = startBattle([HIT, hit3, NO_CRIT, MAX_DMG, HIT, hit5, NO_CRIT, MAX_DMG], [
       {species: 'Kangaskhan', evs, moves: ['Comet Punch']},
@@ -1681,7 +1681,7 @@ describe('Gen 1', () => {
   });
 
   test('ConfusionChance effect', () => {
-    const sub_proc = {key: 'data/mods/gen1/moves.ts:874:50', value: ranged(25, 256) - 1};
+    const sub_proc = {key: 'data/mods/gen1/moves.ts:889:50', value: ranged(25, 256) - 1};
     const no_proc = SECONDARY(sub_proc.value + 1);
     const battle = startBattle([
       HIT, NO_CRIT, MAX_DMG, sub_proc, CFZ(2), CFZ_CAN,
@@ -2719,7 +2719,7 @@ describe('Gen 1', () => {
   });
 
   test('Psywave effect', () => {
-    const PSY_MAX = {key: 'data/mods/gen1/moves.ts:576:32', value: MAX};
+    const PSY_MAX = {key: 'data/mods/gen1/moves.ts:591:32', value: MAX};
     const PSY_MIN = {...PSY_MAX, value: MIN};
     const battle = startBattle([HIT, PSY_MAX, HIT, PSY_MIN], [
       {species: 'Gengar', evs, level: 59, moves: ['Psywave']},
@@ -3022,7 +3022,7 @@ describe('Gen 1', () => {
   });
 
   test('Counter effect', () => {
-    const hit2 = {key: 'data/mods/gen1/scripts.ts:433:27', value: MIN};
+    const hit2 = {key: 'data/mods/gen1/scripts.ts:448:27', value: MIN};
     const battle = startBattle([
       HIT, NO_CRIT, MIN_DMG, NO_PAR, HIT,
       HIT, hit2, NO_CRIT, MIN_DMG, HIT,
@@ -6430,7 +6430,7 @@ describe('Gen 1', () => {
   test('Hyper Beam automatic selection glitch', () => {
     // Regular
     {
-      const battle = startBattle([MISS, HIT, NO_CRIT, MIN_DMG, MISS], [
+      const battle = startBattle([MISS, HIT, NO_CRIT, MIN_DMG, MISS, HIT, NO_CRIT, MIN_DMG], [
         {species: 'Chansey', evs, moves: ['Hyper Beam', 'Soft-Boiled']},
       ], [
         {species: 'Tentacool', evs, moves: ['Wrap']},
@@ -6438,16 +6438,16 @@ describe('Gen 1', () => {
 
       battle.p1.pokemon[0].moveSlots[0].pp = 1;
 
-      const p2hp = battle.p2.pokemon[0].hp;
+      let p2hp = battle.p2.pokemon[0].hp;
 
       battle.makeChoices('move 1', 'move 1');
       expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
-      expect(battle.p2.pokemon[0].hp).toBe(p2hp - 105);
+      expect(battle.p2.pokemon[0].hp).toBe(p2hp -= 105);
 
       // Missing should cause Hyper Beam to be automatically selected and underflow
       battle.makeChoices('move 1', 'move 1');
-      // expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(63);
-      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
+      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(63);
+      expect(battle.p2.pokemon[0].hp).toBe(p2hp -= 105);
 
       verify(battle, [
         '|move|p2a: Tentacool|Wrap|p1a: Chansey|[miss]',
@@ -6458,13 +6458,17 @@ describe('Gen 1', () => {
         '|turn|2',
         '|move|p2a: Tentacool|Wrap|p1a: Chansey|[miss]',
         '|-miss|p2a: Tentacool',
-        '|cant|p1a: Chansey|recharge',
+        '|move|p1a: Chansey|Hyper Beam|p2a: Tentacool',
+        '|-damage|p2a: Tentacool|73/283',
+        '|-mustrecharge|p1a: Chansey',
         '|turn|3',
       ]);
     }
     // via Metronome
     {
-      const battle = startBattle([MISS, METRONOME('Hyper Beam'), HIT, NO_CRIT, MIN_DMG, MISS], [
+      const battle = startBattle([
+        MISS, METRONOME('Hyper Beam'), HIT, NO_CRIT, MIN_DMG, MISS, HIT, NO_CRIT, MIN_DMG,
+      ], [
         {species: 'Chansey', evs, moves: ['Metronome', 'Soft-Boiled']},
       ], [
         {species: 'Tentacool', evs, moves: ['Wrap']},
@@ -6481,6 +6485,7 @@ describe('Gen 1', () => {
       // Missing should cause Hyper Beam to be automatically selected and underflow
       battle.makeChoices('move 1', 'move 1');
       // expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(63);
+      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
 
       verify(battle, [
         '|move|p2a: Tentacool|Wrap|p1a: Chansey|[miss]',
@@ -6492,7 +6497,9 @@ describe('Gen 1', () => {
         '|turn|2',
         '|move|p2a: Tentacool|Wrap|p1a: Chansey|[miss]',
         '|-miss|p2a: Tentacool',
-        '|cant|p1a: Chansey|recharge',
+        '|move|p1a: Chansey|Hyper Beam|p2a: Tentacool',
+        '|-damage|p2a: Tentacool|73/283',
+        '|-mustrecharge|p1a: Chansey',
         '|turn|3',
       ]);
     }
@@ -7287,7 +7294,7 @@ describe('Gen 1', () => {
   });
 
   test('Psywave infinite loop', () => {
-    const PSY_MAX = {key: 'data/mods/gen1/moves.ts:576:32', value: MAX};
+    const PSY_MAX = {key: 'data/mods/gen1/moves.ts:591:32', value: MAX};
     const battle = startBattle([HIT, HIT, PSY_MAX], [
       {species: 'Charmander', evs, level: 1, moves: ['Psywave']},
     ], [

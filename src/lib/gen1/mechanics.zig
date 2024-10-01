@@ -449,6 +449,25 @@ fn executeMove(
         .err => return @as(?Result, Result.Error),
     }
 
+    // Pokémon Showdown incorrectly implements PP deduction when handling the Hyper Beam automatic
+    // selection glitch - if the move was proced due to Metronome / Mirror Move it either subtracts
+    // from the Hyper Beam slot if present or skips PP deduction entirely...
+    if (showdown and !skip_pp and side.last_selected_move == .HyperBeam and
+        side.last_selected_move != side.active.move(battle.lastMove(player).index).id)
+    {
+        assert(mslot == 1);
+        const has_beam = has_beam: {
+            for (side.active.moves, 0..) |m, i| {
+                if (m.id == .HyperBeam) {
+                    mslot = @intCast(i + 1);
+                    break :has_beam true;
+                }
+            }
+            break :has_beam false;
+        };
+        if (!has_beam) skip_pp = true;
+    }
+
     const can = skip_can or
         try canMove(battle, player, mslot, auto, skip_pp, .None, residual, options);
     if (!can) return null;
@@ -765,9 +784,14 @@ fn canMove(
 
     if (move.effect == .Thrashing) {
         Effects.thrashing(battle, player, options);
-    } else if (!showdown and move.effect == .Binding) {
-        // Pokémon Showdown handles this after hit/miss checks and damage calculation
-        try Effects.binding(battle, player, false, options);
+    } else if (move.effect == .Binding) {
+        // Pokémon Showdown handles this after hit/miss checks and damage calculation, though clears
+        // Recharging in onTryMove (required for the Hyper Beam automatic selection glitch)
+        if (showdown) {
+            battle.foe(player).active.volatiles.Recharging = false;
+        } else {
+            try Effects.binding(battle, player, false, options);
+        }
     }
 
     return true;
@@ -2438,7 +2462,7 @@ pub const Effects = struct {
         if (side.active.volatiles.Binding) return;
         side.active.volatiles.Binding = true;
         // GLITCH: Hyper Beam automatic selection glitch if Recharging gets cleared on miss
-        // (Pokémon Showdown unitentionally patches this glitch, preventing automatic selection)
+        // (Pokémon Showdown clears Recharging in onTryMove instead)
         if (!showdown) {
             foe.active.volatiles.Recharging = false;
         } else if (foe.stored().hp == 0) return if (!rewrap) battle.rng.advance(1);
