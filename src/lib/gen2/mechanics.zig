@@ -1192,7 +1192,7 @@ fn updateSideCondition(
 fn endTurn(battle: anytype, options: anytype) @TypeOf(options.log).Error!Result {
     battle.turn += 1;
 
-    if (showdown and battle.turn >= 1000) {
+    if (pkmn.options.mod and battle.turn >= 1000) {
         try options.log.tie(.{});
         return Result.Tie;
     } else if (battle.turn >= 65535) {
@@ -1698,7 +1698,7 @@ pub const Effects = struct {
         if (!state.proc) return;
         if (foe.conditions.Safeguard) return;
         // Freeze Clause Mod
-        if (showdown) for (foe.pokemon) |p| if (Status.is(p.status, .FRZ)) return;
+        if (pkmn.options.mod) for (foe.pokemon) |p| if (Status.is(p.status, .FRZ)) return;
 
         foe_stored.status = Status.init(.FRZ);
         try options.log.status(.{ foe_ident, foe_stored.status, .None });
@@ -2376,7 +2376,7 @@ pub const Effects = struct {
         }
 
         // Sleep Clause Mod
-        if (showdown) {
+        if (pkmn.options.mod) {
             for (foe.pokemon) |p| {
                 if (Status.is(p.status, .SLP) and !Status.is(p.status, .EXT)) return;
             }

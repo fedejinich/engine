@@ -7,6 +7,7 @@ pub const Options = struct {
     log: ?bool = null,
     chance: ?bool = null,
     calc: ?bool = null,
+    mod: ?bool = null,
     advance: ?bool = null,
     ebc: ?bool = null,
     key: ?bool = null,
@@ -24,6 +25,7 @@ pub const chance = get("chance", false);
 /// Whether or not damage calculator support is enabled.
 pub const calc = get("calc", false);
 
+pub const mod = showdown or get("mod", false);
 pub const advance = get("advance", true);
 pub const ebc = get("ebc", true);
 pub const key = get("key", false);

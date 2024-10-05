@@ -165,7 +165,10 @@ fn selectMove(
             if (foe_choice.type == .Switch) {
                 const last = side.active.move(battle.lastMove(player).index);
                 if (last.id == .Metronome) side.last_selected_move = last.id;
-                if (last.id == .MirrorMove) return Result.Error;
+                if (last.id == .MirrorMove) {
+                    if (!pkmn.options.mod) return Result.Error;
+                    side.last_selected_move = last.id;
+                }
             }
         }
         return null;
@@ -416,7 +419,7 @@ fn executeMove(
         mslot = @intCast(battle.lastMove(player).index);
         const stored = side.stored();
         // GLITCH: Struggle bypass PP underflow via Hyper Beam / Trapping-switch auto selection
-        auto = isForced(&side.active) or
+        auto = pkmn.options.mod or isForced(&side.active) or
             side.active.volatiles.Binding or side.active.volatiles.Bide or
             side.last_selected_move == .HyperBeam or
             Status.is(stored.status, .FRZ) or Status.is(stored.status, .SLP);
@@ -565,7 +568,7 @@ fn beforeMove(
     // This can only happen if a Pokémon started the battle frozen/sleeping and was thawed/woken
     // before the side had a selected a move - we simply need to assume this leads to a desync
     if (side.last_selected_move == .None) {
-        assert(!showdown);
+        assert(!pkmn.options.mod);
         return .err;
     }
 
@@ -1145,7 +1148,7 @@ fn calcDamage(
     if ((!showdown or !cfz) and (atk > 255 or def > 255)) {
         atk = @max((atk / 4) & 255, 1);
         // GLITCH: not adjusted to be a min of 1 on cartridge (can lead to division-by-zero freeze)
-        def = @max((def / 4) & 255, if (showdown) 1 else 0);
+        def = @max((def / 4) & 255, if (pkmn.options.mod) 1 else 0);
     }
 
     const lvl: u32 = side.stored().level * @as(u2, if (crit) 2 else 1);
@@ -1166,7 +1169,7 @@ fn calcDamage(
     // encountered so we need to make sure that in the event of a miss we commit the status of the
     // crit roll. The alternative to doing this extra work is to *always* commit the crit roll but
     // that results in counter intuitive probabilities in the common case
-    if (pkmn.options.chance and !showdown) {
+    if (pkmn.options.chance and !pkmn.options.mod) {
         atk = attack(side, !crit, special);
         def = defense(target, !crit, special, false);
         if ((atk > 255 or def > 255) and (def / 4) & 255 == 0) options.chance.glitch();
@@ -1251,13 +1254,13 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
         .Psywave => power: {
             const max: u8 = @intCast(@as(u16, side.stored().level) * 3 / 2);
             // GLITCH: Psywave infinite glitch loop
-            if (!showdown and max <= 1) return Result.Error;
+            if (!pkmn.options.mod and max <= 1) return Result.Error;
             break :power try Rolls.psywave(battle, player, max, options);
         },
         else => unreachable,
     };
 
-    if (battle.last_damage == 0) return if (showdown) null else Result.Error;
+    if (battle.last_damage == 0) return if (pkmn.options.mod) null else Result.Error;
 
     const sub = showdown and foe.active.volatiles.Substitute;
     _ = try applyDamage(battle, player.foe(), player.foe(), .None, options);
@@ -1294,7 +1297,7 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
 
     if (!used or !selected) {
         // GLITCH: Counter desync (covered by Desync Clause Mod on Pokémon Showdown)
-        if (!showdown) return Result.Error;
+        if (!pkmn.options.mod) return Result.Error;
         try options.log.fail(.{ battle.active(player), .None });
         return null;
     }
@@ -1541,7 +1544,7 @@ fn faint(battle: anytype, player: Player, done: bool, cap: bool, options: anytyp
     assert(!foe_volatiles.MultiHit);
     if (foe_volatiles.Bide) {
         assert(!foe_volatiles.Thrashing and !foe_volatiles.Rage);
-        foe_volatiles.state = if (showdown) 0 else foe_volatiles.state & 255;
+        foe_volatiles.state = if (pkmn.options.mod) 0 else foe_volatiles.state & 255;
         if (foe_volatiles.state != 0) return Result.Error;
     }
 
@@ -1632,12 +1635,12 @@ fn endTurn(battle: anytype, options: anytype) @TypeOf(options.log).Error!Result 
 
     battle.turn += 1;
 
-    if (showdown and pkmn.options.ebc and checkEBC(battle)) {
+    if (pkmn.options.mod and pkmn.options.ebc and checkEBC(battle)) {
         try options.log.tie(.{});
         return Result.Tie;
     }
 
-    if (showdown and battle.turn >= 1000) {
+    if (pkmn.options.mod and battle.turn >= 1000) {
         try options.log.tie(.{});
         return Result.Tie;
     } else if (battle.turn >= 65535) {
@@ -1932,12 +1935,11 @@ pub const Effects = struct {
 
         // Technically this is still considered simply a "miss" on the cartridge,
         // but diverging from Pokémon Showdown here would mostly just be pedantic
-        if (n == 0) {
+        if (n == 0 or (pkmn.options.mod and err)) {
             try options.log.fail(.{ foe_ident, .None });
             return null;
         } else if (err) {
             // GLITCH: Transform + Mirror Move / Metronome PP softlock
-            assert(!showdown);
             return Result.Error;
         }
 
@@ -2015,7 +2017,7 @@ pub const Effects = struct {
         if (foe.active.types.includes(move.type)) return;
         if (!try Rolls.secondaryChance(battle, player, true, options)) return;
         // Freeze Clause Mod
-        if (showdown) for (foe.pokemon) |p| if (Status.is(p.status, .FRZ)) return;
+        if (pkmn.options.mod) for (foe.pokemon) |p| if (Status.is(p.status, .FRZ)) return;
 
         foe_stored.status = Status.init(.FRZ);
         // GLITCH: Hyper Beam recharging status is not cleared
@@ -2356,7 +2358,7 @@ pub const Effects = struct {
         }
 
         // Sleep Clause Mod
-        if (showdown) {
+        if (pkmn.options.mod) {
             for (foe.pokemon) |p| {
                 if (Status.is(p.status, .SLP) and !Status.is(p.status, .EXT)) return;
             }
@@ -3228,7 +3230,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // Struggle (Pokémon Showdown would use 'move 1' here)
             if (n == before) {
                 // GLITCH: Transform + Mirror Move / Metronome PP softlock
-                if (!showdown) {
+                if (!pkmn.options.mod) {
                     while (slot <= 4) : (slot += 1) {
                         if (active.moves[slot - 1].pp != 0) return n;
                     }
