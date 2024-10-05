@@ -73,12 +73,30 @@ pub fn build(b: *std.Build) !void {
     const log = b.option(bool, "log", "Enable protocol message logging") orelse false;
     const chance = b.option(bool, "chance", "Enable update probability tracking") orelse false;
     const calc = b.option(bool, "calc", "Enable damage calculator support") orelse false;
+    const extra = b.option([]const []const u8, "option", "Enable extra option");
 
     const options = b.addOptions();
     options.addOption(?bool, "showdown", showdown);
     options.addOption(?bool, "log", log);
     options.addOption(?bool, "chance", chance);
     options.addOption(?bool, "calc", calc);
+
+    if (extra) |opts| {
+        for (opts) |opt| {
+            if (std.mem.indexOfScalar(u8, opt, '=')) |i| {
+                options.addOption(?bool, opt[0..i], if (std.mem.eql(u8, opt[i + 1 ..], "true"))
+                    true
+                else if (std.mem.eql(u8, opt[i + 1 ..], "false"))
+                    false
+                else {
+                    std.log.err("Invalid option: {s}\n", .{opt});
+                    return error.InvalidOption;
+                });
+            } else {
+                options.addOption(?bool, opt, true);
+            }
+        }
+    }
 
     const name = if (showdown) "pkmn-showdown" else "pkmn";
 
