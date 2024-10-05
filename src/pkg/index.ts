@@ -463,6 +463,8 @@ export class Result {
   }
 }
 
+export * as gen1 from './gen1';
+
 export type {ParsedLine, PokemonInfo} from './protocol';
 export {Info, SideInfo, Log} from './protocol';
 export {Lookup} from './data';
