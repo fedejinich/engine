@@ -48,7 +48,7 @@
     "EndAbility",
     "ClearNegativeBoost",
     "FormeChange",
-    "NoTarget",
+    "LastNoTarget",
     "SwapBoost",
     "FieldStart",
     "FieldEnd",
@@ -71,6 +71,7 @@
     "ClearPositiveBoost",
     "CanDynamax",
     "SwapSideConditions",
+    "UpdatePoke",
     "Terastallize"
   ],
   "Move": [
@@ -92,7 +93,10 @@
     "None",
     "Silent",
     "Drain",
-    "Leftovers"
+    "Leftovers",
+    "Berry",
+    "BerryJuice",
+    "GoldBerry"
   ],
   "Damage": [
     "None",
@@ -106,7 +110,10 @@
     "FireSpin",
     "Clamp",
     "Whirlpool",
-    "Spikes"
+    "Spikes",
+    "Nightmare",
+    "Curse",
+    "Sandstorm"
   ],
   "Status": [
     "None",
@@ -146,6 +153,7 @@
     "Struggle",
     "Substitute",
     "Splash",
+    "Rage",
     "Attract",
     "LockOn",
     "Bind",
@@ -153,7 +161,11 @@
     "FireSpin",
     "Clamp",
     "Whirlpool",
-    "BeatUp"
+    "SubstituteBlock",
+    "DestinyBond",
+    "BeatUp",
+    "Magnitude",
+    "Spite"
   ],
   "Start": [
     "Bide",
@@ -168,16 +180,17 @@
     "TypeChange",
     "Disable",
     "Mimic",
+    "Attract",
     "Nightmare",
     "Curse",
     "Foresight",
     "Encore",
     "FutureSight",
-    "PerishSong3Silent",
-    "PerishSong3",
-    "PerishSong2",
+    "PerishSong0",
     "PerishSong1",
-    "PerishSong0"
+    "PerishSong2",
+    "PerishSong3",
+    "PerishSong3Silent"
   ],
   "End": [
     "Disable",
@@ -203,7 +216,8 @@
     "ToxicSilent",
     "LightScreenSilent",
     "ReflectSilent",
-    "BideSilent"
+    "BideSilent",
+    "LeechSeedFrom"
   ],
   "Immune": [
     "None",

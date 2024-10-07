@@ -73,7 +73,7 @@ pub fn main() !void {
                             inline for (e.fields) |field| {
                                 if (inner) try w.writeAll(",\n");
                                 // TODO: ziglang/zig#18888
-                                @setEvalBranchQuota(2013);
+                                @setEvalBranchQuota(2017);
                                 try w.print("    \"{s}\"", .{field.name});
                                 inner = true;
                             }
@@ -112,6 +112,10 @@ pub fn main() !void {
                         .{ "Actions", @sizeOf(pkmn.gen1.chance.Actions) },
                     );
                     try w.print(
+                        "      \"{s}\": {d},\n",
+                        .{ "Durations", @sizeOf(pkmn.gen1.chance.Durations) },
+                    );
+                    try w.print(
                         "      \"{s}\": {d}\n",
                         .{ "Summaries", @sizeOf(pkmn.gen1.calc.Summaries) },
                     );
@@ -134,6 +138,8 @@ pub fn main() !void {
                     try print(w, "Volatiles", pkmn.gen1.Volatiles, true);
                     try w.writeAll(",\n");
                     try print(w, "Action", pkmn.gen1.chance.Action, true);
+                    try w.writeAll(",\n");
+                    try print(w, "Duration", pkmn.gen1.chance.Duration, true);
                     try w.writeAll(",\n");
                     try print(w, "Damage", pkmn.gen1.calc.Summary.Damage, false);
                     try w.writeAll("\n    }\n");

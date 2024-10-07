@@ -6,6 +6,7 @@
       "Pokemon": 24,
       "ActivePokemon": 32,
       "Actions": 16,
+      "Durations": 8,
       "Summaries": 12
     },
     "offsets": {
@@ -92,11 +93,23 @@
         "confused": 16,
         "paralyzed": 18,
         "duration": 20,
-        "durations": 24,
-        "move_slot": 40,
+        "sleep": 24,
+        "confusion": 26,
+        "disable": 29,
+        "attacking": 31,
+        "binding": 33,
+        "move_slot": 36,
+        "pp": 40,
         "multi_hit": 44,
         "psywave": 48,
         "metronome": 56
+      },
+      "Duration": {
+        "sleeps": 0,
+        "confusion": 18,
+        "disable": 21,
+        "attacking": 25,
+        "binding": 28
       },
       "Damage": {
         "base": 0,
