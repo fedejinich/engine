@@ -152,6 +152,8 @@ float64_t pkmn_rational_denominator(const pkmn_rational *rational);
 #define PKMN_GEN1_BATTLE_OPTIONS_SIZE 128
 /** The size in bytes of Generation I chance actions. */
 #define PKMN_GEN1_CHANCE_ACTIONS_SIZE 16
+/** The size in bytes of Generation I chance durations. */
+#define PKMN_GEN1_CHANCE_DURATIONS_SIZE 4
 /** The size in bytes of a Generation I calc overrides. */
 #define PKMN_GEN1_CALC_OVERRIDES_SIZE 24
 /** The size in bytes of a Generation I calc summaries. */
@@ -179,6 +181,8 @@ PKMN_OPAQUE(PKMN_GEN1_BATTLE_SIZE) pkmn_gen1_battle;
 PKMN_OPAQUE(PKMN_GEN1_BATTLE_OPTIONS_SIZE) pkmn_gen1_battle_options;
 /** Generation I Pokémon chance actions (see src/lib/gen1/README.md#layout for details). */
 PKMN_OPAQUE(PKMN_GEN1_CHANCE_ACTIONS_SIZE) pkmn_gen1_chance_actions;
+/** Generation I Pokémon chance durations (see src/lib/gen1/README.md#layout for details). */
+PKMN_OPAQUE(PKMN_GEN1_CHANCE_DURATIONS_SIZE) pkmn_gen1_chance_durations;
 /** Generation I Pokémon calc overrides (see src/lib/gen1/README.md#layout for details). */
 PKMN_OPAQUE(PKMN_GEN1_CALC_OVERRIDES_SIZE) pkmn_gen1_calc_overrides;
 /** Generation I Pokémon calc summaries (see src/lib/gen1/README.md#layout for details). */
@@ -195,12 +199,14 @@ typedef struct {
   size_t len;
 } pkmn_gen1_log_options;
 /**
- * Provides the probability and chance actions necessary for tracking chance
- * outcomes during a Generation I battle update if chance tracking is enabled.
+ * Provides the probability and chance actions and duration counters necessary
+ * for tracking chance outcomes during a Generation I battle update if chance
+ * tracking is enabled.
  */
 typedef struct {
   pkmn_rational probability;
   pkmn_gen1_chance_actions actions;
+  pkmn_gen1_chance_durations durations;
 } pkmn_gen1_chance_options;
 /**
  * Overrides to apply to the normal behavior of the RNG during a Generation I
@@ -234,6 +240,13 @@ pkmn_rational* pkmn_gen1_battle_options_chance_probability(
  * Generation I battle update.
  */
 pkmn_gen1_chance_actions* pkmn_gen1_battle_options_chance_actions(
+  const pkmn_gen1_battle_options *options);
+/**
+ * Returns a pointer to the duration counters tracking the information required
+ * to compute the observed probabilities of "chance player" actions during a
+ * Generation I battle update.
+ */
+pkmn_gen1_chance_durations* pkmn_gen1_battle_options_chance_durations(
   const pkmn_gen1_battle_options *options);
 /**
  * Returns a pointer to information relevant to damage calculation that occured
