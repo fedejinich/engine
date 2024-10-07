@@ -1,5 +1,5 @@
 import {
-  BoostsTable, Generation, ID, PokemonSet, StatsTable, StatusName, TypeName,
+  BoostID, BoostsTable, Generation, ID, PokemonSet, StatID, StatsTable, StatusName, TypeName,
 } from '@pkmn/data';
 
 import * as addon from './addon';
@@ -61,8 +61,12 @@ export interface API {
   toJSON(): Data<Battle>;
 }
 
-/** Helper type removing API methods from a data type `T`. */
-export type Data<T extends API> = Omit<T, keyof API>;
+/** Helper type removing function types from a data type `T`. */
+export type Data<T> =
+  T extends readonly any[] ? {[K in keyof T]: Data<T[K]>} :
+  T extends Iterable<infer U> ? (U extends object ? Iterable<Data<U>> : T) :
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  T extends object ? {[K in keyof T as T[K] extends Function ? never : K]: Data<T[K]>} : T;
 
 /** Type definitions for Generation I Pokémon data relevant in a battle. */
 export namespace Gen1 {
@@ -70,6 +74,10 @@ export namespace Gen1 {
   export interface Battle extends API {
     /** The sides involved in the battle. */
     sides: Iterable<Side>;
+    /** Returns the side of the `player`. */
+    side(player: Player): Side;
+    /** Returns the opposing side to `player`. */
+    foe(player: Player): Side;
     /** The battle's current turn number. */
     turn: number;
     /** The last damage dealt by either side. */
@@ -96,6 +104,16 @@ export namespace Gen1 {
      * the effect switching would have on its original order).
      */
     pokemon: Iterable<Pokemon>;
+    /**
+     * Returns the current slot of the Pokémon that started the battle at index
+     * `id`, or undefined if the index is invalid.
+     */
+    slot(id: number): Slot | undefined;
+    /**
+     * Returns the Pokémon currently at the provided `slot`, or undefined if
+     * nothing occupies the slot.
+     */
+    get(slot: Slot): Pokemon | undefined;
     /** The last move the player used. */
     lastUsedMove: ID | undefined;
     /** The last move the player selected. */
@@ -140,13 +158,19 @@ export namespace Gen1 {
      * boosts/status/etc (and which may differ from its original stored stats).
      */
     stats: StatsTable;
+    /** Returns the value Pokémon's current `stat`. */
+    stat(stat: StatID | 'spc'): number;
     /** The Pokémon's current boosts. */
     boosts: BoostsTable;
+    /** Returns the value Pokémon's current `boost`. */
+    boost(boost: BoostID): number;
     /**
      * The Pokémon's move slots (which may differ from its original stored
      * moves).
      */
     moves: Iterable<MoveSlot>;
+    /** The Pokémon's current move at `slot`, or undefined if absent. */
+    move(slot: 1 | 2 | 3 | 4): MoveSlot | undefined;
     /** The Pokémon's volatiles statuses. */
     volatiles: Volatiles;
     stored: {
@@ -156,8 +180,12 @@ export namespace Gen1 {
       types: readonly [TypeName, TypeName];
       /** The Pokémon original unmodified stats.  */
       stats: StatsTable;
+      /** Returns the value Pokémon's original `stat`. */
+      stat(stat: StatID | 'spc'): number;
       /** The Pokémon's original move slots.  */
       moves: Iterable<Omit<MoveSlot, 'disabled'>>;
+      /** The Pokémon's original move at `slot`, or undefined if absent. */
+      move(slot: 1 | 2 | 3 | 4): Omit<MoveSlot, 'disabled'> | undefined;
     };
     /** The current one-indexed position of this Pokémon in the party. */
     position: Slot;
@@ -462,8 +490,6 @@ export class Result {
         Choice.Encoding[result.p2] << 6);
   }
 }
-
-export * as gen1 from './gen1';
 
 export type {ParsedLine, PokemonInfo} from './protocol';
 export {Info, SideInfo, Log} from './protocol';

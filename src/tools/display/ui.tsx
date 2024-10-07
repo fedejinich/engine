@@ -77,7 +77,7 @@ class API<T> {
   }
 }
 
-export const Battle = (props : {
+export const Battle = (props: {
   battle: engine.Data<engine.Battle>;
   gen: Generation;
   showdown: boolean;
@@ -103,12 +103,12 @@ export const Battle = (props : {
 };
 
 export const Side = ({side, battle, player, gen, showdown, last, hide}: {
-  side: engine.Side;
+  side: engine.Data<engine.Side>;
   battle: engine.Data<engine.Battle>;
   player: 'p1' | 'p2';
   gen: Generation;
   showdown: boolean;
-  last?: engine.Side;
+  last?: engine.Data<engine.Side>;
   hide?: boolean;
 }) => {
   let header = undefined;
@@ -178,12 +178,12 @@ export const Side = ({side, battle, player, gen, showdown, last, hide}: {
 };
 
 export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
-  pokemon: engine.Pokemon;
+  pokemon: engine.Data<engine.Pokemon>;
   battle: engine.Data<engine.Battle>;
   active: boolean;
   gen: Generation;
   showdown: boolean;
-  last?: engine.Pokemon;
+  last?: engine.Data<engine.Pokemon>;
 }) => {
   const ths = [];
   const tds = [];
@@ -272,7 +272,7 @@ export const Pokemon = ({pokemon, battle, active, gen, showdown, last}: {
 };
 
 export const PokemonNameStatus = ({pokemon, active, gen}: {
-  pokemon: engine.Pokemon;
+  pokemon: engine.Data<engine.Pokemon>;
   active: boolean;
   gen: Generation;
 }) => {
@@ -285,7 +285,10 @@ export const PokemonNameStatus = ({pokemon, active, gen}: {
   </span>;
 };
 
-const HPBar = ({pokemon, last}: {pokemon: engine.Pokemon; last?: engine.Pokemon}) => {
+const HPBar = ({pokemon, last}: {
+  pokemon: engine.Data<engine.Pokemon>;
+  last?: engine.Data<engine.Pokemon>;
+}) => {
   const {percent, color, style} = getHP(pokemon);
   let bar = <div className={`hp ${color}`} style={style}></div>;
   if (last && last.position === pokemon.position && pokemon.hp < last.hp) {
@@ -297,7 +300,7 @@ const HPBar = ({pokemon, last}: {pokemon: engine.Pokemon; last?: engine.Pokemon}
   return <div className='hpbar'>{bar}<div className='hptext'>{percent}%</div></div>;
 };
 
-export const Status = ({pokemon}: {pokemon: engine.Pokemon}) => {
+export const Status = ({pokemon}: {pokemon: engine.Data<engine.Pokemon>}) => {
   if (!pokemon.status) return '';
   const classes = `status ${pokemon.status === 'tox' ? 'psn' : pokemon.status}`;
   let title = '';
@@ -321,14 +324,17 @@ export const Boost = ({value}: {value: number}) => {
   return <span className='boost bad'>{value}</span>;
 };
 
-export const PokemonIcon = ({pokemon, side}: {pokemon: engine.Pokemon; side: 'p1' | 'p2'}) => {
+export const PokemonIcon = ({pokemon, side}: {
+  pokemon: engine.Data<engine.Pokemon>;
+  side: 'p1' | 'p2';
+}) => {
   const fainted = pokemon.hp === 0;
   const i = Icons.getPokemon(pokemon.stored.species, {side, fainted, domain: 'pkmn.cc'});
   return <span style={i.css}></span>;
 };
 
 export const PokemonSprite = ({pokemon, active, showdown}: {
-  pokemon: engine.Pokemon;
+  pokemon: engine.Data<engine.Pokemon>;
   active: boolean;
   showdown: boolean;
 }) => {
@@ -342,7 +348,10 @@ export const PokemonSprite = ({pokemon, active, showdown}: {
   }} />;
 };
 
-export const TypeIcons = ({pokemon, active}: {pokemon: engine.Pokemon; active: boolean}) => {
+export const TypeIcons = ({pokemon, active}: {
+  pokemon: engine.Data<engine.Pokemon>;
+  active: boolean;
+}) => {
   const types = active ? pokemon.types : pokemon.stored.types;
   const type1 = <TypeIcon type={types[0]} />;
   const type2 = types[0] !== types[1] ? <TypeIcon type={types[1]} /> : '';
@@ -355,7 +364,7 @@ export const TypeIcon = ({type}: {type: pkmn.TypeName}) => {
   return <img className='icon' src={i.url} width={i.w} height={i.h} style={style} />;
 };
 
-export function getHP(pokemon: engine.Pokemon) {
+export function getHP(pokemon: engine.Data<engine.Pokemon>) {
   const ratio = pokemon.hp / pokemon.stats.hp;
   let percent = Math.ceil(ratio * 100);
   if ((percent === 100) && (ratio < 1.0)) {

@@ -63,7 +63,7 @@ export class Battle implements Gen1.Battle {
     return this._sides();
   }
 
-  *_sides() {
+  private *_sides() {
     yield this.side('p1');
     yield this.side('p2');
   }
@@ -192,7 +192,7 @@ export class Side implements Gen1.Side {
     return this._pokemon();
   }
 
-  *_pokemon() {
+  private *_pokemon() {
     for (let i = 1; i <= 6; i++) {
       const poke = this.get(i as Slot);
       if (!poke) break;
@@ -250,7 +250,7 @@ export class Side implements Gen1.Side {
     return m !== 0;
   }
 
-  toJSON(): Gen1.Side {
+  toJSON(): Data<Gen1.Side> {
     return {
       active: this.active?.toJSON(),
       pokemon: Array.from(this.pokemon).map(p => p.toJSON()),
@@ -281,7 +281,7 @@ export class Side implements Gen1.Side {
     showdown: boolean,
     lookup: Lookup,
     battle: Data<Gen1.Battle>,
-    side: Gen1.Side,
+    side: Data<Gen1.Side>,
     data: DataView,
     offset: number,
   ) {
@@ -433,7 +433,7 @@ export class Pokemon implements Gen1.Pokemon {
     return this._moves();
   }
 
-  *_moves() {
+  private *_moves() {
     for (let i = 1; i <= 4; i++) {
       const move = this.move(i as 1 | 2 | 3 | 4);
       if (!move) break;
@@ -510,7 +510,7 @@ export class Pokemon implements Gen1.Pokemon {
     return this.data.getUint8(off + (OFFSETS.Volatiles.toxic >> 3)) >> 3;
   }
 
-  toJSON(): Gen1.Pokemon {
+  toJSON(): Data<Gen1.Pokemon> {
     return {
       species: this.species,
       types: this.types,
@@ -572,7 +572,7 @@ export class Pokemon implements Gen1.Pokemon {
     gen: Generation,
     showdown: boolean,
     lookup: Lookup,
-    pokemon: Gen1.Pokemon,
+    pokemon: Data<Gen1.Pokemon>,
     data: DataView,
     offset: number,
   ) {
@@ -603,7 +603,7 @@ export class Pokemon implements Gen1.Pokemon {
     gen: Generation,
     lookup: Lookup,
     battle: Data<Gen1.Battle>,
-    pokemon: Gen1.Pokemon | undefined,
+    pokemon: Data<Gen1.Pokemon> | undefined,
     data: DataView,
     offset: number,
   ) {
@@ -718,7 +718,7 @@ export class StoredPokemon {
     return this._moves();
   }
 
-  *_moves() {
+  private *_moves() {
     for (let i = 1; i <= 4; i++) {
       const move = this.move(i as 1 | 2 | 3 | 4);
       if (!move) break;
@@ -734,7 +734,7 @@ export class StoredPokemon {
     return decodeTypes(this.lookup, this.data.getUint8(this.offset + OFFSETS.Pokemon.types));
   }
 
-  toJSON(): Gen1.Pokemon['stored'] {
+  toJSON(): Data<Gen1.Pokemon['stored']> {
     return {
       species: this.species,
       types: this.types,
@@ -775,7 +775,7 @@ function encodeSigned(n: number) {
   return (n < 0) ? 0b10000 + n : n;
 }
 
-function encodeStatus(pokemon: Gen1.Pokemon, showdown: boolean): number {
+function encodeStatus(pokemon: Data<Gen1.Pokemon>, showdown: boolean): number {
   if (pokemon.statusData.sleep) {
     if (pokemon.status !== 'slp') {
       throw new Error('Pokemon is not asleep but has non-zero sleep turns');
