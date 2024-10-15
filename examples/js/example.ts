@@ -86,7 +86,7 @@ const play = () => {
   };
 
   const random = new Random();
-  const choose = random.next.bind(random);
+  const choose = (choices: Choice[]) => choices[random.next(choices.length)];
 
   // For convenience the engine actually is written so that passing in undefined
   // is equivalent to Choice.pass() but to appease the TypeScript compiler we're
@@ -102,13 +102,8 @@ const play = () => {
     // Mirror Move/Metronome, and Disable its possible that there are no available
     // choices (softlock), though this is impossible here given that our example
     // battle involves none of these moves
-    //
-    // Battles expose a choices method if we wish to see all the available
-    // choices, but if we don't care about which one is chosen because we're doing
-    // so randomly (e.g. during a MCTS simulation) we can opt for the faster
-    // special-cased choose method instead
-    c1 = battle.choose('p1', result, choose);
-    c2 = battle.choose('p2', result, choose);
+    c1 = choose(battle.choices('p1', result));
+    c2 = choose(battle.choices('p2', result));
   }
   // Remember to display any logs that were produced during the last update
   display();

@@ -17,7 +17,7 @@ export interface Binding {
   CHOICES_SIZE: number;
   LOGS_SIZE: number;
   update(battle: ArrayBuffer, c1: number, c2: number, log: ArrayBuffer | undefined): number;
-  choices(battle: ArrayBuffer, player: number, request: number, options: ArrayBuffer): number;
+  choices(battle: ArrayBuffer, player: number, request: number, out: ArrayBuffer): number;
 }
 
 const ADDONS: [Bindings<false>?, Bindings<true>?] = [];
@@ -79,10 +79,11 @@ export function choices(
   battle: ArrayBuffer,
   player: Player,
   choice: Choice['type'],
-  buf: ArrayBuffer,
+  out: Uint8Array,
 ) {
   const request = choice[0] === 'p' ? 0 : choice[0] === 'm' ? 1 : 2;
-  const n = ADDONS[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
+  const n =
+    ADDONS[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, out.buffer);
   // The top-level API signature means our hands our tied with respect to
   // writing really fast bindings here. The simplest approach would be to return
   // the ArrayBuffer the bindings populate as well as its size and only decode a
@@ -97,28 +98,10 @@ export function choices(
   // choices function for each generation within node.zig. We could do something
   // really galaxy-brained and return some sort of frankenstein subclass of
   // Array backed by ArrayBuffer which would lazily decode the Choice on access,
-  // but thats ultimately not worth the effort. You can't have both a high-level
-  // idiomatic API and performance here, hence why the choose function below
-  // exists.
+  // but thats ultimately not worth the effort.
   const options = new Array<Choice>(n);
-  const data = new Uint8Array(buf);
-  for (let i = 0; i < n; i++) options[i] = Choice.decode(data[i]);
+  for (let i = 0; i < n; i++) options[i] = Choice.decode(out[i]);
   return options;
-}
-
-export function choose(
-  index: number,
-  showdown: boolean,
-  battle: ArrayBuffer,
-  player: Player,
-  choice: Choice['type'],
-  buf: ArrayBuffer,
-  fn: (n: number) => number,
-) {
-  const request = choice[0] === 'p' ? 0 : choice[0] === 'm' ? 1 : 2;
-  const n = ADDONS[+showdown]!.bindings[index].choices(battle, +(player !== 'p1'), request, buf);
-  const data = new Uint8Array(buf);
-  return Choice.decode(data[fn(n)]);
 }
 
 export function size(index: number, type: 'choices' | 'log') {

@@ -29,8 +29,7 @@ export class Battle implements Gen1.Battle {
 
   private readonly lookup: Lookup;
   private readonly data: DataView;
-  private readonly options: ArrayBuffer;
-  private readonly buf: ArrayBuffer | undefined;
+  private readonly out: Uint8Array;
 
   private readonly cache: [Side?, Side?];
 
@@ -39,25 +38,19 @@ export class Battle implements Gen1.Battle {
 
     this.lookup = lookup;
     this.data = data;
-    this.options = new ArrayBuffer('inert' in config ? 0 : addon.size(0, 'choices'));
-    this.buf = config.log ? new ArrayBuffer(addon.size(0, 'log')) : undefined;
-    this.log = config.log ? new DataView(this.buf!) : undefined;
+    this.out =
+      new Uint8Array(new ArrayBuffer('inert' in config ? 0 : addon.size(0, 'choices')));
+    this.log = config.log ? new DataView(new ArrayBuffer(addon.size(0, 'log'))) : undefined;
 
     this.cache = [undefined, undefined];
   }
 
   update(c1?: Choice, c2?: Choice): Result {
-    return addon.update(0, !!this.config.showdown, this.data.buffer, c1, c2, this.buf);
+    return addon.update(0, !!this.config.showdown, this.data.buffer, c1, c2, this.log?.buffer);
   }
 
   choices(id: Player, result: Result): Choice[] {
-    return addon.choices(0, !!this.config.showdown, this.data.buffer, id, result[id], this.options);
-  }
-
-  choose(id: Player, result: Result, fn: (n: number) => number): Choice {
-    return addon.choose(
-      0, !!this.config.showdown, this.data.buffer, id, result[id], this.options, fn
-    );
+    return addon.choices(0, !!this.config.showdown, this.data.buffer, id, result[id], this.out);
   }
 
   get sides() {

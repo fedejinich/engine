@@ -212,18 +212,19 @@ protocol via `Log.parse`.
 ```ts
 import {Dex} from '@pkmn/dex';
 import {Generations} from '@pkmn/data';
-import {Battle} from '@pkmn/engine';
+import {Battle, Choice} from '@pkmn/engine';
 
 const gens = new Generations(Dex);
 const battle = Battle.create(...);
 
-const choose = (n: number) => Math.random() * n;
+const choose = (choices: Choice[]) =>
+  choices[Math.floor(Math.random() * choices.length)];
 
 let result: Result;
 let c1: Choice, c2: Choice;
 while (!(result = battle.update(c1, c2)).type) {
-  c1 = battle.choose('p1', result, choose);
-  c2 = battle.choose('p2', result, choose);
+  c1 = choose(battle.choices('p1', result));
+  c2 = choose(battle.choices('p2', result));
 }
 
 console.log(result);

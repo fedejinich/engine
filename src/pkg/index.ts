@@ -42,20 +42,6 @@ export interface API {
    * soft-lock occurs).
    */
   choices(player: Player, result: Result): Choice[];
-  /**
-   * Determines all possible choices for the `player` given the previous
-   * `result` of an {@link update} and calls a selection function `fn` with the
-   * number of possible choices `n`, returning the choice corresponding with the
-   * index it returns. `fn` must return an index in the range `[0, n)`.
-   *
-   * This function helps speed up MCTS-based agents which wish to avoid
-   * decoding/allocating `Choice` objects which they ignore. Most other use
-   * cases will likely be better served by the choices method.
-   *
-   * Note that the number of possible choices n passed to `fn` may be 0 as
-   * outlined above in {@link choices}.
-   */
-  choose(player: Player, result: Result, fn: (n: number) => number): Choice;
   /** Returns a copy of the Battle data. */
   toJSON(): Data<Battle>;
 }

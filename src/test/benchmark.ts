@@ -232,10 +232,9 @@ const CONFIGURATIONS: {[name: string]: Configuration} = {
         // since this code only runs in Pokémon Showdown compatibility mode we
         // can avoid handling that (and save a branch) as it doesn't implement
         // the softlock
-        let p = new PRNG(newSeed(prng));
-        const p1 = p.next.bind(p);
-        p = new PRNG(newSeed(prng));
-        const p2 = p.next.bind(p);
+        const choose = (p: PRNG, choices: engine.Choice[]) => choices[p.next(choices.length)];
+        const p1 = new PRNG(newSeed(prng));
+        const p2 = new PRNG(newSeed(prng));
 
         let c1 = engine.Choice.pass;
         let c2 = engine.Choice.pass;
@@ -244,8 +243,8 @@ const CONFIGURATIONS: {[name: string]: Configuration} = {
         const begin = process.hrtime.bigint();
         try {
           while (!(result = battle.update(c1, c2)).type) {
-            c1 = battle.choose('p1', result, p1);
-            c2 = battle.choose('p2', result, p2);
+            c1 = choose(p1, battle.choices('p1', result));
+            c2 = choose(p2, battle.choices('p2', result));
           }
           turns += battle.turn;
         } finally {
