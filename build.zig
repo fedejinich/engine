@@ -524,11 +524,16 @@ const WASM = @embedFile("src/lib/wasm.zig");
 fn exports(b: *std.Build) ![][]const u8 {
     var symbols = std.ArrayList([]const u8).init(b.allocator);
 
-    var it = std.mem.splitSequence(u8, WASM, "export const ");
+    var it = std.mem.splitSequence(u8, WASM, "export ");
     _ = it.next();
     while (it.next()) |s| {
-        const i = std.mem.indexOf(u8, s, " ").?;
-        try symbols.append(s[0..i]);
+        if (std.mem.startsWith(u8, s, "const ")) {
+            const i = std.mem.indexOf(u8, s[6..], " ").?;
+            try symbols.append(s[6 .. 6 + i]);
+        } else { // "fn "
+            const i = std.mem.indexOf(u8, s[3..], "(").?;
+            try symbols.append(s[3 .. 3 + i]);
+        }
     }
 
     return symbols.items;
