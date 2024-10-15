@@ -6,16 +6,25 @@
     "@pkmn/sets": "^5.1.2"
   },
   "devDependencies": {
+    "parcel-reporter-static-files-copy": "^1.5.3",
     "parcel": "^2.12.0",
-    "source-map-support": "^0.5.21",
     "typescript": "^5.6.2",
+    "vite-plugin-commonjs": "^0.10.3",
     "vite": "^5.4.7"
   },
   "scripts": {
     "prestart": "tsc -p .",
     "start": "node build/example.js",
     "start:web": "npm run start:vite",
-    "start:parcel": "parcel index.html",
+    "start:parcel": "parcel --no-autoinstall index.html",
     "start:vite": "vite"
+  },
+  "alias": {
+    "process": {
+      "global": "process"
+    }
+  },
+  "staticFiles": {
+    "staticPath": "node_modules/@pkmn/engine/build/lib/pkmn-showdown.wasm"
   }
 }

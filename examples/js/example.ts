@@ -1,8 +1,6 @@
-import 'source-map-support/register';
-
 import {Generations} from '@pkmn/data';
 import {Dex} from '@pkmn/dex';
-import {Battle, Choice, Log, Lookup, Result} from '@pkmn/engine';
+import {Battle, Choice, Log, Lookup, Result, initialize} from '@pkmn/engine';
 import {Team} from '@pkmn/sets';
 
 // @pkmn/engine does not export the PSRNG - PRNG from @pkmn/sim can be used if
@@ -66,7 +64,7 @@ const P2 = Team.unpack(
 // configuration (-Dshowdown) and not receive any protocol log messages.
 // Similarly, `showdown: true` here only works because the default configuration
 // opts into Pokémon Showdown compatibility mode - if we change around our
-// configuration we will need to change this initialization option as well.
+// configuration we will need to change this initialization option as well
 const gens = new Generations(Dex);
 const gen = gens.get(1);
 const options = {
@@ -76,48 +74,62 @@ const options = {
   showdown: true,
   log: true,
 };
-const battle = Battle.create(gen, options);
-const log = new Log(gen, Lookup.get(gen), options);
-const display = () => {
-  for (const line of log.parse(battle.log!)) {
-    console.log(line);
+
+// See below - we can't access Battle until after initialize has been called
+const play = () => {
+  const battle = Battle.create(gen, options);
+  const log = new Log(gen, Lookup.get(gen), options);
+  const display = () => {
+    for (const line of log.parse(battle.log!)) {
+      console.log(line);
+    }
+  };
+
+  const random = new Random();
+  const choose = random.next.bind(random);
+
+  // For convenience the engine actually is written so that passing in undefined
+  // is equivalent to Choice.pass() but to appease the TypeScript compiler we're
+  // going to be explicit here
+  let result: Result, c1 = Choice.pass, c2 = Choice.pass;
+  while (!(result = battle.update(c1, c2)).type) {
+    // If -Dlog is enabled we can parse and output the resulting logs since we
+    // initialized the battle to support logging (both `-Dlog` *and* `log: true`
+    // are required for logging)
+    display();
+    // Technically due to Generation I's Transform + Mirror Move/Metronome PP
+    // error if the battle contains Pokémon with a combination of Transform,
+    // Mirror Move/Metronome, and Disable its possible that there are no available
+    // choices (softlock), though this is impossible here given that our example
+    // battle involves none of these moves
+    //
+    // Battles expose a choices method if we wish to see all the available
+    // choices, but if we don't care about which one is chosen because we're doing
+    // so randomly (e.g. during a MCTS simulation) we can opt for the faster
+    // special-cased choose method instead
+    c1 = battle.choose('p1', result, choose);
+    c2 = battle.choose('p2', result, choose);
   }
+  // Remember to display any logs that were produced during the last update
+  display();
+
+  // The result is from the perspective of P1
+  const msg = {
+    win: 'won by Player A',
+    lose: 'won by Player B',
+    tie: 'ended in a tie',
+    error: 'encountered an error',
+  }[result.type];
+
+  console.log(`Battle ${msg} after ${battle.turn} turns`);
 };
 
-const random = new Random();
-const choose = random.next.bind(random);
-
-// For convenience the engine actually is written so that passing in undefined
-// is equivalent to Choice.pass() but to appease the TypeScript compiler we're
-// going to be explicit here
-let result: Result, c1 = Choice.pass, c2 = Choice.pass;
-while (!(result = battle.update(c1, c2)).type) {
-  // If -Dlog is enabled we can parse and output the resulting logs since we
-  // initialized the battle to support logging (both `-Dlog` *and* `log: true`
-  // are required for logging)
-  display();
-  // Technically due to Generation I's Transform + Mirror Move/Metronome PP
-  // error if the battle contains Pokémon with a combination of Transform,
-  // Mirror Move/Metronome, and Disable its possible that there are no available
-  // choices (softlock), though this is impossible here given that our example
-  // battle involves none of these moves
-  //
-  // Battles expose a choices method if we wish to see all the available
-  // choices, but if we don't care about which one is chosen because we're doing
-  // so randomly (e.g. during a MCTS simulation) we can opt for the faster
-  // special-cased choose method instead
-  c1 = battle.choose('p1', result, choose);
-  c2 = battle.choose('p2', result, choose);
+// Performing the async initialization isn't necessary on Node (though works),
+// but in the browser initialize needs to be called before anything else to
+// ensure the WASM addon is instantiated (though exactly how depends on the
+// bundler being used...).
+if ('process' in globalThis) {
+  play();
+} else {
+  initialize(options.showdown).then(play).catch(console.error);
 }
-// Remember to display any logs that were produced during the last update
-display();
-
-// The result is from the perspective of P1
-const msg = {
-  win: 'won by Player A',
-  lose: 'won by Player B',
-  tie: 'ended in a tie',
-  error: 'encountered an error',
-}[result.type];
-
-console.log(`Battle ${msg} after ${battle.turn} turns`);

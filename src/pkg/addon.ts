@@ -1,6 +1,5 @@
 import {load, loadSync} from './addon/node';
-
-import {Choice, Player, Result} from '.';
+import {Choice, Player, Result} from './common';
 
 export type Argument = string | URL | WebAssembly.Module | Promise<Response>;
 
@@ -24,6 +23,7 @@ export interface Binding {
 const ADDONS: [Bindings<false>?, Bindings<true>?] = [];
 const loading: [Promise<Bindings<false>>?, Promise<Bindings<true>>?] = [];
 
+/** TODO */
 export async function initialize(showdown: boolean, addon?: Argument) {
   if (loading[+showdown]) {
     throw new Error(`Cannot call initialize more than once with showdown=${showdown}`);

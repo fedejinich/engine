@@ -4,10 +4,11 @@ import {
 } from '@pkmn/data';
 
 import * as addon from './addon';
+import {Choice, Player, Result} from './common';
 import {LAYOUT, LE, Lookup} from './data';
 import {decodeIdentRaw, decodeStatus, decodeTypes} from './protocol';
 
-import {Choice, CreateOptions, Data, Gen1, Player, RestoreOptions, Result, Slot} from '.';
+import {CreateOptions, Data, Gen1, RestoreOptions, Slot} from '.';
 
 const SIZES = LAYOUT[0].sizes;
 const OFFSETS = LAYOUT[0].offsets;
