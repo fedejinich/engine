@@ -1,5 +1,6 @@
 const DEBUG = @import("../common/debug.zig").print;
 
+const builtin = @import("builtin");
 const chance = @import("chance.zig");
 const common = @import("../common/data.zig");
 const data = @import("data.zig");
@@ -1302,7 +1303,12 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
         return null;
     }
 
-    battle.last_damage *|= 2;
+    // NOTE: llvm/llvm-project#58557
+    if (comptime builtin.target.isWasm()) {
+        battle.last_damage = @max(battle.last_damage *% 2, std.math.maxInt(u16));
+    } else {
+        battle.last_damage *|= 2;
+    }
 
     // Pokémon Showdown calls moveHit before Counter
     if (!showdown and !try checkHit(battle, player, move, options)) return null;
