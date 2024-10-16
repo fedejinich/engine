@@ -1304,11 +1304,10 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
     }
 
     // NOTE: llvm/llvm-project#58557
-    if (comptime builtin.target.isWasm()) {
-        battle.last_damage = @max(battle.last_damage *% 2, std.math.maxInt(u16));
-    } else {
-        battle.last_damage *|= 2;
-    }
+    battle.last_damage = if (comptime builtin.target.isWasm())
+        @max(battle.last_damage *% 2, std.math.maxInt(u16))
+    else
+        battle.last_damage *| 2;
 
     // Pokémon Showdown calls moveHit before Counter
     if (!showdown and !try checkHit(battle, player, move, options)) return null;
