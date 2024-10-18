@@ -19,7 +19,6 @@ class PkmnDebugEditorProvider implements vscode.CustomReadonlyEditorProvider {
       webviewPanel.webview.html = document.preview;
     } catch (error: unknown) {
       if (!(error instanceof Error)) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       vscode.window.showErrorMessage(`Error running pkmn-debug: ${error.message}`);
     }
   }

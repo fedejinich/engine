@@ -37,7 +37,6 @@ export class AutoComplete {
       //   return '<div class="autocomplete-suggestion" data-val="' + item + '">' +
       //     item.replace(re, '<b>$1</b>') + '</div>';
       // },
-      // eslint-disable-next-line
       onSelect: (event: Event, term: string, item: string) => {},
       ...options,
     };

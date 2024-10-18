@@ -80,7 +80,6 @@ export async function run(gens: Generations) {
 }
 
 if (require.main === module) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   run(new Generations(require('@pkmn/sim').Dex)).catch(err => {
     console.error(err.message);
     process.exit(1);
