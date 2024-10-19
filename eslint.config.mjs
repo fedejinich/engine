@@ -1,6 +1,7 @@
 import pkmn from "@pkmn/eslint-config";
 
 export default [...pkmn, {
+  files: ["src/bin/!(*.*)"],
   ignores: ["dist/", "node_modules/", "examples/zig", "build/", "src/tools/vscode/extension.js"],
 }, {
   files: ["src/pkg/common.ts", "src/pkg/index.ts", "src/test/integration.ts"],
