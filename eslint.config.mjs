@@ -3,9 +3,6 @@ import pkmn from "@pkmn/eslint-config";
 export default [...pkmn, {
   ignores: ["dist/", "node_modules/", "examples/zig", "build/", "src/tools/vscode/extension.js"],
 }, {
-  files: ["src/bin/*"],
-  parserOptions: {sourceType: "commonjs",},
-}, {
   files: ["src/pkg/common.ts", "src/pkg/index.ts", "src/test/integration.ts"],
   rules: {
     "no-control-regex": "off",
