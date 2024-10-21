@@ -389,7 +389,7 @@ function displayShowdown(
 
 function convert(gen: Generation, frames: Frame['pkmn'][], partial: Partial<Frame['pkmn']>) {
   const sizes = {log: addon.size(gen.num - 1, 'log'), battle: LAYOUT[gen.num - 1].sizes.Battle};
-  let n = 4 + sizes.battle + frames.length * (sizes.log + sizes.battle + 3);
+  let n = 8 + sizes.battle + frames.length * (sizes.log + sizes.battle + 3);
   if (partial.log) n += sizes.log;
   if (partial.battle) n += sizes.battle;
   n += (+!!partial.result + +!!partial.c1 + +!!partial.c2);
