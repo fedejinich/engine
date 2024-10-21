@@ -6431,22 +6431,22 @@ describe('Gen 1', () => {
     // Regular
     {
       const battle = startBattle([MISS, HIT, NO_CRIT, MIN_DMG, MISS, HIT, NO_CRIT, MIN_DMG], [
-        {species: 'Chansey', evs, moves: ['Hyper Beam', 'Soft-Boiled']},
+        {species: 'Chansey', evs, moves: ['Soft-Boiled', 'Hyper Beam']},
       ], [
         {species: 'Tentacool', evs, moves: ['Wrap']},
       ]);
 
-      battle.p1.pokemon[0].moveSlots[0].pp = 1;
+      battle.p1.pokemon[0].moveSlots[1].pp = 1;
 
       let p2hp = battle.p2.pokemon[0].hp;
 
-      battle.makeChoices('move 1', 'move 1');
-      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
+      battle.makeChoices('move 2', 'move 1');
+      expect(battle.p1.pokemon[0].moveSlots[1].pp).toBe(0);
       expect(battle.p2.pokemon[0].hp).toBe(p2hp -= 105);
 
       // Missing should cause Hyper Beam to be automatically selected and underflow
       battle.makeChoices('move 1', 'move 1');
-      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(63);
+      expect(battle.p1.pokemon[0].moveSlots[1].pp).toBe(63);
       expect(battle.p2.pokemon[0].hp).toBe(p2hp -= 105);
 
       verify(battle, [
@@ -6469,23 +6469,23 @@ describe('Gen 1', () => {
       const battle = startBattle([
         MISS, METRONOME('Hyper Beam'), HIT, NO_CRIT, MIN_DMG, MISS, HIT, NO_CRIT, MIN_DMG,
       ], [
-        {species: 'Chansey', evs, moves: ['Metronome', 'Soft-Boiled']},
+        {species: 'Chansey', evs, moves: ['Soft-Boiled', 'Metronome']},
       ], [
         {species: 'Tentacool', evs, moves: ['Wrap']},
       ]);
 
-      battle.p1.pokemon[0].moveSlots[0].pp = 1;
+      battle.p1.pokemon[0].moveSlots[1].pp = 1;
 
       const p2hp = battle.p2.pokemon[0].hp;
 
-      battle.makeChoices('move 1', 'move 1');
-      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
+      battle.makeChoices('move 2', 'move 1');
+      expect(battle.p1.pokemon[0].moveSlots[1].pp).toBe(0);
       expect(battle.p2.pokemon[0].hp).toBe(p2hp - 105);
 
       // Missing should cause Hyper Beam to be automatically selected and underflow
       battle.makeChoices('move 1', 'move 1');
-      // expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(63);
-      expect(battle.p1.pokemon[0].moveSlots[0].pp).toBe(0);
+      // expect(battle.p1.pokemon[0].moveSlots[1].pp).toBe(63);
+      expect(battle.p1.pokemon[0].moveSlots[1].pp).toBe(0);
 
       verify(battle, [
         '|move|p2a: Tentacool|Wrap|p1a: Chansey|[miss]',

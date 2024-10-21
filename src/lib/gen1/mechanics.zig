@@ -457,7 +457,7 @@ fn executeMove(
     // selection glitch - if the move was proced due to Metronome / Mirror Move it either subtracts
     // from the Hyper Beam slot if present or skips PP deduction entirely...
     if (showdown and !skip_pp and side.last_selected_move == .HyperBeam and
-        side.last_selected_move != side.active.move(battle.lastMove(player).index).id)
+        side.last_selected_move != side.active.move(mslot).id)
     {
         assert(mslot == 1);
         const has_beam = has_beam: {

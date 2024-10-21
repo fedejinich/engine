@@ -8601,12 +8601,12 @@ test "Hyper Beam automatic selection glitch" {
             .{ MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT,
                 MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT })).init(
         // zig fmt: on
-            &.{.{ .species = .Chansey, .moves = &.{ .HyperBeam, .SoftBoiled } }},
+            &.{.{ .species = .Chansey, .moves = &.{ .SoftBoiled, .HyperBeam } }},
             &.{.{ .species = .Tentacool, .moves = &.{.Wrap} }},
         );
         defer t.deinit();
 
-        t.actual.p1.get(1).move(1).pp = 1;
+        t.actual.p1.get(1).move(2).pp = 1;
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8617,9 +8617,9 @@ test "Hyper Beam automatic selection glitch" {
         try t.log.expected.mustrecharge(.{P1.ident(1)});
         try t.log.expected.turn(.{2});
 
-        try expectEqual(Result.Default, try t.update(move(1), move(1)));
+        try expectEqual(Result.Default, try t.update(move(2), move(1)));
         try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(2).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8633,7 +8633,7 @@ test "Hyper Beam automatic selection glitch" {
         // Missing should cause Hyper Beam to be automatically selected and underflow
         try expectEqual(Result.Default, try t.update(forced, move(1)));
         try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        try expectEqual(@as(u8, 63), t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 63), t.actual.p1.get(1).move(2).pp);
 
         try t.verify();
     }
@@ -8647,12 +8647,12 @@ test "Hyper Beam automatic selection glitch" {
             .{ MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, hyper_beam, ~CRIT, MIN_DMG, HIT,
                 MIN_WRAP, ~CRIT, MIN_DMG, ~HIT, ~CRIT, MIN_DMG, HIT })).init(
         // zig fmt: on
-            &.{.{ .species = .Chansey, .moves = &.{ .Metronome, .SoftBoiled } }},
+            &.{.{ .species = .Chansey, .moves = &.{ .SoftBoiled, .Metronome } }},
             &.{.{ .species = .Tentacool, .moves = &.{.Wrap} }},
         );
         defer t.deinit();
 
-        t.actual.p1.get(1).move(1).pp = 1;
+        t.actual.p1.get(1).move(2).pp = 1;
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8664,10 +8664,10 @@ test "Hyper Beam automatic selection glitch" {
         try t.log.expected.mustrecharge(.{P1.ident(1)});
         try t.log.expected.turn(.{2});
 
-        try expectEqual(Result.Default, try t.update(move(1), move(1)));
+        try expectEqual(Result.Default, try t.update(move(2), move(1)));
         // (1/163) * (40/256) * (231/256) * (229/256) * (1/39)
         try t.expectProbability(88165, 4443865088);
-        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, 0), t.actual.p1.get(1).move(2).pp);
 
         try t.log.expected.move(.{ P2.ident(1), Move.Wrap, P1.ident(1) });
         try t.log.expected.lastmiss(.{});
@@ -8681,7 +8681,7 @@ test "Hyper Beam automatic selection glitch" {
         // Missing should cause Hyper Beam to be automatically selected and underflow
         try expectEqual(Result.Default, try t.update(forced, move(1)));
         try t.expectProbability(88165, 27262976); // (40/256) * (229/256) * (231/256) * (1/39)
-        try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(1).pp);
+        try expectEqual(@as(u8, if (showdown) 0 else 63), t.actual.p1.get(1).move(2).pp);
 
         try t.verify();
     }
