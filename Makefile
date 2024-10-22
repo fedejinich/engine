@@ -125,7 +125,7 @@ benchmark:
 .PHONY: clean-example
 clean-example:
 	$(MAKE) clean -C examples/c
-	rm -rf examples/js/.parcel* examples/js/{build,dist}
+	rm -rf examples/js/.parcel-cache examples/js/{build,dist}
 	rm -rf examples/zig/*/.zig-* examples/zig/*/zig-*
 
 .PHONY: clean
