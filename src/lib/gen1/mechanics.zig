@@ -1170,7 +1170,7 @@ fn calcDamage(
     // encountered so we need to make sure that in the event of a miss we commit the status of the
     // crit roll. The alternative to doing this extra work is to *always* commit the crit roll but
     // that results in counter intuitive probabilities in the common case
-    if (pkmn.options.chance and !pkmn.options.mod) {
+    if (pkmn.options.chance and !pkmn.options.mod and move.effect != .Explode) {
         atk = attack(side, !crit, special);
         def = defense(target, !crit, special, false);
         if ((atk > 255 or def > 255) and (def / 4) & 255 == 0) options.chance.glitch();
