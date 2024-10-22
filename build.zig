@@ -371,6 +371,8 @@ fn buildWasm(
         b.getInstallStep().dependOn(&b.addInstallArtifact(bin, .{
             .dest_dir = .{ .override = std.Build.InstallDir{ .lib = {} } },
         }).step);
+    } else {
+        b.installArtifact(bin);
     }
 }
 
