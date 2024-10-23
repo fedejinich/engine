@@ -13,7 +13,10 @@ export * from './util';
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 
-export function render(entryPoint: string, json: any, options: {styles?: string[]} = {}) {
+export function render(entryPoint: string, json: any, options: {
+  styles?: string[];
+  wasm?: string;
+} = {}) {
   const result = esbuild.buildSync({
     jsx: 'transform',
     jsxFactory: 'h',
@@ -48,6 +51,7 @@ export function render(entryPoint: string, json: any, options: {styles?: string[
     <div id="content"></div>
     <script>
      window.DATA = ${JSON.stringify(json)};
+     ${options.wasm ? `window.WASM = '${options.wasm}';` : ''}
 
   ${result.outputFiles[0].text}
 

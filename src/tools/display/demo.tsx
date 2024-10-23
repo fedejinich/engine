@@ -8,8 +8,7 @@ const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: 
   const lookup = engine.Lookup.get(gen);
   const deserialize = (d: DataView): engine.Battle => {
     switch (gen.num) {
-      // FIXME: not actually inert..
-      case 1: return new gen1.Battle(lookup, d, {inert: true, showdown});
+      case 1: return new gen1.Battle(lookup, d, {showdown});
       default: throw new Error(`Unsupported gen: ${gen.num}`);
     }
   };
@@ -18,6 +17,7 @@ const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: 
 };
 
 const json = (window as any).DATA;
+const wasm = (window as any).WASM;
 const GEN = adapt(new Gen(json.gen));
 
 const lookup = engine.Lookup.get(GEN);
@@ -41,12 +41,15 @@ for (let i = 0; i < species.length; i++) {
 
 console.debug(order);
 
-const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
-document.getElementById('content')!.appendChild(<App
-  gen={GEN}
-  data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
-  showdown={json.showdown}
-/>);
+const bytes = Uint8Array.from(atob(wasm), c => c.charCodeAt(0));
+engine.initialize(json.showdown, new WebAssembly.Module(bytes)).then(() => {
+  const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
+  document.getElementById('content')!.appendChild(<App
+    gen={GEN}
+    data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
+    showdown={json.showdown}
+  />);
+}).catch(console.error);
 
 // const select = <Select options={order.species} placeholder='Tauros' />;
 

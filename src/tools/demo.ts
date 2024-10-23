@@ -16,6 +16,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const showdown = true;
 const gens = new Generations(Dex as any);
 
+// DEBUG
 const URL = 'https://data.pkmn.cc/';
 const fetch = async (url: string) => {
   if (!url.startsWith(URL)) throw new Error(`Invalid url: '${url}'`);
@@ -84,6 +85,8 @@ const SKIP = ['gen1lc'] as ID[];
     p1: {team: [p1!]}, p2: {team: [p2!]}, seed: [1, 2, 3, 4], showdown, log: false,
   });
   battle.update(Choice.pass, Choice.pass);
+  const file = path.join(ROOT, 'build', 'lib', `pkmn${showdown ? '-showdown' : ''}.wasm`);
+  const wasm = (await fs.readFile(file)).toString('base64');
   process.stdout.write(render(path.join(ROOT, 'build', 'tools', 'display', 'demo.jsx'), {
     order: {
       species: Buffer.from(Object.keys(order.global.species)
@@ -93,7 +96,7 @@ const SKIP = ['gen1lc'] as ID[];
     gen: data,
     buf: Buffer.from((battle as any).data.buffer).toString('base64'),
     showdown,
-  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'select.css')]}));
+  }, {styles: [path.join(ROOT, 'src', 'tools', 'display', 'select.css')], wasm}));
 })();
 
 const TIERS = Object.fromEntries([
