@@ -60,6 +60,7 @@
     "src/lib/common/rational.zig",
     "src/lib/common/rng.zig",
     "src/lib/common/util.zig",
+    "src/lib/common/wasm.zig",
     "src/lib/gen1/calc.zig",
     "src/lib/gen1/chance.zig",
     "src/lib/gen1/data.zig",

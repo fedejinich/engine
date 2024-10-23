@@ -130,5 +130,5 @@ pub const gen2 = struct {
 pub const js = if (options.internal) @import("common/js.zig") else {};
 pub const bindings = if (options.internal) struct {
     pub const node = @import("node.zig");
-    pub const wasm = @import("wasm.zig");
+    pub const wasm = @import("common/wasm.zig");
 } else {};
