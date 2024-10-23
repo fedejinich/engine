@@ -57,19 +57,19 @@ const SKIP = ['gen1lc'] as ID[];
       if (p2.moves.includes('Metronome')) throw new Error(`${s.name} set contains Metronome`);
     }
 
-    let usage: string[];
+    let usage: ID[];
     try {
       if (SKIP.includes(Smogon.format(gen, s) as ID)) throw new Error();
       const stats = await smogon.stats(gen, s);
-      usage = Object.keys(stats!.moves).filter(m => m !== 'Nothing' && m !== 'Metronome');
+      usage = Object.keys(stats!.moves).filter(m => m !== 'Nothing' && m !== 'Metronome').map(toID);
     } catch {
-      usage = (await smogon.sets(gen, s))[0]?.moves ?? [];
-      if (usage.includes('Metronome')) throw new Error(`${s.name} set contains Metronome`);
+      usage = (await smogon.sets(gen, s))[0]?.moves?.map(toID) ?? [];
+      if (usage.includes('metronome' as ID)) throw new Error(`${s.name} set contains Metronome`);
     }
 
     const learnset: ID[] = [];
     for (const move in (await gen.learnsets.learnable(s.name))!) {
-      if (!usage.includes(move) && move !== 'metronome') learnset.push(move as ID);
+      if (!usage.includes(move as ID) && move !== 'metronome') learnset.push(move as ID);
     }
     learnset.sort((a, b) => order.global.moves[b] - order.global.moves[a]);
 
