@@ -1,7 +1,7 @@
 
 import type {Argument} from '../addon';
 
-import {imports, toBindings, wasm_exports} from './wasm';
+import {toBindings} from './wasm';
 
 export async function load(showdown: boolean, addon?: Argument) {
   if (typeof addon === 'string' && addon !== 'wasm') {
@@ -21,8 +21,7 @@ export async function load(showdown: boolean, addon?: Argument) {
     try {
       const response = !addon || addon === 'wasm' ? fetch(name)
         : (addon as Promise<Response> | URL) instanceof URL ? fetch(addon) : addon;
-      wasm = (await WebAssembly.instantiateStreaming(response, imports)).instance;
-      wasm_exports[0] = wasm.exports;
+      wasm = (await WebAssembly.instantiateStreaming(response)).instance;
     } catch (err) {
       if (!(err instanceof Error)) throw err;
       const message = !addon || addon === 'wasm'

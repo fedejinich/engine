@@ -5,39 +5,6 @@ const assert = std.debug.assert;
 
 const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 
-const js = struct {
-    extern "js" fn log(ptr: [*]const u8, len: usize) void;
-    extern "js" fn panic(ptr: [*]const u8, len: usize) noreturn;
-};
-
-pub const std_options: std.Options = .{
-    .logFn = logFn,
-    .log_level = .debug,
-};
-
-fn logFn(
-    comptime message_level: std.log.Level,
-    comptime scope: @TypeOf(.enum_literal),
-    comptime format: []const u8,
-    args: anytype,
-) void {
-    const level_txt = comptime message_level.asText();
-    const prefix2 = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
-    var buf: [500]u8 = undefined;
-    const line = std.fmt.bufPrint(&buf, level_txt ++ prefix2 ++ format, args) catch l: {
-        buf[buf.len - 3 ..][0..3].* = "...".*;
-        break :l &buf;
-    };
-    js.log(line.ptr, line.len);
-}
-
-pub fn panic(msg: []const u8, st: ?*std.builtin.StackTrace, addr: ?usize) noreturn {
-    _ = st;
-    _ = addr;
-    std.log.err("panic: {s}", .{msg});
-    @trap();
-}
-
 export const SHOWDOWN = pkmn.options.showdown;
 export const LOG = pkmn.options.log;
 export const CHANCE = pkmn.options.chance;

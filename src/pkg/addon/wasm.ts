@@ -1,25 +1,6 @@
 import type {Binding, Bindings} from '../addon';
 import {LAYOUT} from '../data';
 
-export const wasm_exports: WebAssembly.Exports[] = [];
-const text_decoder = new TextDecoder();
-
-export const imports = {
-  js: {
-    log(ptr: number, len: number) {
-      if (len === 0) return console.log('');
-      const msg = text_decoder.decode(new Uint8Array((
-        wasm_exports[0].memory as WebAssembly.Memory).buffer, ptr, len));
-      console.log(msg);
-    },
-    panic(ptr: number, len: number) {
-      const msg = text_decoder.decode(new Uint8Array((
-        wasm_exports[0].memory as WebAssembly.Memory).buffer, ptr, len));
-      throw new Error('panic: ' + msg);
-    },
-  },
-};
-
 export function toBindings<T extends boolean>(w: WebAssembly.Exports): Bindings<T> {
   const memory = new Uint8Array((w.memory as WebAssembly.Memory).buffer);
   return {

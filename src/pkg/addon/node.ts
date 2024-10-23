@@ -4,7 +4,7 @@ import * as path from 'path';
 
 import type {Argument} from '../addon';
 
-import {imports, toBindings, wasm_exports} from './wasm';
+import {toBindings} from './wasm';
 
 const ROOT = path.join(__dirname, '..', '..', '..');
 const LIB = path.join(ROOT, 'build', 'lib');
@@ -29,8 +29,7 @@ export async function load(showdown: boolean, addon?: Argument) {
   let wasm: WebAssembly.Instance;
   if (addon === 'wasm') {
     try {
-      wasm = (await WebAssembly.instantiate(fs.readFileSync(WASM[+showdown]), imports)).instance;
-      wasm_exports[0] = wasm.exports;
+      wasm = (await WebAssembly.instantiate(fs.readFileSync(WASM[+showdown]))).instance;
     } catch (err) {
       throw error(WASM[+showdown], err);
     }
