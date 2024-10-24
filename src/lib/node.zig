@@ -1,5 +1,5 @@
 const js = @import("common/js.zig");
-const node = @import("common/node.zig");
+const node = @import("bindings/node.zig");
 const std = @import("std");
 
 const assert = std.debug.assert;

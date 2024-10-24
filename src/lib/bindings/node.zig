@@ -1,4 +1,4 @@
-const js = @import("js.zig");
+const js = @import("../common/js.zig");
 const pkmn = @import("../pkmn.zig");
 const std = @import("std");
 

@@ -1,4 +1,4 @@
-const wasm = @import("common/wasm.zig");
+const wasm = @import("bindings/wasm.zig");
 
 export const SHOWDOWN = wasm.options.showdown;
 export const LOG = wasm.options.log;

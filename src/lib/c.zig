@@ -1,4 +1,4 @@
-const c = @import("common/c.zig");
+const c = @import("bindings/c.zig");
 
 export const PKMN_OPTIONS = c.OPTIONS;
 
