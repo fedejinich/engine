@@ -129,6 +129,7 @@ pub const gen2 = struct {
 // NOTE: `pub usingnamespace struct { ... }` here results in a (false?) dependency loop
 pub const js = if (options.internal) @import("common/js.zig") else {};
 pub const bindings = if (options.internal) struct {
-    pub const node = @import("node.zig");
+    pub const c = @import("common/c.zig");
+    pub const node = @import("common/node.zig");
     pub const wasm = @import("common/wasm.zig");
 } else {};

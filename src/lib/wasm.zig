@@ -1,13 +1,9 @@
-const pkmn = @import("pkmn.zig");
+const wasm = @import("common/wasm.zig");
 
-pub const pkmn_options = pkmn.Options{ .internal = true };
-
-const wasm = pkmn.bindings.wasm;
-
-export const SHOWDOWN = pkmn.options.showdown;
-export const LOG = pkmn.options.log;
-export const CHANCE = pkmn.options.chance;
-export const CALC = pkmn.options.calc;
+export const SHOWDOWN = wasm.options.showdown;
+export const LOG = wasm.options.log;
+export const CHANCE = wasm.options.chance;
+export const CALC = wasm.options.calc;
 
 export const GEN1_CHOICES_SIZE = wasm.gen1.CHOICES_SIZE;
 export const GEN1_LOGS_SIZE = wasm.gen1.LOGS_SIZE;

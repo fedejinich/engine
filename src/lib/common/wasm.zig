@@ -5,6 +5,8 @@ const assert = std.debug.assert;
 
 const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 
+pub const options = pkmn.options;
+
 pub const gen1 = struct {
     pub const CHOICES_SIZE = size(pkmn.gen1.CHOICES_SIZE);
     pub const LOGS_SIZE = size(pkmn.gen1.LOGS_SIZE);
@@ -13,9 +15,9 @@ pub const gen1 = struct {
         battle: *pkmn.gen1.Battle(pkmn.gen1.PRNG),
         c1: pkmn.Choice,
         c2: pkmn.Choice,
-        options: ?[*]u8,
+        options_: ?[*]u8,
     ) callconv(.C) pkmn.Result {
-        return (if (options) |o| result: {
+        return (if (options_) |o| result: {
             const buf = @as([*]u8, @ptrCast(o))[0..pkmn.gen1.LOGS_SIZE];
             var stream: pkmn.protocol.ByteStream = .{ .buffer = buf };
             // TODO: extract out
