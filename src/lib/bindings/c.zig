@@ -80,119 +80,123 @@ pub fn rational_denominator(rational: *const pkmn.Rational(f64)) callconv(.C) f6
     return rational.q;
 }
 
-pub const gen1 = struct {
-    pub const MAX_CHOICES = pkmn.gen1.MAX_CHOICES;
-    pub const CHOICES_SIZE = pkmn.gen1.CHOICES_SIZE;
-    pub const MAX_LOGS = pkmn.gen1.MAX_LOGS;
-    pub const LOGS_SIZE = pkmn.gen1.LOGS_SIZE;
-
-    const log_options = extern struct {
-        buf: [*]u8,
-        len: usize,
-    };
-
-    const chance_options = extern struct {
-        probability: pkmn.Rational(f64),
-        actions: pkmn.gen1.chance.Actions,
-        durations: pkmn.gen1.chance.Durations,
-    };
-
-    const calc_options = extern struct {
-        overrides: pkmn.gen1.chance.Actions,
-    };
-
-    const battle_options = struct {
-        stream: pkmn.protocol.ByteStream,
-        log: pkmn.protocol.FixedLog,
-        chance: pkmn.gen1.Chance(pkmn.Rational(f64)),
-        calc: pkmn.gen1.Calc,
-
-        comptime {
-            assert(@sizeOf(battle_options) <= 128);
-        }
-    };
-
-    pub fn battle_options_set(
-        options: *battle_options,
-        log: ?*const log_options,
-        chance: ?*const chance_options,
-        calc: ?*const calc_options,
-    ) callconv(.C) void {
-        if (pkmn.options.log) {
-            if (log) |l| {
-                options.stream = .{ .buffer = l.buf[0..l.len] };
-                options.log = .{ .writer = options.stream.writer() };
-            } else {
-                options.stream.reset();
-            }
-        }
-        if (pkmn.options.chance) {
-            if (chance) |c| {
-                options.chance = .{
-                    .probability = c.probability,
-                    .actions = c.actions,
-                    .durations = c.durations,
-                };
-            } else {
-                options.chance.reset();
-            }
-        }
-        if (pkmn.options.calc) {
-            if (calc) |c| {
-                options.calc = .{ .overrides = c.overrides };
-            } else {
-                options.calc = .{};
-            }
-        }
-    }
-
-    pub fn battle_options_chance_probability(
-        options: *battle_options,
-    ) callconv(.C) *pkmn.Rational(f64) {
-        return &options.chance.probability;
-    }
-
-    pub fn battle_options_chance_actions(
-        options: *battle_options,
-    ) callconv(.C) *pkmn.gen1.chance.Actions {
-        return &options.chance.actions;
-    }
-
-    pub fn battle_options_chance_durations(
-        options: *battle_options,
-    ) callconv(.C) *pkmn.gen1.chance.Durations {
-        return &options.chance.durations;
-    }
-
-    pub fn battle_options_calc_summaries(
-        options: *battle_options,
-    ) callconv(.C) *pkmn.gen1.calc.Summaries {
-        return &options.calc.summaries;
-    }
-
-    pub fn battle_update(
-        battle: *pkmn.gen1.Battle(pkmn.gen1.PRNG),
-        c1: pkmn.Choice,
-        c2: pkmn.Choice,
-        options: ?*battle_options,
-    ) callconv(.C) pkmn.Result {
-        if ((pkmn.options.log or pkmn.options.chance or pkmn.options.calc) and options != null) {
-            return battle.update(c1, c2, options.?) catch return @bitCast(ERROR);
-        }
-        return battle.update(c1, c2, &pkmn.gen1.NULL) catch unreachable;
-    }
-
-    pub fn battle_choices(
-        battle: *const pkmn.gen1.Battle(pkmn.gen1.PRNG),
-        player: u8,
-        request: u8,
-        out: [*]u8,
-        len: usize,
-    ) callconv(.C) u8 {
-        assert(player <= @field(@typeInfo(pkmn.Player), @tagName(Enum)).fields.len);
-        assert(request <= @field(@typeInfo(pkmn.Choice.Type), @tagName(Enum)).fields.len);
-
-        assert(!pkmn.options.showdown or len > 0);
-        return battle.choices(@enumFromInt(player), @enumFromInt(request), @ptrCast(out[0..len]));
-    }
+const log_options = extern struct {
+    buf: [*]u8,
+    len: usize,
 };
+
+pub fn gen(comptime num: comptime_int) type {
+    const g = @field(pkmn, "gen" ++ std.fmt.comptimePrint("{d}", .{num}));
+
+    return struct {
+        pub const MAX_CHOICES = g.MAX_CHOICES;
+        pub const CHOICES_SIZE = g.CHOICES_SIZE;
+        pub const MAX_LOGS = g.MAX_LOGS;
+        pub const LOGS_SIZE = g.LOGS_SIZE;
+
+        const chance_options = extern struct {
+            probability: pkmn.Rational(f64),
+            actions: g.chance.Actions,
+            durations: g.chance.Durations,
+        };
+
+        const calc_options = extern struct {
+            overrides: g.chance.Actions,
+        };
+
+        const battle_options = struct {
+            stream: pkmn.protocol.ByteStream,
+            log: pkmn.protocol.FixedLog,
+            chance: g.Chance(pkmn.Rational(f64)),
+            calc: g.Calc,
+
+            comptime {
+                assert(@sizeOf(battle_options) <= 128);
+            }
+        };
+
+        pub fn battle_options_set(
+            options: *battle_options,
+            log: ?*const log_options,
+            chance: ?*const chance_options,
+            calc: ?*const calc_options,
+        ) callconv(.C) void {
+            if (pkmn.options.log) {
+                if (log) |l| {
+                    options.stream = .{ .buffer = l.buf[0..l.len] };
+                    options.log = .{ .writer = options.stream.writer() };
+                } else {
+                    options.stream.reset();
+                }
+            }
+            if (pkmn.options.chance) {
+                if (chance) |c| {
+                    options.chance = .{
+                        .probability = c.probability,
+                        .actions = c.actions,
+                        .durations = c.durations,
+                    };
+                } else {
+                    options.chance.reset();
+                }
+            }
+            if (pkmn.options.calc) {
+                if (calc) |c| {
+                    options.calc = .{ .overrides = c.overrides };
+                } else {
+                    options.calc = .{};
+                }
+            }
+        }
+
+        pub fn battle_options_chance_probability(
+            options: *battle_options,
+        ) callconv(.C) *pkmn.Rational(f64) {
+            return &options.chance.probability;
+        }
+
+        pub fn battle_options_chance_actions(
+            options: *battle_options,
+        ) callconv(.C) *g.chance.Actions {
+            return &options.chance.actions;
+        }
+
+        pub fn battle_options_chance_durations(
+            options: *battle_options,
+        ) callconv(.C) *g.chance.Durations {
+            return &options.chance.durations;
+        }
+
+        pub fn battle_options_calc_summaries(
+            options: *battle_options,
+        ) callconv(.C) *g.calc.Summaries {
+            return &options.calc.summaries;
+        }
+
+        pub fn battle_update(
+            battle: *g.Battle(g.PRNG),
+            c1: pkmn.Choice,
+            c2: pkmn.Choice,
+            opts: ?*battle_options,
+        ) callconv(.C) pkmn.Result {
+            if ((pkmn.options.log or pkmn.options.chance or pkmn.options.calc) and opts != null) {
+                return battle.update(c1, c2, opts.?) catch return @bitCast(ERROR);
+            }
+            return battle.update(c1, c2, &g.NULL) catch unreachable;
+        }
+
+        pub fn battle_choices(
+            battle: *const g.Battle(g.PRNG),
+            player: u8,
+            request: u8,
+            out: [*]u8,
+            n: usize,
+        ) callconv(.C) u8 {
+            assert(player <= @field(@typeInfo(pkmn.Player), @tagName(Enum)).fields.len);
+            assert(request <= @field(@typeInfo(pkmn.Choice.Type), @tagName(Enum)).fields.len);
+
+            assert(!pkmn.options.showdown or n > 0);
+            return battle.choices(@enumFromInt(player), @enumFromInt(request), @ptrCast(out[0..n]));
+        }
+    };
+}

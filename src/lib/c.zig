@@ -25,21 +25,21 @@ export const pkmn_rational_reduce = c.rational_reduce;
 export const pkmn_rational_numerator = c.rational_numerator;
 export const pkmn_rational_denominator = c.rational_denominator;
 
-export const PKMN_GEN1_MAX_CHOICES = c.gen1.MAX_CHOICES;
-export const PKMN_GEN1_CHOICES_SIZE = c.gen1.CHOICES_SIZE;
-export const PKMN_GEN1_MAX_LOGS = c.gen1.MAX_LOGS;
-export const PKMN_GEN1_LOGS_SIZE = c.gen1.LOGS_SIZE;
+export const PKMN_GEN1_MAX_CHOICES = c.gen(1).MAX_CHOICES;
+export const PKMN_GEN1_CHOICES_SIZE = c.gen(1).CHOICES_SIZE;
+export const PKMN_GEN1_MAX_LOGS = c.gen(1).MAX_LOGS;
+export const PKMN_GEN1_LOGS_SIZE = c.gen(1).LOGS_SIZE;
 
 export const pkmn_gen1_battle_options_set =
-    c.gen1.battle_options_set;
+    c.gen(1).battle_options_set;
 export const pkmn_gen1_battle_options_chance_probability =
-    c.gen1.battle_options_chance_probability;
+    c.gen(1).battle_options_chance_probability;
 export const pkmn_gen1_battle_options_chance_actions =
-    c.gen1.battle_options_chance_actions;
+    c.gen(1).battle_options_chance_actions;
 export const pkmn_gen1_battle_options_chance_durations =
-    c.gen1.battle_options_chance_durations;
+    c.gen(1).battle_options_chance_durations;
 export const pkmn_gen1_battle_options_calc_summaries =
-    c.gen1.battle_options_calc_summaries;
+    c.gen(1).battle_options_calc_summaries;
 
-export const pkmn_gen1_battle_update = c.gen1.battle_update;
-export const pkmn_gen1_battle_choices = c.gen1.battle_choices;
+export const pkmn_gen1_battle_update = c.gen(1).battle_update;
+export const pkmn_gen1_battle_choices = c.gen(1).battle_choices;
