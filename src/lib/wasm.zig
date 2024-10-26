@@ -14,9 +14,4 @@ const exportable = @hasDecl(std.zig, "Zir") and !@hasDecl(std.zig.Zir.Inst, "exp
 usingnamespace if (exportable) struct {
     export const GEN1_update = wasm.gen(1).update;
     export const GEN1_choices = wasm.gen(1).choices;
-} else struct {
-    comptime {
-        @export(wasm.gen(1).update, .{ .name = "GEN1_update", .linkage = .Strong });
-        @export(wasm.gen(1).choices, .{ .name = "GEN1_choices", .linkage = .Strong });
-    }
-};
+} else wasm.exports();

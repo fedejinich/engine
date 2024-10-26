@@ -47,6 +47,12 @@ pub fn gen(comptime num: comptime_int) type {
     };
 }
 
+pub fn exports() type {
+    @export(gen(1).update, .{ .name = "GEN1_update", .linkage = .Strong });
+    @export(gen(1).choices, .{ .name = "GEN1_choices", .linkage = .Strong });
+    return struct {};
+}
+
 fn size(n: usize) u32 {
     return std.math.ceilPowerOfTwo(u32, @as(u32, @intCast(n))) catch unreachable;
 }

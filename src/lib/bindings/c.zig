@@ -200,3 +200,55 @@ pub fn gen(comptime num: comptime_int) type {
         }
     };
 }
+
+pub fn exports() type {
+    @export(choice_init, .{ .name = "pkmn_choice_init", .linkage = .Strong });
+    @export(choice_type, .{ .name = "pkmn_choice_type", .linkage = .Strong });
+    @export(choice_data, .{ .name = "pkmn_choice_data", .linkage = .Strong });
+
+    @export(result_type, .{ .name = "pkmn_result_type", .linkage = .Strong });
+    @export(result_p1, .{ .name = "pkmn_result_p1", .linkage = .Strong });
+    @export(result_p2, .{ .name = "pkmn_result_p2", .linkage = .Strong });
+
+    @export(err, .{ .name = "pkmn_error", .linkage = .Strong });
+
+    @export(psrng_init, .{ .name = "pkmn_psrng_init", .linkage = .Strong });
+    @export(psrng_next, .{ .name = "pkmn_psrng_next", .linkage = .Strong });
+
+    @export(rational_init, .{ .name = "pkmn_rational_init", .linkage = .Strong });
+    @export(rational_reduce, .{ .name = "pkmn_rational_reduce", .linkage = .Strong });
+    @export(rational_numerator, .{ .name = "pkmn_rational_numerator", .linkage = .Strong });
+    @export(rational_denominator, .{ .name = "pkmn_rational_denominator", .linkage = .Strong });
+
+    @export(
+        gen(1).battle_options_set,
+        .{ .name = "pkmn_gen1_battle_options_set", .linkage = .Strong },
+    );
+    @export(
+        gen(1).battle_options_chance_probability,
+        .{ .name = "pkmn_gen1_battle_options_chance_probability", .linkage = .Strong },
+    );
+    @export(
+        gen(1).battle_options_chance_actions,
+        .{ .name = "pkmn_gen1_battle_options_chance_actions", .linkage = .Strong },
+    );
+    @export(
+        gen(1).battle_options_chance_durations,
+        .{ .name = "pkmn_gen1_battle_options_chance_durations", .linkage = .Strong },
+    );
+    @export(
+        gen(1).battle_options_calc_summaries,
+        .{ .name = "pkmn_gen1_battle_options_calc_summaries", .linkage = .Strong },
+    );
+
+    @export(
+        gen(1).battle_update,
+        .{ .name = "pkmn_gen1_battle_update", .linkage = .Strong },
+    );
+    @export(
+        gen(1).battle_choices,
+        .{ .name = "pkmn_gen1_battle_choices", .linkage = .Strong },
+    );
+
+    return struct {};
+}
