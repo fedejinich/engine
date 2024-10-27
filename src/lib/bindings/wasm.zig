@@ -4,6 +4,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 
 const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
+const Strong = if (@hasField(std.builtin.GlobalLinkage, "strong")) .strong else .Strong;
 
 pub const options = pkmn.options;
 
@@ -48,8 +49,8 @@ pub fn gen(comptime num: comptime_int) type {
 }
 
 pub fn exports() type {
-    @export(gen(1).update, .{ .name = "GEN1_update", .linkage = .Strong });
-    @export(gen(1).choices, .{ .name = "GEN1_choices", .linkage = .Strong });
+    @export(gen(1).update, .{ .name = "GEN1_update", .linkage = Strong });
+    @export(gen(1).choices, .{ .name = "GEN1_choices", .linkage = Strong });
     return struct {};
 }
 

@@ -318,7 +318,7 @@ fn buildWasm(
         else => optimize,
     };
     // https://webassembly.org/features/
-    const features = std.Target.wasm.featureSet(&.{
+    var features = std.Target.wasm.featureSet(&.{
         .atomics,
         .bulk_memory,
         // .exception_handling,
@@ -333,7 +333,9 @@ fn buildWasm(
         .simd128,
         // .tail_call,
     });
-    // TODO features.addFeature(@intFromEnum(std.Target.wasm.Feature.multivalue));
+    if (builtin.zig_version.order(try std.SemanticVersion.parse("0.12.0")) != .lt) {
+        features.addFeature(@intFromEnum(std.Target.wasm.Feature.multivalue));
+    }
     const freestanding = if (@hasDecl(std.Build, "resolveTargetQuery"))
         b.resolveTargetQuery(.{
             .cpu_arch = .wasm32,
