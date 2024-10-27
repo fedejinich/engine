@@ -317,10 +317,35 @@ fn buildWasm(
         .ReleaseFast, .ReleaseSafe => .ReleaseSmall,
         else => optimize,
     };
+    // https://webassembly.org/features/
+    const features = std.Target.wasm.featureSet(&.{
+        .atomics,
+        .bulk_memory,
+        // .exception_handling,
+        .extended_const,
+        // .half_precision,
+        // .multimemory,
+        .mutable_globals,
+        .nontrapping_fptoint,
+        .reference_types,
+        // .relaxed_simd,
+        .sign_ext,
+        .simd128,
+        // .tail_call,
+    });
+    // TODO features.addFeature(@intFromEnum(std.Target.wasm.Feature.multivalue));
     const freestanding = if (@hasDecl(std.Build, "resolveTargetQuery"))
-        b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding })
+        b.resolveTargetQuery(.{
+            .cpu_arch = .wasm32,
+            .os_tag = .freestanding,
+            .cpu_features_add = features,
+        })
     else
-        ResolvedTarget{ .cpu_arch = .wasm32, .os_tag = .freestanding };
+        ResolvedTarget{
+            .cpu_arch = .wasm32,
+            .os_tag = .freestanding,
+            .cpu_features_add = features,
+        };
     const path = if (has_path) .{ .path = root_src_file } else b.path(root_src_file);
     const bin = if (entry) bin: {
         const exe = b.addExecutable(if (force_pic) .{
@@ -357,7 +382,7 @@ fn buildWasm(
     const opt = b.findProgram(&.{"wasm-opt"}, &.{"./node_modules/.bin"}) catch null;
     if (optimize != .Debug and opt != null) {
         const out = b.fmt("build/lib/{s}.wasm", .{name});
-        const sh = b.addSystemCommand(&.{ opt.?, "-O4" });
+        const sh = b.addSystemCommand(&.{ opt.?, "--enable-bulk-memory", "--enable-simd", "-O4" });
         sh.addArtifactArg(bin);
         sh.addArg("-o");
         if (@hasDecl(@TypeOf(sh.*), "addFileSourceArg")) {
