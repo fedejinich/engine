@@ -11,7 +11,7 @@ const Enum = if (@hasField(std.builtin.Type, "enum")) .@"enum" else .Enum;
 pub fn Array(comptime n: comptime_int, comptime U: type) type {
     return struct {
         const size = @bitSizeOf(U);
-        const options = .{ .signedness = .unsigned, .bits = size * n };
+        const options: std.builtin.Type.Int = .{ .signedness = .unsigned, .bits = size * n };
         pub const T = @Type(if (@hasField(std.builtin.Type, "int"))
             .{ .int = options }
         else

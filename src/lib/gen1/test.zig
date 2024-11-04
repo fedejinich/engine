@@ -5776,7 +5776,7 @@ test "Transform effect" {
     const TIE_1 = MIN;
     const TIE_2 = MAX;
     const no_crit = if (showdown) comptime ranged(Species.chance(.Articuno), 256) else 6;
-    const DVS = .{ .atk = 0, .def = 0, .spe = 0, .spc = 0 };
+    const DVS: data.DVs = .{ .atk = 0, .def = 0, .spe = 0, .spc = 0 };
 
     var t = Test(
     // zig fmt: off
@@ -9984,7 +9984,7 @@ test "MAX_LOGS" {
     const BRN = Status.init(.BRN);
     const moves = &.{ .LeechSeed, .ConfuseRay, .Metronome };
     // make P2 slower to avoid speed ties
-    const stats = .{ .hp = EXP, .atk = EXP, .def = EXP, .spe = 0, .spc = EXP };
+    const stats: data.Stats(u16) = .{ .hp = EXP, .atk = EXP, .def = EXP, .spe = 0, .spc = EXP };
     var battle = Battle.init(
         0,
         &.{.{ .species = .Aerodactyl, .status = BRN, .moves = moves }},

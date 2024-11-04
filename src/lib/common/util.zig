@@ -44,7 +44,7 @@ fn CopyPtrAttrs(
     comptime child: type,
 ) type {
     const info = @field(@typeInfo(source), @tagName(Pointer));
-    const args = .{
+    const args: std.builtin.Type.Pointer = .{
         .size = size,
         .is_const = info.is_const,
         .is_volatile = info.is_volatile,

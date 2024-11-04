@@ -27,8 +27,14 @@ pub fn module(b: *std.Build, options: Options) *std.Build.Module {
     build_options.addOption(?bool, "chance", options.chance);
     build_options.addOption(?bool, "calc", options.calc);
 
-    const root_source_file = .{ .cwd_relative = dirname ++ "/src/lib/pkmn.zig" };
-    const imports = &.{.{ .name = "build_options", .module = build_options.createModule() }};
+    const root_source_file: std.Build.LazyPath =
+        .{ .cwd_relative = dirname ++ "/src/lib/pkmn.zig" };
+    const Import = if (@hasDecl(std.Build.Module, "Import"))
+        std.Build.Module.Import
+    else
+        std.Build.ModuleDependency;
+    const imports: []const Import =
+        &.{.{ .name = "build_options", .module = build_options.createModule() }};
     return b.createModule(if (@hasDecl(std.Build, "CreateModuleOptions"))
         .{ .source_file = root_source_file, .dependencies = imports }
     else
@@ -244,7 +250,7 @@ pub fn build(b: *std.Build) !void {
         b.installFile(file, b.fmt("share/pkgconfig/{s}", .{pc}));
     }
 
-    const config = .{
+    const config: Config = .{
         .target = target,
         .optimize = optimize,
         .pic = pic,

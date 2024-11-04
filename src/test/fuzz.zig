@@ -128,9 +128,13 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
     while (elapsed.read() < duration) {
         last = random.src.seed;
 
-        const opt = .{ .cleric = showdown, .block = false, .durations = true };
+        const cleric = showdown;
         var battle = switch (gen) {
-            1 => pkmn.gen1.helpers.Battle.random(&random, opt),
+            1 => pkmn.gen1.helpers.Battle.random(&random, .{
+                .cleric = cleric,
+                .block = false,
+                .durations = true,
+            }),
             else => unreachable,
         };
         const max = switch (gen) {
@@ -156,7 +160,7 @@ pub fn fuzz(allocator: std.mem.Allocator, seed: u64, duration: usize) !void {
                     var durations = pkmn.gen1.chance.Durations{};
                     // Pokémon which start the battle sleeping must seen prior .started or
                     // .continuing observations which would have set their counter >= 1
-                    if (!opt.cleric) {
+                    if (!cleric) {
                         inline for (.{ .P1, .P2 }) |player| {
                             var d = durations.get(player);
                             for (battle.side(player).pokemon, 0..) |p, i| {

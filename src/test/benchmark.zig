@@ -57,9 +57,11 @@ pub fn benchmark(gen: u8, seed: u64, battles: usize, warmup: ?usize) !void {
     while (i < num) : (i += 1) {
         if (warmup != null and i == w) random = pkmn.PSRNG.init(seed);
 
-        const opt = .{ .cleric = showdown, .block = showdown };
         var battle = switch (gen) {
-            1 => pkmn.gen1.helpers.Battle.random(&random, opt),
+            1 => pkmn.gen1.helpers.Battle.random(&random, .{
+                .cleric = showdown,
+                .block = showdown,
+            }),
             else => unreachable,
         };
         var options = switch (gen) {

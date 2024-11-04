@@ -25,7 +25,7 @@ pub fn Optional(comptime T: type) type {
         };
     }
 
-    const options = .{
+    const options: std.builtin.Type.Enum = .{
         .tag_type = std.math.IntFittingRange(0, fields.len),
         .fields = &enumFields,
         .decls = &decls,
