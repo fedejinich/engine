@@ -49,6 +49,7 @@
     "build/tools/display/ui.jsx",
     "build/tools/display/util.js.map",
     "build/tools/display/util.js",
+    "src/lib/bindings/c.zig",
     "src/lib/bindings/node.zig",
     "src/lib/bindings/wasm.zig",
     "src/lib/common/array.zig",
