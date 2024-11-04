@@ -556,7 +556,7 @@ fn detect(target: anytype) std.Target {
 
 const WASM = @embedFile("src/lib/wasm.zig");
 
-fn exports(b: *std.Build) ![][]const u8 {
+pub fn exports(b: *std.Build) ![][]const u8 {
     var symbols = std.ArrayList([]const u8).init(b.allocator);
 
     var it = std.mem.splitSequence(u8, WASM, "export ");
