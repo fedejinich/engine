@@ -17,7 +17,7 @@ const {HIT, MISS, CRIT, NO_CRIT, MIN_DMG, MAX_DMG, TIE, DRAG} = ROLLS.basic({
   dmg: 'data/mods/gen2/scripts.ts:711:27',
 });
 
-const QKC = {key: 'sim/battle.ts:1627:49', value: MAX};
+const QKC = {key: 'sim/battle.ts:1625:49', value: MAX};
 const QKCs = (n: number) => Array(n).fill(QKC);
 const SECONDARY = (value: number) => ({key: 'data/mods/gen2/scripts.ts:464:66', value});
 const PROC_SEC = SECONDARY(MIN);
