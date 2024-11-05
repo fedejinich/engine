@@ -298,9 +298,9 @@ pub fn transitions(
                 const p1_max: u9 = if (p2_dmg.min != p2_min)
                     p1_dmg.min
                 else
-                    try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
+                    Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
                 const p2_max: u9 =
-                    try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
+                    Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
 
                 if (opts.chance.actions.matches(f)) {
                     if (!opts.chance.actions.relax().eql(a)) {
@@ -744,7 +744,7 @@ pub const Rolls = struct {
 
     /// Returns the max damage roll which will produce the same damage as `roll`
     /// given the base damage in `summaries`.
-    pub fn coalesce(player: Player, roll: u8, summaries: *Summaries, cap: bool) !u8 {
+    pub fn coalesce(player: Player, roll: u8, summaries: *Summaries, cap: bool) u8 {
         if (roll == 0) return roll;
 
         const dmg = summaries.get(player.foe()).damage;
@@ -854,12 +854,12 @@ test "Rolls.damage" {
 
 test "Rolls.coalesce" {
     var summaries = Summaries{ .p1 = .{ .damage = .{ .base = 74, .final = 69, .capped = true } } };
-    try expectEqual(@as(u8, 0), try Rolls.coalesce(.P2, 0, &summaries, false));
-    try expectEqual(@as(u8, 241), try Rolls.coalesce(.P2, 238, &summaries, false));
-    try expectEqual(@as(u8, 255), try Rolls.coalesce(.P2, 238, &summaries, true));
+    try expectEqual(@as(u8, 0), Rolls.coalesce(.P2, 0, &summaries, false));
+    try expectEqual(@as(u8, 241), Rolls.coalesce(.P2, 238, &summaries, false));
+    try expectEqual(@as(u8, 255), Rolls.coalesce(.P2, 238, &summaries, true));
     summaries.p1.damage.final = 74;
-    try expectEqual(@as(u8, 217), try Rolls.coalesce(.P2, 217, &summaries, false));
-    try expectEqual(@as(u8, 255), try Rolls.coalesce(.P2, 217, &summaries, true));
+    try expectEqual(@as(u8, 217), Rolls.coalesce(.P2, 217, &summaries, false));
+    try expectEqual(@as(u8, 255), Rolls.coalesce(.P2, 217, &summaries, true));
 }
 
 test "Rolls.hit" {

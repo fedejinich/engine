@@ -119,9 +119,9 @@ const gen1 = struct {
                     const p1_max: u9 = if (p2_dmg.min != p2_min)
                         p1_dmg.min
                     else
-                        try Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
+                        Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
                     const p2_max: u9 =
-                        try Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
+                        Rolls.coalesce(.P2, @as(u8, @intCast(p2_dmg.min)), summaries, cap);
 
                     if (opts.chance.actions.matches(f)) {
                         if (!opts.chance.actions.relax().eql(a)) {
