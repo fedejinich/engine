@@ -49,6 +49,10 @@ pub fn build(b: *std.Build) !void {
     const node_headers = b.option([]const u8, "node-headers", "Path to node-headers");
     const node_import_lib =
         b.option([]const u8, "node-import-library", "Path to node import library (Windows)");
+    const demo = if (try exists("src/tools/demo.zig"))
+        b.option(bool, "demo", "Build the demo library") orelse false
+    else
+        false;
     const wasm = b.option(bool, "wasm", "Build a WASM library") orelse false;
     const wasm_stack_size =
         b.option(u64, "wasm-stack-size", "The size of WASM stack") orelse std.wasm.page_size;
@@ -106,15 +110,18 @@ pub fn build(b: *std.Build) !void {
 
     const name = if (showdown) "pkmn-showdown" else "pkmn";
 
-    const pkmn = if (@hasDecl(std.Build, "CreateModuleOptions")) null else b.addModule("pkmn", .{
-        .root_source_file = if (has_path)
-            .{ .path = "src/lib/pkmn.zig" }
-        else
-            b.path("src/lib/pkmn.zig"),
-        .optimize = optimize,
-        .target = target,
-        .imports = &.{.{ .name = "build_options", .module = options.createModule() }},
-    });
+    const pkmn: ?*std.Build.Module = if (@hasDecl(std.Build, "CreateModuleOptions"))
+        null
+    else
+        b.addModule("pkmn", .{
+            .root_source_file = if (has_path)
+                .{ .path = "src/lib/pkmn.zig" }
+            else
+                b.path("src/lib/pkmn.zig"),
+            .optimize = optimize,
+            .target = target,
+            .imports = &.{.{ .name = "build_options", .module = options.createModule() }},
+        });
 
     var c = false;
     if (node_headers) |headers| {
@@ -155,7 +162,18 @@ pub fn build(b: *std.Build) !void {
         // rename the file ourself in install-pkmn-engine
         b.installArtifact(lib);
     } else if (wasm) {
-        try buildWasm(b, name, "src/lib/wasm.zig", optimize, strip, pic, wasm_stack_size, options);
+        const path = "src/lib/wasm.zig";
+        try buildWasm(b, name, path, optimize, strip, pic, wasm_stack_size, null, options);
+    } else if (demo) {
+        const path = "src/tools/demo.zig";
+        const n = if (showdown) "demo-showdown" else "demo";
+        const mod = pkmn orelse module(b, .{
+            .showdown = showdown,
+            .log = log,
+            .chance = chance,
+            .calc = calc,
+        });
+        try buildWasm(b, n, path, optimize, strip, pic, wasm_stack_size, mod, options);
     } else if (dynamic) {
         const path = if (has_path) .{ .path = "src/lib/c.zig" } else b.path("src/lib/c.zig");
         const lib = b.addSharedLibrary(if (force_pic) .{
@@ -316,6 +334,7 @@ fn buildWasm(
     strip: ?bool,
     pic: ?bool,
     wasm_stack_size: u64,
+    import: ?*std.Build.Module,
     options: anytype,
 ) !void {
     const entry = @hasDecl(Step.Compile, "Entry");
@@ -382,6 +401,13 @@ fn buildWasm(
         lib.rdynamic = true;
         break :bin lib;
     };
+    if (import) |i| {
+        if (root_module) {
+            bin.root_module.addImport("pkmn", i);
+        } else {
+            bin.addModule("pkmn", i);
+        }
+    }
     bin.stack_size = wasm_stack_size;
     if (@hasDecl(@TypeOf(bin.*), "strip")) bin.strip = strip orelse false;
     if (force_pic and pic orelse false) bin.force_pic = pic;
@@ -492,10 +518,7 @@ const ToolConfig = struct {
 };
 
 fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*Step.Run {
-    std.fs.cwd().access(path, .{}) catch |err| switch (err) {
-        error.FileNotFound => return null,
-        else => |e| return e,
-    };
+    if (!try exists(path)) return null;
     var name = config.tool.name orelse std.fs.path.basename(path);
     const index = std.mem.lastIndexOfScalar(u8, name, '.');
     if (index) |i| name = name[0..i];
@@ -535,6 +558,14 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*Step.Run {
     if (b.args) |args| run.addArgs(args);
 
     return run;
+}
+
+fn exists(path: []const u8) !bool {
+    std.fs.cwd().access(path, .{}) catch |err| switch (err) {
+        error.FileNotFound => return false,
+        else => |e| return e,
+    };
+    return true;
 }
 
 const ToolsStep = struct {
