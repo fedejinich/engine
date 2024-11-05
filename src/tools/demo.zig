@@ -175,3 +175,7 @@ usingnamespace if (exportable) struct {
     export const GEN1_update = wasm.gen(1).update;
     export const GEN1_choices = wasm.gen(1).choices;
 } else wasm.exports();
+
+export fn GEN1_demo(n: u32) u32 {
+    return n + 1;
+}

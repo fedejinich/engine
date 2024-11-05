@@ -1,5 +1,6 @@
 import 'source-map-support/register';
 
+import {execFileSync} from 'child_process';
 import {promises as fs} from 'fs';
 import * as path from 'path';
 
@@ -7,11 +8,13 @@ import {Generations, ID, PokemonSet, toID} from '@pkmn/data';
 import {Dex} from '@pkmn/sim';
 import {Smogon} from '@pkmn/smogon';
 
-import {Battle, Choice, Lookup} from '../pkg';
+import {Battle, Choice, Lookup, initialize} from '../pkg';
 
 import {Move, Species, pruneMove, pruneSpecies, render} from './display';
 
 const ROOT = path.resolve(__dirname, '..', '..');
+
+const sh = (cmd: string, args: string[]) => execFileSync(cmd, args, {encoding: 'utf8'});
 
 const showdown = true;
 const gens = new Generations(Dex as any);
@@ -33,6 +36,8 @@ const lookup = Lookup.get(gen);
 const SKIP = ['gen1lc'] as ID[];
 
 (async () => {
+  sh('zig', ['build', `-Dshowdown=${showdown.toString()}`, '-Ddemo', '-p', 'build']);
+
   const order: {
     global: {species: {[id: string]: number}; moves: {[id: string]: number}};
     local: number[];
@@ -81,12 +86,16 @@ const SKIP = ['gen1lc'] as ID[];
     data.moves[m.id] = pruneMove(gen, m);
   }
 
+  const file = path.join(ROOT, 'build', 'lib', `demo${showdown ? '-showdown' : ''}.wasm`);
+  const bytes = await fs.readFile(file);
+  const wasm = bytes.toString('base64');
+
+  await initialize(showdown, new WebAssembly.Module(bytes));
   const battle = Battle.create(gen, {
     p1: {team: [p1!]}, p2: {team: [p2!]}, seed: [1, 2, 3, 4], showdown, log: false,
   });
   battle.update(Choice.pass, Choice.pass);
-  const file = path.join(ROOT, 'build', 'lib', `pkmn${showdown ? '-showdown' : ''}.wasm`);
-  const wasm = (await fs.readFile(file)).toString('base64');
+
   process.stdout.write(render(path.join(ROOT, 'build', 'tools', 'display', 'demo.jsx'), {
     order: {
       species: Buffer.from(Object.keys(order.global.species)

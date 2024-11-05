@@ -42,7 +42,10 @@ for (let i = 0; i < species.length; i++) {
 console.debug(order);
 
 const bytes = Uint8Array.from(atob(wasm), c => c.charCodeAt(0));
-engine.initialize(json.showdown, new WebAssembly.Module(bytes)).then(() => {
+const mod = new WebAssembly.Module(bytes);
+const instantiate = WebAssembly.instantiate(mod);
+Promise.all([instantiate, engine.initialize(json.showdown, mod)]).then(([instance]) => {
+  console.debug((instance.exports.GEN1_demo as CallableFunction)(41));
   const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
   document.getElementById('content')!.appendChild(<App
     gen={GEN}
