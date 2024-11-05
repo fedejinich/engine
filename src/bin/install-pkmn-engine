@@ -325,6 +325,7 @@ const downloadImportLib = async () => {
   const libs = path.join(ROOT, 'build', 'lib');
   if (fs.existsSync(libs)) {
     for (const file of fs.readdirSync(libs)) {
+      if (!file.startsWith('pkmn')) continue;
       const type = path.extname(file).slice(1);
       if (type !== 'node' && type !== 'wasm') continue;
       // If we don't copy the addon before loading it Windows will return an
