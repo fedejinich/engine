@@ -1,12 +1,48 @@
 const pkmn = @import("pkmn");
 const std = @import("std");
 
-const Allocator = std.mem.Allocator;
+const allocator = std.heap.wasm_allocator;
 const assert = std.debug.assert;
 const Choice = pkmn.Choice;
 const protocol = pkmn.protocol;
 const Rational = pkmn.Rational;
 const wasm = pkmn.bindings.wasm;
+
+const js = struct {
+    extern "js" fn log(ptr: [*]const u8, len: usize) void;
+    extern "js" fn panic(ptr: [*]const u8, len: usize) noreturn;
+};
+
+pub const std_options = if (@hasDecl(std, "Options")) std.Options{
+    .logFn = log,
+    .log_level = .debug,
+} else struct {
+    pub const logFn = log;
+    pub const log_level = .debug;
+};
+
+fn log(
+    comptime message_level: std.log.Level,
+    comptime scope: @TypeOf(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    const level_txt = comptime message_level.asText();
+    const prefix2 = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
+    var buf: [500]u8 = undefined;
+    const line = std.fmt.bufPrint(&buf, level_txt ++ prefix2 ++ format, args) catch l: {
+        buf[buf.len - 3 ..][0..3].* = "...".*;
+        break :l &buf;
+    };
+    js.log(line.ptr, line.len);
+}
+
+pub fn panic(msg: []const u8, st: ?*std.builtin.StackTrace, addr: ?usize) noreturn {
+    _ = st;
+    _ = addr;
+    std.log.err("panic: {s}", .{msg});
+    @trap();
+}
 
 pub const pkmn_options = pkmn.Options{
     .advance = false,
@@ -17,28 +53,28 @@ pub const pkmn_options = pkmn.Options{
 
 const gen1 = struct {
     const Actions = pkmn.gen1.chance.Actions;
-    const Battle = pkmn.gen1.data.Battle;
+    const Battle = pkmn.gen1.Battle;
     const Calc = pkmn.gen1.Calc;
     const Chance = pkmn.gen1.Chance;
     const Durations = pkmn.gen1.chance.Durations;
-    const PRNG = pkmn.gen1.data.PRNG;
+    const PRNG = pkmn.gen1.PRNG;
     const Rolls = pkmn.gen1.calc.Rolls;
 
+    const Result = struct {
+        actions: Actions,
+        probability: Rational(u128),
+    };
+
     pub fn transitions(
-        battle: Battle(.PRNG),
+        battle: Battle(PRNG),
         c1: Choice,
         c2: Choice,
-        allocator: Allocator,
-        durations: ?Durations,
+        d: Durations,
+        cap: bool,
+        seen: *std.AutoArrayHashMap(Actions, Rational(u128)),
     ) !void {
-        const cap = true; // FIXME
-
-        var seen = std.AutoHashMap(Actions, void).init(allocator);
-        defer seen.deinit();
         var frontier = std.ArrayList(Actions).init(allocator);
         defer frontier.deinit();
-
-        const d = durations orelse .{};
 
         var opts = pkmn.battle.options(
             protocol.NULL,
@@ -52,7 +88,6 @@ const gen1 = struct {
         const p1 = b.side(.P1);
         const p2 = b.side(.P2);
 
-        var p: Rational(u128) = .{ .p = 0, .q = 1 };
         try frontier.append(opts.chance.actions);
 
         // zig fmt: off
@@ -110,7 +145,6 @@ const gen1 = struct {
                     opts.calc.overrides = a;
                     opts.calc.summaries = .{};
                     opts.chance = .{ .probability = .{}, .durations = d };
-                    const q = &opts.chance.probability;
 
                     b = battle;
                     _ = try b.update(c1, c2, &opts);
@@ -135,15 +169,11 @@ const gen1 = struct {
                                 var acts = opts.chance.actions;
                                 acts.p1.damage = @intCast(p1d);
                                 acts.p2.damage = @intCast(p2d);
-                                assert(!try seen.getOrPut(acts).found_existing);
+                                const v = try seen.getOrPut(acts);
+                                assert(!v.found_existing);
+                                v.value_ptr.* = opts.chance.probability;
                             }
                         }
-                        if (p1_max != p1_min) try q.update(p1_max - p1_min + 1, 1);
-                        if (p2_max != p2_dmg.min) try q.update(p2_max - p2_dmg.min + 1, 1);
-
-                        q.reduce();
-                        try p.add(q);
-                        p.reduce();
                     } else if (!opts.chance.actions.matchesAny(frontier.items, i)) {
                         try frontier.append(opts.chance.actions);
                     }
@@ -156,10 +186,22 @@ const gen1 = struct {
         }
         frontier.shrinkRetainingCapacity(1);
         // zig fmt: on
-
-        p.reduce();
     }
 };
+
+fn Slice(T: type) type {
+    return packed struct(u64) {
+        ptr: u32,
+        len: u32,
+
+        fn init(s: []const T) @This() {
+            return .{
+                .ptr = @intFromPtr(s.ptr),
+                .len = s.len,
+            };
+        }
+    };
+}
 
 export const SHOWDOWN = wasm.options.showdown;
 export const LOG = wasm.options.log;
@@ -176,6 +218,33 @@ usingnamespace if (exportable) struct {
     export const GEN1_choices = wasm.gen(1).choices;
 } else wasm.exports();
 
-export fn GEN1_demo(n: u32) u32 {
-    return n + 1;
+export fn GEN1_transitions(
+    battle: *gen1.Battle(gen1.PRNG),
+    c1: Choice,
+    c2: Choice,
+    durations: gen1.Durations,
+    cap: bool,
+) Slice(gen1.Result) {
+    var seen = std.AutoArrayHashMap(gen1.Actions, Rational(u128)).init(allocator);
+    defer seen.deinit();
+
+    gen1.transitions(battle.*, c1, c2, durations, cap, &seen) catch |err| switch (err) {
+        error.OutOfMemory => @panic("out of memory"),
+        error.Overflow => @panic("overflow"),
+        else => unreachable,
+    };
+
+    var results = allocator.alloc(gen1.Result, seen.count()) catch @panic("out of memory");
+    var it = seen.iterator();
+    var i: usize = 0;
+    while (it.next()) |kv| {
+        results[i] = .{ .actions = kv.key_ptr.*, .probability = kv.value_ptr.* };
+        std.log.debug("{s} = {s}", .{ results[i].actions, results[i].probability });
+        i += 1;
+    }
+    return Slice(gen1.Result).init(results);
+}
+
+export fn GEN1_transitions_deinit(results: Slice(gen1.Result)) void {
+    allocator.free(@as([*]gen1.Result, @ptrFromInt(results.ptr))[0..results.len]);
 }

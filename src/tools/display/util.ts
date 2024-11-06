@@ -41,3 +41,17 @@ export const toText = (parsed: ParsedLine[]) =>
 export const pretty = (choice?: Choice) => choice
   ? choice.type === 'pass' ? choice.type : `${choice.type} ${choice.data}`
   : '???';
+
+export const imports = (memory: [WebAssembly.Memory], decoder: TextDecoder) => ({
+  js: {
+    log(ptr: number, len: number) {
+      if (len === 0) return console.log('');
+      const msg = decoder.decode(new Uint8Array(memory[0].buffer, ptr, len));
+      console.log(msg);
+    },
+    panic(ptr: number, len: number) {
+      const msg = decoder.decode(new Uint8Array(memory[0].buffer, ptr, len));
+      throw new Error('panic: ' + msg);
+    },
+  },
+});

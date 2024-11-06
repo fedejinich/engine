@@ -3,8 +3,43 @@ import * as gen1 from '../../pkg/gen1';
 
 // import {Select} from './select';
 import {Battle, Gen, Generation, adapt} from './ui';
+import {imports} from './util';
 
-const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: boolean}) => {
+function toBinding(gen: number, w: WebAssembly.Exports) {
+  const prefix = `GEN${gen}`;
+  const buf = (w.memory as WebAssembly.Memory).buffer;
+
+  const transitions = w[`${prefix}_transitions`] as CallableFunction;
+  const deinit = w[`${prefix}_transitions_deinit`] as CallableFunction;
+  const memory = new Uint8Array(buf);
+
+  return {
+    transitions(
+      this: void,
+      battle: ArrayBuffer,
+      c1: number,
+      c2: number,
+      durations: bigint,
+      cap: boolean,
+    ): bigint {
+      const bytes = new Uint8Array(battle);
+      memory.set(bytes, 0);
+
+      return transitions(0, c1, c2, durations, cap);
+    },
+
+    deinit(this: void, ref: bigint) {
+      deinit(ref);
+    },
+  };
+}
+
+const App = ({gen, data, showdown, instance}: {
+  gen: Generation;
+  data: DataView;
+  showdown: boolean;
+  instance: WebAssembly.Instance;
+}) => {
   const lookup = engine.Lookup.get(gen);
   const deserialize = (d: DataView): engine.Battle => {
     switch (gen.num) {
@@ -13,6 +48,15 @@ const App = ({gen, data, showdown}: {gen: Generation; data: DataView; showdown: 
     }
   };
   const battle = deserialize(data);
+  const {transitions, deinit} = toBinding(gen.num, instance.exports);
+
+  const durations = 0n; // TODO
+  const move = engine.Choice.encode(engine.Choice.move(1));
+  const results =
+    transitions(battle.bytes().buffer, move, move, durations, true);
+  console.debug(results);
+  deinit(results);
+
   return <Battle battle={battle} gen={gen} showdown={showdown} hide={true} />;
 };
 
@@ -43,15 +87,20 @@ console.debug(order);
 
 const bytes = Uint8Array.from(atob(wasm), c => c.charCodeAt(0));
 const mod = new WebAssembly.Module(bytes);
-const instantiate = WebAssembly.instantiate(mod);
-Promise.all([instantiate, engine.initialize(json.showdown, mod)]).then(([instance]) => {
-  console.debug((instance.exports.GEN1_demo as CallableFunction)(41));
-  const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
-  document.getElementById('content')!.appendChild(<App
-    gen={GEN}
-    data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
-    showdown={json.showdown}
-  />);
+
+const memory: [WebAssembly.Memory] = [null!];
+const decoder = new TextDecoder();
+WebAssembly.instantiate(mod, imports(memory, decoder)).then(instance => {
+  memory[0] = instance.exports.memory as WebAssembly.Memory;
+  return engine.initialize(json.showdown, instance).then(() => {
+    const buf = Uint8Array.from(atob(json.buf), c => c.charCodeAt(0));
+    document.getElementById('content')!.appendChild(<App
+      gen={GEN}
+      data={new DataView(buf.buffer, buf.byteOffset, buf.byteLength)}
+      showdown={json.showdown}
+      instance={instance}
+    />);
+  });
 }).catch(console.error);
 
 // const select = <Select options={order.species} placeholder='Tauros' />;

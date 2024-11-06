@@ -11,6 +11,7 @@ import {Smogon} from '@pkmn/smogon';
 import {Battle, Choice, Lookup, initialize} from '../pkg';
 
 import {Move, Species, pruneMove, pruneSpecies, render} from './display';
+import {imports} from './display/util';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -90,7 +91,12 @@ const SKIP = ['gen1lc'] as ID[];
   const bytes = await fs.readFile(file);
   const wasm = bytes.toString('base64');
 
-  await initialize(showdown, new WebAssembly.Module(bytes));
+  const memory: [WebAssembly.Memory] = [null!];
+  const decoder = new TextDecoder();
+  const instance =
+    await WebAssembly.instantiate(new WebAssembly.Module(bytes), imports(memory, decoder));
+  memory[0] = instance.exports.memory as WebAssembly.Memory;
+  await initialize(showdown, instance);
   const battle = Battle.create(gen, {
     p1: {team: [p1!]}, p2: {team: [p2!]}, seed: [1, 2, 3, 4], showdown, log: false,
   });
