@@ -26,23 +26,26 @@ for (const v in OFFSETS.Volatiles) {
 export class Battle implements Gen1.Battle {
   readonly config: CreateOptions | RestoreOptions;
   readonly log?: DataView;
+  readonly data: DataView;
 
   private readonly lookup: Lookup;
-  private readonly data: DataView;
   private readonly out: Uint8Array;
-
   private readonly cache: [Side?, Side?];
 
   constructor(lookup: Lookup, data: DataView, config: CreateOptions | RestoreOptions) {
     this.config = config;
 
-    this.lookup = lookup;
     this.data = data;
+    this.lookup = lookup;
     this.out =
       new Uint8Array(new ArrayBuffer('inert' in config ? 0 : addon.size(0, 'choices')));
     this.log = config.log ? new DataView(new ArrayBuffer(addon.size(0, 'log'))) : undefined;
 
     this.cache = [undefined, undefined];
+  }
+
+  bytes() {
+    return this.data;
   }
 
   update(c1?: Choice, c2?: Choice): Result {

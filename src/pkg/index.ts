@@ -27,6 +27,8 @@ export interface API {
    * `Log`.
    */
   log?: DataView;
+  /** FIXME */
+  bytes(): DataView;
   /**
   * Returns the result of applying Player 1's choice `c1` and Player 2's choice
   * `c2` to the battle.
