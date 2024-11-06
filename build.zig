@@ -388,7 +388,11 @@ fn buildWasm(
             .strip = strip,
             .pic = pic,
         });
-        (if (root_module) exe.root_module else exe).export_symbol_names = try exports(b);
+
+        var file = try std.fs.cwd().openFile(root_src_file, .{});
+        defer file.close();
+        const bytes = try file.readToEndAlloc(b.allocator, std.math.maxInt(usize));
+        (if (root_module) exe.root_module else exe).export_symbol_names = try exports(b, bytes);
         exe.entry = .disabled;
         break :bin exe;
     } else bin: {
@@ -585,12 +589,10 @@ fn detect(target: anytype) std.Target {
     return (std.zig.system.NativeTargetInfo.detect(target) catch unreachable).target;
 }
 
-const WASM = @embedFile("src/lib/wasm.zig");
-
-pub fn exports(b: *std.Build) ![][]const u8 {
+pub fn exports(b: *std.Build, bytes: []const u8) ![][]const u8 {
     var symbols = std.ArrayList([]const u8).init(b.allocator);
 
-    var it = std.mem.splitSequence(u8, WASM, "export ");
+    var it = std.mem.splitSequence(u8, bytes, "export ");
     _ = it.next();
     while (it.next()) |s| {
         if (std.mem.startsWith(u8, s, "const ")) {
