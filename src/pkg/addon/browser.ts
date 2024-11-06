@@ -9,7 +9,9 @@ export async function load(showdown: boolean, addon?: Argument) {
   }
 
   let wasm: WebAssembly.Instance;
-  if (addon instanceof WebAssembly.Module) {
+  if (addon instanceof WebAssembly.Instance) {
+    wasm = addon;
+  } else if (addon instanceof WebAssembly.Module) {
     try {
       wasm = (await WebAssembly.instantiate(addon));
     } catch (err) {

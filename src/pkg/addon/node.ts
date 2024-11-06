@@ -33,6 +33,8 @@ export async function load(showdown: boolean, addon?: Argument) {
     } catch (err) {
       throw error(WASM[+showdown], err);
     }
+  } else if (addon instanceof WebAssembly.Instance) {
+    wasm = addon;
   } else if (addon instanceof WebAssembly.Module) {
     try {
       wasm = (await WebAssembly.instantiate(addon));

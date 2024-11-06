@@ -1,7 +1,7 @@
 import {load, loadSync} from './addon/node';
 import {Choice, Player, Result} from './common';
 
-export type Argument = string | URL | WebAssembly.Module | Promise<Response>;
+export type Argument = string | URL | WebAssembly.Module | WebAssembly.Instance | Promise<Response>;
 
 export interface Bindings<T extends boolean> {
   /**
