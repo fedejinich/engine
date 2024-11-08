@@ -13,7 +13,7 @@ export const PKMN_GEN1_CHOICES_SIZE = c.gen(1).CHOICES_SIZE;
 export const PKMN_GEN1_MAX_LOGS = c.gen(1).MAX_LOGS;
 export const PKMN_GEN1_LOGS_SIZE = c.gen(1).LOGS_SIZE;
 
-const exportable = @hasDecl(std.zig, "Zir") and !@hasDecl(std.zig.Zir.Inst, "export_value");
+const exportable = @hasDecl(std.zig, "Zir") and !@hasField(std.zig.Zir.Inst.Tag, "export_value");
 
 usingnamespace if (exportable) struct {
     export const pkmn_choice_init = c.choice_init;
