@@ -2,6 +2,7 @@ const std = @import("std");
 const pkmn = @import("pkmn");
 
 pub fn main() !void {
+    const out = std.io.getStdOut().writer();
     // Set up required to be able to parse command line arguments
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -81,7 +82,6 @@ pub fn main() !void {
         // battle contains Pokémon with a combination of Transform, Mirror Move/Metronome, and
         // Disable its possible that there are no available choices (softlock), though this is
         // impossible here given that our example battle involves none of these moves
-        // TODO: ziglang/zig#13415
         const n1 = random.uintLessThan(u8, battle.choices(.P1, result.p1, &choices));
         c1 = choices[n1];
         const n2 = random.uintLessThan(u8, battle.choices(.P2, result.p2, &choices));
@@ -100,6 +100,5 @@ pub fn main() !void {
         else => unreachable,
     };
 
-    const out = std.io.getStdOut().writer();
     try out.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
 }
