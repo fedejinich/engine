@@ -6,8 +6,8 @@ pub export fn main() u32 {
     var foo: u32 = 1;
     foo = foo + 1;
 
-    if (foo == 2) {
-        return 2;
+    if (foo != 2) {
+        return 1;
     }
 
     return 0;
