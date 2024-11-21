@@ -15,7 +15,7 @@ pub fn run_battle() !u32 {
     var battle = pkmn.gen1.helpers.Battle.init(
         42, // Arbitrary static seed
         &.{
-            .{ .species = .Bulbasaur, .moves = &.{ .SleepPowder, .SwordsDance, .RazorLeaf, .BodySlam } },
+            .{ .species = .Pikachu, .moves = &.{ .Thunderbolt, .ThunderWave, .Surf, .SeismicToss } },
         },
         &.{
             .{ .species = .Tauros, .moves = &.{ .BodySlam, .HyperBeam, .Blizzard, .Earthquake } },
@@ -32,10 +32,10 @@ pub fn run_battle() !u32 {
 
     // Predefined player choices
     const player1Choices = [_]pkmn.Choice{
-        .{ .type = .Move, .data = 0 }, // Use Move 0
+        .{ .type = .Move, .data = 0 },
     };
     const player2Choices = [_]pkmn.Choice{
-        .{ .type = .Move, .data = 2 }, // Use Move 2
+        .{ .type = .Move, .data = 2 },
     };
 
     _ = try battle.update(player1Choices[0], player2Choices[0], &options);
