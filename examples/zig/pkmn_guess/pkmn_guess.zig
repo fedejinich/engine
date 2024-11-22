@@ -1,7 +1,18 @@
 const std = @import("std");
 const pkmn = @import("pkmn");
 
+const INPUT_ADDRESS: usize = 0xAA00_0000;
+
 pub fn main() !void {
+    const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
+
+    var winning_pokemon: pkmn.gen1.Pokemon = &.{};
+    if (@volatileCast(input_ptr) != 0x0000_1234) {
+        std.os.exit(0x1);
+    } else {
+        winning_pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
+    }
+
     // use a random to pick choices and to initialize battle_seed
     const seed = 51; // fixed seed makes the program deterministic
     var prng = (if (@hasDecl(std, "Random")) std.Random else std.rand).DefaultPrng.init(seed);
@@ -11,9 +22,7 @@ pub fn main() !void {
     var choices: [pkmn.CHOICES_SIZE]pkmn.Choice = undefined;
 
     // one possible winning pokemon (by providing this pokemon we produces a victory for PlayerB)
-    // technically there are more pokemons that will produce a PlayerB victory but for this small game we choose Alakazam
-    const winning_pokemon = .{ .species = .Alakazam, .moves = &.{ .Psychic, .SeismicToss, .ThunderWave, .Recover } };
-
+    // technically there are more pokemons that will produce a PlayerB victory but for this small game we choose Snorlax
     var battle = pkmn.gen1.helpers.Battle.init(
         random.int(u64),
         &.{
@@ -24,7 +33,14 @@ pub fn main() !void {
             .{ .species = .Rattata, .moves = &.{ .SuperFang, .BodySlam, .Blizzard, .Thunderbolt } },
             .{ .species = .Pidgey, .moves = &.{ .DoubleEdge, .QuickAttack, .WingAttack, .MirrorMove } },
         },
-        &.{ .{ .species = .Tauros, .moves = &.{ .BodySlam, .HyperBeam, .Blizzard, .Earthquake } }, .{ .species = .Chansey, .moves = &.{ .Reflect, .SeismicToss, .SoftBoiled, .ThunderWave } }, .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } }, .{ .species = .Exeggutor, .moves = &.{ .SleepPowder, .Psychic, .Explosion, .DoubleEdge } }, .{ .species = .Starmie, .moves = &.{ .Recover, .ThunderWave, .Blizzard, .Thunderbolt } }, winning_pokemon },
+        &.{
+            .{ .species = .Tauros, .moves = &.{ .BodySlam, .HyperBeam, .Blizzard, .Earthquake } },
+            .{ .species = .Chansey, .moves = &.{ .Reflect, .SeismicToss, .SoftBoiled, .ThunderWave } },
+            .{ .species = .Exeggutor, .moves = &.{ .SleepPowder, .Psychic, .Explosion, .DoubleEdge } },
+            .{ .species = .Starmie, .moves = &.{ .Recover, .ThunderWave, .Blizzard, .Thunderbolt } },
+            .{ .species = .Alakazam, .moves = &.{ .Psychic, .SeismicToss, .ThunderWave, .Recover } },
+            winning_pokemon,
+        },
     );
 
     // preallocate a buffer for the logging
