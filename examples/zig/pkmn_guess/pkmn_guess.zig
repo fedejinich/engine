@@ -2,7 +2,9 @@ const std = @import("std");
 const pkmn = @import("pkmn");
 
 const INPUT_ADDRESS: usize = 0xAA00_0000;
-const SEED: u32 = 151;
+
+// BitVMX is not intended to support randomness so we use a fixed seed
+var SEED: u32 = 5;
 
 const ExecutionResult = enum(u32) { WIN = 0, LOSE = 1, TIE = 2, BATTLE_ERROR = 3, INPUT_ERROR = 4, UNEXPECTED_ERROR = 5 };
 
@@ -19,16 +21,19 @@ pub fn run() !u32 {
     // parse input from INPUT_ADDRESS
     const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
 
-    // this Pokemon that guarantees a victory for PlayerB in this scenario.
+    // 'winning_pokemon' guarantees a victory for PlayerB (Ash's team)
     // while other Pokemon could also lead to a PlayerB victory, we simplify the game logic
-    // by using specific Pokemon (eg. Snorlax).
+    // by using the same Pokemon as in the Pokemon series (iconic battle Charizard's first major victory).
     var winning_pokemon: pkmn.gen1.helpers.Pokemon = undefined;
     if (input_ptr.* == 0x0000_1234) {
-        winning_pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
+        // winning_pokemon = .{ .species = .Charizard, .moves = &.{ .Flamethrower, .SeismicToss, .DragonRage, .SteelWing } };
+        winning_pokemon = .{ .species = .Charizard, .moves = &.{ .Flamethrower, .SeismicToss, .DragonRage } };
     } else if (input_ptr.* == 0x0000_1235) {
-        winning_pokemon = .{ .species = .Rattata, .moves = &.{ .SuperFang, .BodySlam, .Blizzard, .Thunderbolt } };
+        winning_pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .HyperBeam, .Rest, .IcePunch } };
+        SEED = 6; // seed 6 always produces victory for PlayerA
     } else if (input_ptr.* == 0x0000_1236) {
-        winning_pokemon = .{ .species = .Exeggutor, .moves = &.{ .SleepPowder, .Psychic, .Explosion, .DoubleEdge } };
+        winning_pokemon = .{ .species = .Kingler, .moves = &.{ .Crabhammer, .Stomp, .HyperBeam, .Surf } };
+        SEED = 6; // seed 6 always produces victory for PlayerA
     } else {
         return @intFromEnum(ExecutionResult.INPUT_ERROR);
     }
@@ -44,19 +49,13 @@ pub fn run() !u32 {
     var battle = pkmn.gen1.helpers.Battle.init(
         random.int(u64),
         &.{
-            .{ .species = .Bulbasaur, .moves = &.{ .SleepPowder, .SwordsDance, .RazorLeaf, .BodySlam } },
-            .{ .species = .Charmander, .moves = &.{ .FireBlast, .FireSpin, .Slash, .Counter } },
-            .{ .species = .Squirtle, .moves = &.{ .Surf, .Blizzard, .BodySlam, .Rest } },
-            .{ .species = .Pikachu, .moves = &.{ .Thunderbolt, .ThunderWave, .Surf, .SeismicToss } },
-            .{ .species = .Rattata, .moves = &.{ .SuperFang, .BodySlam, .Blizzard, .Thunderbolt } },
-            .{ .species = .Pidgey, .moves = &.{ .DoubleEdge, .QuickAttack, .WingAttack, .MirrorMove } },
+            .{ .species = .Ninetales, .moves = &.{ .Flamethrower, .QuickAttack, .ConfuseRay, .FireSpin } },
+            .{ .species = .Rhydon, .moves = &.{ .HornDrill, .Stomp, .RockThrow, .Earthquake } },
+            .{ .species = .Magmar, .moves = &.{ .FireBlast, .Smokescreen, .Psychic, .Smog } },
         },
         &.{
-            .{ .species = .Tauros, .moves = &.{ .BodySlam, .HyperBeam, .Blizzard, .Earthquake } },
-            .{ .species = .Chansey, .moves = &.{ .Reflect, .SeismicToss, .SoftBoiled, .ThunderWave } },
-            .{ .species = .Exeggutor, .moves = &.{ .SleepPowder, .Psychic, .Explosion, .DoubleEdge } },
-            .{ .species = .Starmie, .moves = &.{ .Recover, .ThunderWave, .Blizzard, .Thunderbolt } },
-            .{ .species = .Alakazam, .moves = &.{ .Psychic, .SeismicToss, .ThunderWave, .Recover } },
+            .{ .species = .Pikachu, .moves = &.{ .Thunderbolt, .Agility, .QuickAttack, .ThunderWave } },
+            .{ .species = .Squirtle, .moves = &.{ .HydroPump, .WaterGun, .Tackle, .Withdraw } },
             winning_pokemon,
         },
     );
@@ -71,6 +70,7 @@ pub fn run() !u32 {
     var c2 = pkmn.Choice{};
 
     // pokemon battle
+    // var result = try battle.update(c1, c2, &options);
     var result = try battle.update(c1, c2, &options);
     while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
         // `battle.choices` determines possible choices by using the system PRNG to pick one at random
@@ -81,8 +81,8 @@ pub fn run() !u32 {
     }
 
     return switch (result.type) {
-        .Win => @intFromEnum(ExecutionResult.LOSE), // won by playerA
         .Lose => @intFromEnum(ExecutionResult.WIN), // won by playerB
+        .Win => @intFromEnum(ExecutionResult.LOSE), // won by playerA
         .Tie => @intFromEnum(ExecutionResult.TIE),
         .Error => @intFromEnum(ExecutionResult.BATTLE_ERROR),
         else => unreachable,
