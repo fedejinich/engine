@@ -2,42 +2,45 @@ const std = @import("std");
 const pkmn = @import("pkmn");
 
 const INPUT_ADDRESS: usize = 0xAA00_0000;
+const SEED: u32 = 151;
 
-pub const ExecutionResult = enum(u32) {
-    SUCCESS = 0,
-    INPUT_ERROR = 2,
-    UNEXPECTED = 1,
-};
+const ExecutionResult = enum(u32) { WIN = 0, LOSE = 1, TIE = 2, BATTLE_ERROR = 3, INPUT_ERROR = 4, UNEXPECTED_ERROR = 5 };
 
 pub export fn main() u32 {
     const result = run();
     if (result) |value| {
         return value;
     } else |_| {
-        return @intFromEnum(ExecutionResult.UNEXPECTED);
+        return @intFromEnum(ExecutionResult.UNEXPECTED_ERROR);
     }
 }
 
 pub fn run() !u32 {
-    // parse input
+    // parse input from INPUT_ADDRESS
     const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
 
-    if (input_ptr.* != 0x0000_1234) {
+    // this Pokemon that guarantees a victory for PlayerB in this scenario.
+    // while other Pokemon could also lead to a PlayerB victory, we simplify the game logic
+    // by using specific Pokemon (eg. Snorlax).
+    var winning_pokemon: pkmn.gen1.helpers.Pokemon = undefined;
+    if (input_ptr.* == 0x0000_1234) {
+        winning_pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
+    } else if (input_ptr.* == 0x0000_1235) {
+        winning_pokemon = .{ .species = .Rattata, .moves = &.{ .SuperFang, .BodySlam, .Blizzard, .Thunderbolt } };
+    } else if (input_ptr.* == 0x0000_1236) {
+        winning_pokemon = .{ .species = .Exeggutor, .moves = &.{ .SleepPowder, .Psychic, .Explosion, .DoubleEdge } };
+    } else {
         return @intFromEnum(ExecutionResult.INPUT_ERROR);
     }
 
-    const winning_pokemon: pkmn.gen1.helpers.Pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
-
     // use random to pick choices and initialize battle_seed
-    const seed = 51; // fixed seed makes the program deterministic
-    var prng = (if (@hasDecl(std, "Random")) std.Random else std.rand).DefaultPrng.init(seed);
+    var prng = (if (@hasDecl(std, "Random")) std.Random else std.rand).DefaultPrng.init(SEED);
     var random = prng.random();
 
     // preallocate a small buffer for choices
     var choices: [pkmn.CHOICES_SIZE]pkmn.Choice = undefined;
 
-    // one possible winning pokemon (by providing this pokemon we produces a victory for PlayerB)
-    // technically there are more pokemons that will produce a PlayerB victory but for this small game we choose Snorlax
+    // initialize battle
     var battle = pkmn.gen1.helpers.Battle.init(
         random.int(u64),
         &.{
@@ -58,13 +61,8 @@ pub fn run() !u32 {
         },
     );
 
-    // preallocate a buffer for the logging
-    var buf: [pkmn.LOGS_SIZE]u8 = undefined;
-    var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
-
-    // enable logging with using `-Dlog`
     var options = pkmn.battle.options(
-        pkmn.protocol.FixedLog{ .writer = stream.writer() },
+        pkmn.protocol.NULL,
         pkmn.gen1.chance.NULL,
         pkmn.gen1.calc.NULL,
     );
@@ -72,6 +70,7 @@ pub fn run() !u32 {
     var c1 = pkmn.Choice{};
     var c2 = pkmn.Choice{};
 
+    // pokemon battle
     var result = try battle.update(c1, c2, &options);
     while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
         // `battle.choices` determines possible choices by using the system PRNG to pick one at random
@@ -79,20 +78,13 @@ pub fn run() !u32 {
         c1 = choices[n1];
         const n2 = random.uintLessThan(u8, battle.choices(.P2, result.p2, &choices));
         c2 = choices[n2];
-
-        stream.reset();
     }
 
-    // const msg = switch (result.type) {
-    //     .Win => "won by Player A",
-    //     .Lose => "won by Player B",
-    //     .Tie => "ended in a tie",
-    //     .Error => "encountered an error",
-    //     else => unreachable,
-    // };
-    //
-    // const out = std.io.getStdOut().writer();
-    // try out.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
-
-    return @intFromEnum(ExecutionResult.SUCCESS);
+    return switch (result.type) {
+        .Win => @intFromEnum(ExecutionResult.LOSE), // won by playerA
+        .Lose => @intFromEnum(ExecutionResult.WIN), // won by playerB
+        .Tie => @intFromEnum(ExecutionResult.TIE),
+        .Error => @intFromEnum(ExecutionResult.BATTLE_ERROR),
+        else => unreachable,
+    };
 }
