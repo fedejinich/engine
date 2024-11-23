@@ -19,8 +19,8 @@ pub export fn main() u32 {
 }
 
 pub fn run() !u32 {
+    // parse input
     const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
-    input_ptr.* = 0x0000_1234; // todo fede this is a test
 
     if (input_ptr.* != 0x0000_1234) {
         return @intFromEnum(ExecutionResult.INPUT_ERROR);
@@ -28,7 +28,7 @@ pub fn run() !u32 {
 
     const winning_pokemon: pkmn.gen1.helpers.Pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
 
-    // use a random to pick choices and to initialize battle_seed
+    // use random to pick choices and initialize battle_seed
     const seed = 51; // fixed seed makes the program deterministic
     var prng = (if (@hasDecl(std, "Random")) std.Random else std.rand).DefaultPrng.init(seed);
     var random = prng.random();
