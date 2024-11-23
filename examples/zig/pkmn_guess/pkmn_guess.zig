@@ -3,15 +3,30 @@ const pkmn = @import("pkmn");
 
 const INPUT_ADDRESS: usize = 0xAA00_0000;
 
-pub fn main() !void {
-    const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
+pub const ExecutionResult = enum(u32) {
+    SUCCESS = 0,
+    INPUT_ERROR = 2,
+    UNEXPECTED = 1,
+};
 
-    var winning_pokemon: pkmn.gen1.Pokemon = &.{};
-    if (@volatileCast(input_ptr) != 0x0000_1234) {
-        std.os.exit(0x1);
-    } else {
-        winning_pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
+pub export fn main() u32 {
+    const result = run();
+    if (result) |value| {
+        return value;
+    } else |_| {
+        return @intFromEnum(ExecutionResult.UNEXPECTED);
     }
+}
+
+pub fn run() !u32 {
+    const input_ptr: *volatile u32 = @ptrFromInt(INPUT_ADDRESS);
+    input_ptr.* = 0x0000_1234; // todo fede this is a test
+
+    if (input_ptr.* != 0x0000_1234) {
+        return @intFromEnum(ExecutionResult.INPUT_ERROR);
+    }
+
+    const winning_pokemon: pkmn.gen1.helpers.Pokemon = .{ .species = .Snorlax, .moves = &.{ .BodySlam, .Reflect, .Rest, .IceBeam } };
 
     // use a random to pick choices and to initialize battle_seed
     const seed = 51; // fixed seed makes the program deterministic
@@ -68,14 +83,16 @@ pub fn main() !void {
         stream.reset();
     }
 
-    const msg = switch (result.type) {
-        .Win => "won by Player A",
-        .Lose => "won by Player B",
-        .Tie => "ended in a tie",
-        .Error => "encountered an error",
-        else => unreachable,
-    };
+    // const msg = switch (result.type) {
+    //     .Win => "won by Player A",
+    //     .Lose => "won by Player B",
+    //     .Tie => "ended in a tie",
+    //     .Error => "encountered an error",
+    //     else => unreachable,
+    // };
+    //
+    // const out = std.io.getStdOut().writer();
+    // try out.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
 
-    const out = std.io.getStdOut().writer();
-    try out.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
+    return @intFromEnum(ExecutionResult.SUCCESS);
 }
